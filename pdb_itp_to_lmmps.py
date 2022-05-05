@@ -5,7 +5,7 @@ import itertools
 
 class DOC:
     """
-    reding pdb and itp files from Massimo Delle Piane structure for SiO2 nanoparticles
+    reding pdb and itp files from Mas*sim*o D*elle Pi*a*ne structure for SiO2 nanoparticles
     """
 
 #GLOBAL VARIABLES and FILE OPERATIONS
