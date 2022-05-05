@@ -5,7 +5,7 @@ import itertools
 
 class DOC:
     """
-    reding pdb and itp files from Mas*sim*o D*elle Pi*a*ne structure for SiO2 nanoparticles
+    reding pdb and itp files from Massimo Delle Piane structure for SiO2 nanoparticles
     """
 
 #GLOBAL VARIABLES and FILE OPERATIONS
@@ -90,9 +90,7 @@ class ITP:
         self.itpBondsDf = self.df_bonds(allBonds)
         print(self.itpBondsDf)
         self.itpAnglesDf = self.df_angles(allAngles)
-        # self.NmBonds, self.TypBonds, self.SetBonds = self.get_bond_types(self.itpBondsDf['ai_name'].tolist(), self.itpBondsDf['aj_name'].tolist())
         # self.NmAngles, self.TypAngles, self.SetAngles = self.get_angles_types(self.df_angles(allAngles)['ai_name'].tolist(), self.df_angles(allAngles)['aj_name'].tolist(), self.df_angles(allAngles)['ak_name'].tolist())
-        # print(self.itpAnglesDf)
 
     def df_atoms(self, allAtoms) -> pd.DataFrame:
         # making df of all atoms list:
@@ -123,10 +121,12 @@ class ITP:
             i_aj_name = drop_digit(i_aj_name)
             bond.append(f'{i_ai_name}_{i_aj_name}')
             # droping the digits from names
-            ai_name.append(i_ai_name); aj_name.append(i_aj_name) 
+            ai_name.append(i_ai_name)
+            aj_name.append(i_aj_name) 
+
+        # getting the number bonds infos
+        self.NmBonds, self.TypBonds, self.SetBonds = self.get_bond_types(ai_name, aj_name)
         # making a dictionary form all the lists
-        self.get_bond_types(ai, aj)
-        # print(bond)
         dic = {'id': id, 'type':typ, 'ai':ai, 'aj':aj, 'fu':fu, 'bond_name':bond}
         del ai, aj, fu, ai_name, aj_name
         return pd.DataFrame.from_dict(dic)
@@ -135,14 +135,20 @@ class ITP:
         # making datafram from all angles list:
         # [ angles ]
         # ai        aj        ak  fu ; ai_name aj_name ak_name 
+        
         ai, aj, ak, fu, ai_name, aj_name, ak_name = [], [], [], [], [], [], []
         for item in allAngles:
             i_ai, i_aj, i_ak, i_fu, _, i_ai_name, i_aj_name, i_ak_name = item
             ai.append(i_ai); aj.append(i_aj); ak.append(i_ak); fu.append(i_fu)
             # droping the digits from names
-            ai_name.append(drop_digit(i_ai_name)); aj_name.append(drop_digit(i_aj_name)); ak_name.append(drop_digit(i_ak_name))
+            ai_name.append(drop_digit(i_ai_name))
+            aj_name.append(drop_digit(i_aj_name))
+            ak_name.append(drop_digit(i_ak_name))
+
+        self.NmAngles, self.TypAngles, self.SetAngles = self.get_angles_types(ai_name, aj_name, ak_name)
         # making a dictionary form all the lists
         dic = {'ai':ai, 'aj':aj, 'ak':ak, 'fu':fu, 'ai_name':ai_name, 'aj_name':aj_name, 'ak_name':ak_name}
+        
         del ai, aj, ak, fu, ai_name, aj_name, ak_name
         return pd.DataFrame.from_dict(dic)
 
@@ -164,7 +170,7 @@ class ITP:
         set_of_angles = set(angles_names)
         number_of_angles = len(angles_names)
         type_of_angles = len(set_of_angles)
-        return set_of_angles, number_of_angles, type_of_angles
+        return number_of_angles, type_of_angles, set_of_angles
 
 
 if __name__ == "__main__":
