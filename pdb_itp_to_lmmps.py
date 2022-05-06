@@ -88,8 +88,8 @@ class ITP:
                 
         self.itpAtomsDf = self.df_atoms(allAtoms)
         self.itpBondsDf = self.df_bonds(allBonds)
-        print(self.itpBondsDf)
         self.itpAnglesDf = self.df_angles(allAngles)
+        print(self.itpAnglesDf)
         # self.NmAngles, self.TypAngles, self.SetAngles = self.get_angles_types(self.df_angles(allAngles)['ai_name'].tolist(), self.df_angles(allAngles)['aj_name'].tolist(), self.df_angles(allAngles)['ak_name'].tolist())
 
     def df_atoms(self, allAtoms) -> pd.DataFrame:
@@ -125,7 +125,7 @@ class ITP:
             aj_name.append(i_aj_name) 
 
         # getting the number bonds infos
-        self.NmBonds, self.TypBonds, self.SetBonds = self.get_bond_types(ai_name, aj_name)
+        self.NmBonds, self.TypBonds, self.SetBonds = self.get_bond_types(bond)
         # making a dictionary form all the lists
         dic = {'id': id, 'type':typ, 'ai':ai, 'aj':aj, 'fu':fu, 'bond_name':bond}
         del ai, aj, fu, ai_name, aj_name
@@ -135,38 +135,36 @@ class ITP:
         # making datafram from all angles list:
         # [ angles ]
         # ai        aj        ak  fu ; ai_name aj_name ak_name 
-        
-        ai, aj, ak, fu, ai_name, aj_name, ak_name = [], [], [], [], [], [], []
-        for item in allAngles:
+        id, typ, ai, aj, ak, fu, ai_name, aj_name, ak_name, angle = [], [], [], [], [], [], [], [], [], []
+        for counter, item in enumerate(allAngles):
             i_ai, i_aj, i_ak, i_fu, _, i_ai_name, i_aj_name, i_ak_name = item
-            ai.append(i_ai); aj.append(i_aj); ak.append(i_ak); fu.append(i_fu)
+            id.append(counter+1)
+            typ.append(None)
+            ai.append(i_ai); aj.append(i_aj); ak.append(i_ak); fu.append("#")
             # droping the digits from names
-            ai_name.append(drop_digit(i_ai_name))
-            aj_name.append(drop_digit(i_aj_name))
-            ak_name.append(drop_digit(i_ak_name))
-
-        self.NmAngles, self.TypAngles, self.SetAngles = self.get_angles_types(ai_name, aj_name, ak_name)
+            i_ai_name = drop_digit(i_ai_name)
+            i_aj_name = drop_digit(i_aj_name)
+            i_ak_name = drop_digit(i_ak_name)
+            ai_name.append(i_ai_name)
+            aj_name.append(i_aj_name)
+            ak_name.append(i_ak_name)
+            angle.append(f'{i_ai_name}_{i_aj_name}_{i_ak_name}')
+        self.NmAngles, self.TypAngles, self.SetAngles = self.get_angles_types(angle)
         # making a dictionary form all the lists
-        dic = {'ai':ai, 'aj':aj, 'ak':ak, 'fu':fu, 'ai_name':ai_name, 'aj_name':aj_name, 'ak_name':ak_name}
+        dic = {'id':id, 'typ':typ, 'ai':ai, 'aj':aj, 'ak':ak, 'fu':fu, 'angle_name':angle}
         
         del ai, aj, ak, fu, ai_name, aj_name, ak_name
         return pd.DataFrame.from_dict(dic)
 
-    def get_bond_types(self,ai, aj):
+    def get_bond_types(self,bond_names):
         # return number bonds, number of type of bonds, and set of bonds
-        bond_names = []
-        for i, j in zip(ai, aj):
-            bond_names.append(f'{i}_{j}')
         set_of_bonds = set(bond_names)
         number_of_bonds = len(bond_names)
         type_of_bonds = len(set_of_bonds)
         return number_of_bonds, type_of_bonds, set_of_bonds
     
-    def get_angles_types(self, ai, aj, ak):
+    def get_angles_types(self, angles_names):
         # return number angles, number of type of angles, and set of angles
-        angles_names = []
-        for i, j, k in zip(ai, aj, ak):
-            angles_names.append(f'{i}_{j}_{k}')
         set_of_angles = set(angles_names)
         number_of_angles = len(angles_names)
         type_of_angles = len(set_of_angles)
