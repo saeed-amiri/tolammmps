@@ -1,3 +1,4 @@
+import enum
 import os, sys, re
 import pandas as pd
 import numpy as np
@@ -14,7 +15,6 @@ class DOC:
 ATOM_MASS = dict(HO=1.0080, OB=15.9994, OH=15.9994, OM=15.9994, OMH=15.9994, OD=15.9994, SI=28.0860, SU=28.0860, SD=28.0860)
 ATOM_CHARGE = dict(N=0.000, HO=0.400, OH=-0.800, SI=1.600, OB=-0.800, SD=1.500, OD=-1.000, OM=-0.900, OMH=-0.900, SU=1.200)
 ATOM_TYPE = dict(HO=1, OB=2, OH=3, OM=4, OMH=5, OD=6, SI=7, SU=8, SD=9)
-# BOND_TYPE = dict(SIOB=1, SIOH=2, SIOM=3)
 
 
 def procces_lines(line, lineLen):
@@ -59,7 +59,6 @@ class PDB:
                 if line.strip().startswith('ATOM'):
                     # atom_serial,atom_name, chain_id, residue_number, residue_name, x, y, z
                     id, name, chain_id, mol, residue_name, x, y, z = procces_pdb(line)
-                    # atom, id, name, label, _, mol, x, y, z, _, _ =  procces_lines(line, 11)
                     name = drop_digit(name)
                     self.id.append(int(id)); self.name.append(name); self.label.append(chain_id)
                     self.mol.append(mol); self.x.append(float(x)); self.y.append(float(y)); self.z.append(float(z))
@@ -220,7 +219,7 @@ class WRITE_DATA :
             self.write_mass(f)
             self.write_coords(f)
             self.write_bonds(f)
-            
+            self.write_angles(f)
 
     
     def write_numbers(self, f):
@@ -252,8 +251,13 @@ class WRITE_DATA :
 
     def write_bonds(self, f):
         f.write(f'Bonds\n\n')
-        self.itp.itpBondsDf.to_csv(f, mode='a',header=None, index=False, sep=' ')
+        self.itp.itpBondsDf.to_csv(f, mode='a', header=None, index=False, sep=' ')
         f.write(f'\n')
+
+    def write_angles(self, f):
+        f.write(f'Angles\n\n')
+        self.itp.itpAnglesDf.to_csv(f, mode='a', header=None, index=False, sep=' ')
+
 
 class WRITE_PARAM:
     """
@@ -270,6 +274,7 @@ class WRITE_PARAM:
             f.write(f'# parameters for the {DATAFILE}\n')
             f.write(f'\n')
             self.write_masses(f)
+            self.write_charges(f)
             self.write_bonds_coef(f)
             self.write_pair_coef(f)
             self.write_angles_coef(f)
@@ -278,8 +283,15 @@ class WRITE_PARAM:
         f.write(f'Masses\n\n')
         for i, (m, t) in enumerate(zip(ATOM_MASS, ATOM_TYPE)):
             if m != t : exit(f"WRONG mass and type sets: {t} :: {m}")
+
             f.write(f'{ATOM_TYPE[m]}\t{ATOM_MASS[t]}\t# {m}\n')
         f.write(f'\n')    
+    
+    def write_charges(self, f):
+        f.write(f'# set charges\n\n')
+        for t in ATOM_TYPE:
+            f.write(f'set type {ATOM_TYPE[t]} charge {ATOM_CHARGE[t]} # {t}\n')
+        f.write(f'\n')
 
     def write_bonds_coef(self, f):
         f.write('# Bonds coefs\n\n')
