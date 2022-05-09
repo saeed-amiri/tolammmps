@@ -18,7 +18,7 @@ ATOM_CHARGE = dict(N=0.000, HO=0.400, OH=-0.800, SI=1.600, OB=-0.800, SD=1.500, 
 ATOM_TYPE = dict(HO=1, OB=2, OH=3, OM=4, OMH=5, OD=6, SI=7, SU=8, SD=9)
 
 
-def procces_lines(line, lineLen):
+def procces_lines(line, lineLen) -> list:
         line =line.strip()
         line = line.split(' ')
         line = [item for item in line if item]
@@ -26,8 +26,7 @@ def procces_lines(line, lineLen):
             exit(f'WRONG LINE in line: {line}, EXIT!')
         return line
     
-def procces_pdb(line):
-    # print(len(line))
+def procces_pdb(line) -> list:
     atom_serial = line[6:11].strip()
     atom_name = line[12:16].strip()
     residue_name = line[17:20].strip()
@@ -38,7 +37,7 @@ def procces_pdb(line):
     z = line[46:54].strip()
     return atom_serial,atom_name, chain_id, residue_number, residue_name, x, y, z
 
-def drop_digit(obj):
+def drop_digit(obj) -> str:
     return re.sub("\d", "", obj)
 
 def drop_semicolon(line)->list:
@@ -51,7 +50,7 @@ class PDB:
     def __init__(self, filename) -> None:
         self.filename = filename
 
-    def read_pdb(self):
+    def read_pdb(self) -> list:
         self.atom, self.id, self.name, self.label, self.mol, self.x, self.y, self.z = [], [], [], [], [], [], [], [] 
         self.type, self.charge = [], []
         self._sharp, self._atom_name = [], []
@@ -76,12 +75,12 @@ class PDB:
         self.ylo = np.min(self.y); self.yhi = np.max(self.y)
         self.zlo = np.min(self.z); self.zhi = np.max(self.z)
     
-    def make_dict(self):
+    def make_dict(self) -> dict:
         dc = {'#id':self.id, 'mol':self.mol, 'type':self.type, 'charge':self.charge, \
              'x':self.x, 'y':self.y, 'z':self.z, 'com':self._sharp, 'name':self._atom_name}
         return dc
 
-    def make_df(self):
+    def make_df(self) -> pd.DataFrame:
         return pd.DataFrame.from_dict(self.dc)
 
 
@@ -92,7 +91,7 @@ class ITP:
     def __init__(self, filename) -> None:
         self.filename = filename
 
-    def read_itp(self):
+    def read_itp(self) -> pd.DataFrame:
         atoms, bonds, angles, dihedrals = False, False, False, False
         allAtoms, allBonds, allAngles = [], [], []
         with open(self.filename, 'r') as f:
@@ -186,7 +185,7 @@ class ITP:
         del ai, aj, ak, fu, ai_name, aj_name, ak_name
         return pd.DataFrame.from_dict(dic)
 
-    def get_bond_types(self,bond_names):
+    def get_bond_types(self,bond_names) -> list:
         # return number bonds, number of type of bonds, and set of bonds
         set_of_bonds = set(bond_names)
         number_of_bonds = len(bond_names)
@@ -195,7 +194,7 @@ class ITP:
         set_of_bonds = {item:i+1 for i,item in enumerate(set_of_bonds)}
         return number_of_bonds, type_of_bonds, set_of_bonds
     
-    def get_angles_types(self, angles_names):
+    def get_angles_types(self, angles_names) -> list:
         # return number angles, number of type of angles, and set of angles
         set_of_angles = set(angles_names)
         number_of_angles = len(angles_names)
@@ -213,7 +212,7 @@ class CHARMM:
     def __init__(self) -> None:
         pass
 
-    def read_charmm(self):
+    def read_charmm(self) -> pd.DataFrame:
         atomtypes, nonbond_params, bondtypes, pairtypes, angletypes, dihedraltypes = False, False, False, False, False, False
         atomList, nonbondList, bondList, pairList,  angleList, dihedralList = [], [], [], [], [], []
         with open(CHARMMFILE, 'r') as f:
@@ -251,11 +250,6 @@ class CHARMM:
         self.bond_df = self.read_bondtypes(bondList); del bondList
         self.pair_df = self.read_pairtypes(pairList); del pairList
         self.angle_df = self.read_angletypes(angleList); del angleList
-        print(self.atomtyps_df)
-        print(self.nonbond_df)
-        print(self.angle_df)
-        print(self.bond_df)
-        print(self.pair_df)
 
 
     def read_atomtypes(self, atomList) -> pd.DataFrame:
@@ -293,7 +287,7 @@ class CHARMM:
 
 
         
-    def read_bondtypes(self, bondList):
+    def read_bondtypes(self, bondList) -> pd.DataFrame:
         bond_dict = dict(ai=[], aj=[], func=[], b0=[], Kb=[])
         for item in bondList:
             i_ai, i_aj, i_func, i_b0, i_Kb = procces_lines(item, 5)
@@ -355,7 +349,7 @@ class WRITE_DATA :
         self.itp = itp
         del pdb, itp
 
-    def write_file(self):
+    def write_file(self) -> None:
         with open(DATAFILE, 'w') as f:
             f.write(f'#\twrite data file with "{sys.argv[0]}" form {ITPFILE} and {PDBFILE}\n')
             f.write(f'#\tmasses, interactions (bond and non-bond) are written in {PARAMFILE}\n\n')
@@ -368,13 +362,13 @@ class WRITE_DATA :
             self.write_angles(f)
 
     
-    def write_numbers(self, f):
+    def write_numbers(self, f) -> None:
         f.write(f'{self.pdb.NAtoms}\tatoms\n')
         f.write(f'{self.itp.NmBonds}\tbonds\n')
         f.write(f'{self.itp.NmAngles}\tangles\n')        
         f.write(f'\n')
     
-    def write_types(self, f):
+    def write_types(self, f) -> None:
         f.write(f'{len(ATOM_TYPE)}\tatom types\n')
         f.write(f'{itp.TypBonds}\tbond types\n')
         f.write(f'{itp.TypAngles}\tangle types\n')
@@ -387,20 +381,23 @@ class WRITE_DATA :
         f.write(f'{self.pdb.zlo}\t{self.pdb.zhi}\tzlo\tzhi\n')
         f.write(f'\n')
 
-    def write_mass(self, f):
+    def write_mass(self, f) -> None:
+        """
+        it writen in the parmaeters file
+        """
         pass
 
-    def write_coords(self, f):
+    def write_coords(self, f) -> None:
         f.write(f'Atoms\t#\tfull\n\n')
         self.pdb.df.to_csv(f, mode='a',header=None, index=False, sep=' ')
         f.write(f'\n')
 
-    def write_bonds(self, f):
+    def write_bonds(self, f) -> None:
         f.write(f'Bonds\n\n')
         self.itp.itpBondsDf.to_csv(f, mode='a', header=None, index=False, sep=' ')
         f.write(f'\n')
 
-    def write_angles(self, f):
+    def write_angles(self, f) -> None:
         f.write(f'Angles\n\n')
         self.itp.itpAnglesDf.to_csv(f, mode='a', header=None, index=False, sep=' ')
 
@@ -417,7 +414,7 @@ class WRITE_PARAM:
         self.itp = itp
         del pdb, itp
 
-    def write_param(self):
+    def write_param(self) -> None:
         with open(PARAMFILE, 'w') as f:
             f.write(f'# parameters for the {DATAFILE}\n')
             f.write(f'\n')
@@ -427,7 +424,7 @@ class WRITE_PARAM:
             self.write_pair_coef(f)
             self.write_angles_coef(f)
 
-    def write_masses(self, f):
+    def write_masses(self, f) -> None:
         f.write(f'Masses\n\n')
         for i, (m, t) in enumerate(zip(ATOM_MASS, ATOM_TYPE)):
             if m != t : exit(f"WRONG mass and type sets: {t} :: {m}")
@@ -435,19 +432,19 @@ class WRITE_PARAM:
             f.write(f'{ATOM_TYPE[m]}\t{ATOM_MASS[t]}\t# {m}\n')
         f.write(f'\n')    
     
-    def write_charges(self, f):
+    def write_charges(self, f) -> None:
         f.write(f'# set charges\n\n')
         for t in ATOM_TYPE:
             f.write(f'set type {ATOM_TYPE[t]} charge {ATOM_CHARGE[t]} # {t}\n')
         f.write(f'\n')
 
-    def write_bonds_coef(self, f):
+    def write_bonds_coef(self, f) -> None:
         f.write('# Bonds coefs\n\n')
         for i, item in enumerate(self.itp.SetBonds):
             f.write(f'bond_coef\t{i+1} K r0 # {item}\n')
         f.write('\n')
 
-    def write_pair_coef(self, f):
+    def write_pair_coef(self, f) -> None:
         pairs = self.make_pairs()
         f.write(f'# Pairs coefs\n\n')
         for i, item in enumerate(list(pairs)):
@@ -458,11 +455,11 @@ class WRITE_PARAM:
             f.write(f'pair_coef\t{item[0]}\t{item[1]}  epsilon sigma # {_bond} \n')
         f.write('\n')
         
-    def make_pairs(self):
+    def make_pairs(self) -> None:
         _type_list = [i+1 for i, _ in enumerate(ATOM_TYPE) ]
         return combinations(_type_list, 2)
 
-    def write_angles_coef(self, f):
+    def write_angles_coef(self, f) -> None:
         f.write(f'# Angels coefs\n\n')
         for i, item in enumerate(self.itp.SetAngles):
             f.write(f'angle_coeff\t{i+1}\tK0\tTHETA # {item}\n')
