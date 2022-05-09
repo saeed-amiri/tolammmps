@@ -1,5 +1,6 @@
 import enum
 import os, sys, re
+from pprint import pprint
 import pandas as pd
 import numpy as np
 from itertools import combinations
@@ -15,8 +16,8 @@ class DOC:
 ATOM_MASS = dict(HO=1.0080, OB=15.9994, OH=15.9994, OM=15.9994, OMH=15.9994, OD=15.9994, SI=28.0860, SU=28.0860, SD=28.0860)
 ATOM_CHARGE = dict(N=0.000, HO=0.400, OH=-0.800, SI=1.600, OB=-0.800, SD=1.500, OD=-1.000, OM=-0.900, OMH=-0.900, SU=1.200)
 ATOM_TYPE = dict(HO=1, OB=2, OH=3, OM=4, OMH=5, OD=6, SI=7, SU=8, SD=9)
-SIGMA = dict(HO=1, OB=2, OH=3, OM=4, OMH=5, OD=6, SI=7, SU=8, SD=9)
-EPSILON = dict(HO=1, OB=2, OH=3, OM=4, OMH=5, OD=6, SI=7, SU=8, SD=9)
+SIGMA = dict(HO=1.78179743628e-01, OB=3.13952708273e-01 , OH=3, OM=4, OMH=5, OD=6, SI=7, SU=8, SD=9)
+EPSILON = dict(HO=8.786400e-02, OB=1.092024e+00, OH=3, OM=4, OMH=5, OD=6, SI=7, SU=8, SD=9)
 
 
 def procces_lines(line, lineLen):
@@ -41,6 +42,9 @@ def procces_pdb(line):
 
 def drop_digit(obj):
     return re.sub("\d", "", obj)
+
+def drop_semicolon(line)->list:
+    return re.sub(r'\;.*', "", line)
 
 class PDB:
     """
@@ -212,37 +216,96 @@ class CHARMM:
         pass
 
     def read_charmm(self):
-        atomtypes, nonbond_params, bondtypes, angletypes, dihedraltypes = False, False, False, False, False
+        atomtypes, nonbond_params, bondtypes, pairtypes, angletypes, dihedraltypes = False, False, False, False, False, False
+        atomList, nonbondList, bondList, pairList,  angleList, dihedralList = [], [], [], [], [], []
         with open(CHARMMFILE, 'r') as f:
             while True:
                 line = f.readline()
                 if line.startswith(';'): continue
-                if line.startswith('[ atomtypws ]'): 
-                    atomtypes, nonbond_params, bondtypes, angletypes, dihedraltypes = True, False, False, False, False
+                if line.startswith('[ atomtypes ]'): 
+                    atomtypes, nonbond_params, bondtypes, pairtypes, angletypes, dihedraltypes = True, False, False, False, False, False
                 if line.startswith('[ nonbond_params ]'): 
-                    atomtypes, nonbond_params, bondtypes, angletypes, dihedraltypes = False, True, False, False, False
+                    atomtypes, nonbond_params, bondtypes, pairtypes, angletypes, dihedraltypes = False, True, False, False, False, False
                 if line.startswith('[ bondtypes ]'): 
-                    atomtypes, nonbond_params, bondtypes, angletypes, dihedraltypes = False, False, True, False, False
+                    atomtypes, nonbond_params, bondtypes, pairtypes, angletypes, dihedraltypes = False, False, True, False, False, False
+                if line.startswith('[ pairtypes ]'): 
+                    atomtypes, nonbond_params, bondtypes, pairtypes, angletypes, dihedraltypes = False, False, False, True, False, False
                 if line.startswith('[ angletypes ]'): 
-                    atomtypes, nonbond_params, bondtypes, angletypes, dihedraltypes = False, False, False, True, False
+                    atomtypes, nonbond_params, bondtypes, pairtypes, angletypes, dihedraltypes = False, False, False, False, True, False
                 if line.startswith('[ dihedraltypes ]'): 
-                    atomtypes, nonbond_params, bondtypes, angletypes, dihedraltypes = False, False, False, False, True
+                    atomtypes, nonbond_params, bondtypes, pairtypes, angletypes, dihedraltypes = False, False, False, False, False, True
                 if line.strip() and atomtypes and not line.startswith('[ '):
-                    self.read_atomtypes()
+                    line = drop_semicolon(line).strip()
+                    atomList.append(line)
                 if line.strip() and nonbond_params and not line.startswith('[ '):
-                    self.read_nonbond()
+                    nonbondList.append(line)
                 if line.strip() and bondtypes and not line.startswith('[ '):
-                    self.read_bondtypes()
+                    bondList.append(line)
+                if line.strip() and pairtypes and not line.startswith('[ '):
+                    pairList.append(line)
                 if line.strip() and angletypes and not line.startswith('[ '):
-                    self.read_angletypes()
-                
-    def read_atomtypes(self):
-        pass
-    def read_nonbond(self):
-        pass
-    def read_bondtypes(self):
-        pass
+                    angleList.append(line)
+                if line.strip() and dihedraltypes and not line.startswith('[ '):
+                    dihedralList.append(line)
+                if not line: break
+        atomtyps_df = self.read_atomtypes(atomList)
+        nonbond = self.read_nonbond(nonbondList)
+        print(self.read_bondtypes(bondList))
+
+
+    def read_atomtypes(self, atomList) -> pd.DataFrame:
+        atom_dict = dict(name=[] ,at_num=[] ,mass=[] ,charge=[] ,ptype=[] ,sigma=[] ,epsilon=[])
+        for item in atomList:
+            i_name, i_at_num, i_mass, i_charge, i_ptype, i_sigma, i_epsilon = procces_lines(item,7)
+            i_name = i_name.strip()
+            i_at_num = int(i_at_num.strip())
+            i_mass = float(i_mass.strip())
+            i_charge = float(i_charge.strip())
+            i_ptype = i_ptype.strip()
+            i_sigma = float(i_sigma.strip())
+            i_epsilon = float(i_epsilon.strip())
+            atom_dict['name'].append(i_name); atom_dict['at_num'].append(i_at_num)
+            atom_dict['mass'].append(i_mass); atom_dict['charge'].append(i_charge)
+            atom_dict['ptype'].append(i_ptype); atom_dict['sigma'].append(i_sigma)
+            atom_dict['epsilon'].append(i_epsilon)
+
+        return pd.DataFrame.from_dict(atom_dict)    
+    
+    def read_nonbond(self, nonbondList) -> pd.DataFrame:
+        nonbond_dict = dict(ai=[], aj=[], func=[], sigma=[], epsilon=[])
+        for item in nonbondList:
+            i_ai, i_aj, i_func, i_sigma, i_epsilon, = procces_lines(item, 5)
+            i_ai = i_ai.strip()
+            i_aj = i_aj.strip()
+            i_func = i_func.strip()
+            i_sigma = float(i_sigma.strip())
+            i_epsilon = float(i_epsilon.strip())
+            nonbond_dict['ai'].append(i_ai); nonbond_dict['aj'].append(i_aj)
+            nonbond_dict['func'].append(i_func); nonbond_dict['sigma'].append(i_sigma)
+            nonbond_dict['epsilon'].append(i_epsilon)
+
+        return pd.DataFrame.from_dict(nonbond_dict)
+
+
+        
+    def read_bondtypes(self, bondList):
+        bond_dict = dict(ai=[], aj=[], func=[], b0=[], Kb=[])
+        for item in bondList:
+            i_ai, i_aj, i_func, i_b0, i_Kb = procces_lines(item, 5)
+            i_ai = i_ai.strip()
+            i_aj = i_aj.strip()
+            i_func = i_func.strip()
+            i_b0 = float(i_b0.strip())
+            i_Kb = float(i_Kb.strip())
+            bond_dict['ai'].append(i_ai); bond_dict['aj'].append(i_aj)
+            bond_dict['func'].append(i_func); bond_dict['b0'].append(i_b0)
+            bond_dict['Kb'].append(i_Kb)
+
+        return pd.DataFrame.from_dict(bond_dict)
+
     def read_angletypes(self):
+        pass
+    def read_dihedraltypes(self):
         pass
                 
 
@@ -384,11 +447,13 @@ PARAMFILE = f'{SIO2}.param'
 CHARMMFILE = 'charmm36_silica.itp'
 
 if __name__ == "__main__":
-    itp = ITP(ITPFILE)
-    itp.read_itp()
-    pdb = PDB(PDBFILE)
-    pdb.read_pdb()
-    out = WRITE_DATA(pdb, itp)
-    out.write_file()
-    param = WRITE_PARAM(pdb, itp)
-    param.write_param()
+    charmm = CHARMM()
+    charmm.read_charmm()
+    # itp = ITP(ITPFILE)
+    # itp.read_itp()
+    # pdb = PDB(PDBFILE)
+    # pdb.read_pdb()
+    # out = WRITE_DATA(pdb, itp)
+    # out.write_file()
+    # param = WRITE_PARAM(pdb, itp)
+    # param.write_param()
