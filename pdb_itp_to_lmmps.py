@@ -15,6 +15,8 @@ class DOC:
 ATOM_MASS = dict(HO=1.0080, OB=15.9994, OH=15.9994, OM=15.9994, OMH=15.9994, OD=15.9994, SI=28.0860, SU=28.0860, SD=28.0860)
 ATOM_CHARGE = dict(N=0.000, HO=0.400, OH=-0.800, SI=1.600, OB=-0.800, SD=1.500, OD=-1.000, OM=-0.900, OMH=-0.900, SU=1.200)
 ATOM_TYPE = dict(HO=1, OB=2, OH=3, OM=4, OMH=5, OD=6, SI=7, SU=8, SD=9)
+SIGMA = dict(HO=1, OB=2, OH=3, OM=4, OMH=5, OD=6, SI=7, SU=8, SD=9)
+EPSILON = dict(HO=1, OB=2, OH=3, OM=4, OMH=5, OD=6, SI=7, SU=8, SD=9)
 
 
 def procces_lines(line, lineLen):
@@ -200,6 +202,51 @@ class ITP:
         set_of_angles = {item:i+1 for i,item in enumerate(set_of_angles)}
         return number_of_angles, type_of_angles, set_of_angles
 
+class CHARMM:
+    """
+    reading charmm36_silica.itp
+    to get interactions parameters
+    """
+
+    def __init__(self) -> None:
+        pass
+
+    def read_charmm(self):
+        atomtypes, nonbond_params, bondtypes, angletypes, dihedraltypes = False, False, False, False, False
+        with open(CHARMMFILE, 'r') as f:
+            while True:
+                line = f.readline()
+                if line.startswith(';'): continue
+                if line.startswith('[ atomtypws ]'): 
+                    atomtypes, nonbond_params, bondtypes, angletypes, dihedraltypes = True, False, False, False, False
+                if line.startswith('[ nonbond_params ]'): 
+                    atomtypes, nonbond_params, bondtypes, angletypes, dihedraltypes = False, True, False, False, False
+                if line.startswith('[ bondtypes ]'): 
+                    atomtypes, nonbond_params, bondtypes, angletypes, dihedraltypes = False, False, True, False, False
+                if line.startswith('[ angletypes ]'): 
+                    atomtypes, nonbond_params, bondtypes, angletypes, dihedraltypes = False, False, False, True, False
+                if line.startswith('[ dihedraltypes ]'): 
+                    atomtypes, nonbond_params, bondtypes, angletypes, dihedraltypes = False, False, False, False, True
+                if line.strip() and atomtypes and not line.startswith('[ '):
+                    self.read_atomtypes()
+                if line.strip() and nonbond_params and not line.startswith('[ '):
+                    self.read_nonbond()
+                if line.strip() and bondtypes and not line.startswith('[ '):
+                    self.read_bondtypes()
+                if line.strip() and angletypes and not line.startswith('[ '):
+                    self.read_angletypes()
+                
+    def read_atomtypes(self):
+        pass
+    def read_nonbond(self):
+        pass
+    def read_bondtypes(self):
+        pass
+    def read_angletypes(self):
+        pass
+                
+
+
 class WRITE_DATA :
     """
     write out the output file for lammps
@@ -259,6 +306,8 @@ class WRITE_DATA :
         self.itp.itpAnglesDf.to_csv(f, mode='a', header=None, index=False, sep=' ')
 
 
+
+
 class WRITE_PARAM:
     """
     writing the masses, interaction parameters (force fileds parameters)
@@ -296,7 +345,7 @@ class WRITE_PARAM:
     def write_bonds_coef(self, f):
         f.write('# Bonds coefs\n\n')
         for i, item in enumerate(self.itp.SetBonds):
-            f.write(f'bond_coef\t{i+1} BOND_PARAMETRES # {item}\n')
+            f.write(f'bond_coef\t{i+1} K r0 # {item}\n')
         f.write('\n')
 
     def write_pair_coef(self, f):
@@ -306,7 +355,7 @@ class WRITE_PARAM:
             t = [name for name, id in ATOM_TYPE.items() if id == item[0]]
             z = [name for name, id in ATOM_TYPE.items() if id == item[1]]
             _bond = f'{t[0]}_{z[0]}'
-            if _bond in self.itp.SetBonds: print('here')
+            if _bond in self.itp.SetBonds: exit('EXIT!! there is a pair with bonding and non-bonding interactions!!')
             f.write(f'pair_coef\t{item[0]}\t{item[1]}  epsilon sigma # {_bond} \n')
         f.write('\n')
         
@@ -332,6 +381,7 @@ ITPFILE = f'{SIO2}.itp'
 PDBFILE = f'{SIO2}.pdb'
 DATAFILE = f'{SIO2}.data'
 PARAMFILE = f'{SIO2}.param'
+CHARMMFILE = 'charmm36_silica.itp'
 
 if __name__ == "__main__":
     itp = ITP(ITPFILE)
