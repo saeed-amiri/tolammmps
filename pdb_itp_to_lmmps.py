@@ -248,9 +248,16 @@ class CHARMM:
                 if line.strip() and dihedraltypes and not line.startswith('[ '):
                     dihedralList.append(line)
                 if not line: break
-        atomtyps_df = self.read_atomtypes(atomList)
-        nonbond = self.read_nonbond(nonbondList)
-        print(self.read_bondtypes(bondList))
+        self.atomtyps_df = self.read_atomtypes(atomList); del atomList
+        self.nonbond_df = self.read_nonbond(nonbondList); del nonbondList
+        self.bond_df = self.read_bondtypes(bondList); del bondList
+        self.pair_df = self.read_pairtypes(pairList); del pairList
+        self.angle_df = self.read_angletypes(angleList); del angleList
+        print(self.atomtyps_df)
+        print(self.nonbond_df)
+        print(self.angle_df)
+        print(self.bond_df)
+        print(self.pair_df)
 
 
     def read_atomtypes(self, atomList) -> pd.DataFrame:
@@ -268,7 +275,7 @@ class CHARMM:
             atom_dict['mass'].append(i_mass); atom_dict['charge'].append(i_charge)
             atom_dict['ptype'].append(i_ptype); atom_dict['sigma'].append(i_sigma)
             atom_dict['epsilon'].append(i_epsilon)
-
+        del atomList
         return pd.DataFrame.from_dict(atom_dict)    
     
     def read_nonbond(self, nonbondList) -> pd.DataFrame:
@@ -283,7 +290,7 @@ class CHARMM:
             nonbond_dict['ai'].append(i_ai); nonbond_dict['aj'].append(i_aj)
             nonbond_dict['func'].append(i_func); nonbond_dict['sigma'].append(i_sigma)
             nonbond_dict['epsilon'].append(i_epsilon)
-
+        del nonbondList
         return pd.DataFrame.from_dict(nonbond_dict)
 
 
@@ -300,11 +307,42 @@ class CHARMM:
             bond_dict['ai'].append(i_ai); bond_dict['aj'].append(i_aj)
             bond_dict['func'].append(i_func); bond_dict['b0'].append(i_b0)
             bond_dict['Kb'].append(i_Kb)
-
+        del bondList
         return pd.DataFrame.from_dict(bond_dict)
 
-    def read_angletypes(self):
-        pass
+    def read_pairtypes(self, pairList) -> pd.DataFrame:
+        pair_dict = dict(ai=[], aj=[], func=[], sigma=[], epsilon=[])
+        for item in pairList:
+            i_ai, i_aj, i_func, i_sigma, i_epsilon = procces_lines(item, 5)
+            i_ai = i_ai.strip()
+            i_aj = i_aj.strip()
+            i_func = i_func.strip()
+            i_sigma = float(i_sigma.strip())
+            i_epsilon = float(i_epsilon.strip())
+            pair_dict['ai'].append(i_ai); pair_dict['aj'].append(i_aj)
+            pair_dict['func'].append(i_func); pair_dict['sigma'].append(i_sigma)
+            pair_dict['epsilon'].append(i_epsilon)
+        del pairList
+        return pd.DataFrame.from_dict(pair_dict)
+
+    def read_angletypes(self, angleList) -> pd.DataFrame:
+        angle_dict = dict(ai=[], aj=[], ak=[], func=[], th0=[], cth=[], S0=[], Kub=[])
+        for item in angleList:
+            i_ai, i_aj, i_ak, i_func, i_th0, i_cth, i_S0, i_Kub = procces_lines(item, 8)
+            i_ai = i_ai.strip()
+            i_aj = i_aj.strip()
+            i_ak = i_ak.strip()
+            i_func = i_func.strip()
+            i_th0 = float(i_th0.strip())
+            i_cth = float(i_cth.strip())
+            i_S0 = float(i_S0.strip())
+            i_Kub = float(i_Kub.strip())
+            angle_dict['ai'].append(i_ai); angle_dict['aj'].append(i_aj); angle_dict['ak'].append(i_ak)
+            angle_dict['func'].append(i_func); angle_dict['th0'].append(i_th0); angle_dict['cth'].append(i_cth)
+            angle_dict['S0'].append(i_S0); angle_dict['Kub'].append(i_Kub)
+        del angleList
+        return pd.DataFrame.from_dict(angle_dict)
+
     def read_dihedraltypes(self):
         pass
                 
