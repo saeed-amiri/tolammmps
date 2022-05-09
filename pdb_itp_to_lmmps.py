@@ -1,9 +1,10 @@
 import enum
+import itertools
 import os, sys, re
 from pprint import pprint
 import pandas as pd
 import numpy as np
-from itertools import combinations
+import itertools
 
 
 class DOC:
@@ -42,6 +43,9 @@ def drop_digit(obj) -> str:
 
 def drop_semicolon(line)->list:
     return re.sub(r'\;.*', "", line)
+
+def return_df_value(df, name,name_i,  string_re) -> float:
+    return df.loc[df[name]==name_i][string_re].values[0]
 
 class PDB:
     """
@@ -148,7 +152,7 @@ class ITP:
 
         # getting the number bonds infos
         self.NmBonds, self.TypBonds, self.SetBonds = self.get_bond_types(bond)
-        # updating the type of eche angel 
+        # updating the type of eche bond 
         for i, (_, n) in enumerate(zip(typ,bond)):
             typ[i] = self.SetBonds[n]
         # making a dictionary form all the lists
@@ -441,7 +445,10 @@ class WRITE_PARAM:
     def write_bonds_coef(self, f) -> None:
         f.write('# Bonds coefs\n\n')
         for i, item in enumerate(self.itp.SetBonds):
-            f.write(f'bond_coef\t{i+1} K r0 # {item}\n')
+            
+            Kb = return_df_value(charmm.bond_df, 'bond', item, 'Kb')
+            b0 = return_df_value(charmm.bond_df, 'bond', item, 'b0')
+            f.write(f'bond_coef\t{i+1} {Kb} {b0} # {item}\n')
         f.write('\n')
 
     def write_pair_coef(self, f) -> None:
@@ -457,7 +464,7 @@ class WRITE_PARAM:
         
     def make_pairs(self) -> None:
         _type_list = [i+1 for i, _ in enumerate(ATOM_TYPE) ]
-        return combinations(_type_list, 2)
+        return itertools.combinations_with_replacement(_type_list, 2)
 
     def write_angles_coef(self, f) -> None:
         f.write(f'# Angels coefs\n\n')
@@ -483,7 +490,8 @@ if __name__ == "__main__":
     # MAKE GLOBAL PARAMETERS FROM CHARMM DATA FILE
     charmm = CHARMM()
     charmm.read_charmm()
-    print(charmm.bond_df)
+    # print(charmm.bond_df)
+    print(return_df_value(charmm.bond_df, 'bond', 'SU_OH', 'Kb'))
     itp = ITP(ITPFILE)
     itp.read_itp()
     pdb = PDB(PDBFILE)
