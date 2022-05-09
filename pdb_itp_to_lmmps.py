@@ -288,7 +288,7 @@ class CHARMM:
 
         
     def read_bondtypes(self, bondList) -> pd.DataFrame:
-        bond_dict = dict(ai=[], aj=[], func=[], b0=[], Kb=[])
+        bond_dict = dict(bond=[], func=[], b0=[], Kb=[])
         for item in bondList:
             i_ai, i_aj, i_func, i_b0, i_Kb = procces_lines(item, 5)
             i_ai = i_ai.strip()
@@ -296,7 +296,7 @@ class CHARMM:
             i_func = i_func.strip()
             i_b0 = float(i_b0.strip())
             i_Kb = float(i_Kb.strip())
-            bond_dict['ai'].append(i_ai); bond_dict['aj'].append(i_aj)
+            bond_dict['bond'].append(f'{i_ai}_{i_aj}')
             bond_dict['func'].append(i_func); bond_dict['b0'].append(i_b0)
             bond_dict['Kb'].append(i_Kb)
         del bondList
@@ -480,8 +480,10 @@ PARAMFILE = f'{SIO2}.param'
 CHARMMFILE = 'charmm36_silica.itp'
 
 if __name__ == "__main__":
+    # MAKE GLOBAL PARAMETERS FROM CHARMM DATA FILE
     charmm = CHARMM()
     charmm.read_charmm()
+    print(charmm.bond_df)
     itp = ITP(ITPFILE)
     itp.read_itp()
     pdb = PDB(PDBFILE)
