@@ -16,8 +16,6 @@ class DOC:
 ATOM_MASS = dict(HO=1.0080, OB=15.9994, OH=15.9994, OM=15.9994, OMH=15.9994, OD=15.9994, SI=28.0860, SU=28.0860, SD=28.0860)
 ATOM_CHARGE = dict(N=0.000, HO=0.400, OH=-0.800, SI=1.600, OB=-0.800, SD=1.500, OD=-1.000, OM=-0.900, OMH=-0.900, SU=1.200)
 ATOM_TYPE = dict(HO=1, OB=2, OH=3, OM=4, OMH=5, OD=6, SI=7, SU=8, SD=9)
-SIGMA = dict(HO=1.78179743628e-01, OB=3.13952708273e-01 , OH=3, OM=4, OMH=5, OD=6, SI=7, SU=8, SD=9)
-EPSILON = dict(HO=8.786400e-02, OB=1.092024e+00, OH=3, OM=4, OMH=5, OD=6, SI=7, SU=8, SD=9)
 
 
 def procces_lines(line, lineLen):
@@ -487,11 +485,11 @@ CHARMMFILE = 'charmm36_silica.itp'
 if __name__ == "__main__":
     charmm = CHARMM()
     charmm.read_charmm()
-    # itp = ITP(ITPFILE)
-    # itp.read_itp()
-    # pdb = PDB(PDBFILE)
-    # pdb.read_pdb()
-    # out = WRITE_DATA(pdb, itp)
-    # out.write_file()
-    # param = WRITE_PARAM(pdb, itp)
-    # param.write_param()
+    itp = ITP(ITPFILE)
+    itp.read_itp()
+    pdb = PDB(PDBFILE)
+    pdb.read_pdb()
+    out = WRITE_DATA(pdb, itp)
+    out.write_file()
+    param = WRITE_PARAM(pdb, itp)
+    param.write_param()
