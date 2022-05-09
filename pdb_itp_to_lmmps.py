@@ -1,7 +1,6 @@
-import enum
+from concurrent.futures import thread
 import itertools
 import os, sys, re
-from pprint import pprint
 import pandas as pd
 import numpy as np
 import itertools
@@ -27,16 +26,6 @@ def procces_lines(line, lineLen) -> list:
             exit(f'WRONG LINE in line: {line}, EXIT!')
         return line
     
-def procces_pdb(line) -> list:
-    atom_serial = line[6:11].strip()
-    atom_name = line[12:16].strip()
-    residue_name = line[17:20].strip()
-    chain_id = line[21].strip()
-    residue_number = line[22:26].strip()
-    x = line[30:38].strip()
-    y = line[38:46].strip()
-    z = line[46:54].strip()
-    return atom_serial,atom_name, chain_id, residue_number, residue_name, x, y, z
 
 def drop_digit(obj) -> str:
     return re.sub("\d", "", obj)
@@ -44,8 +33,17 @@ def drop_digit(obj) -> str:
 def drop_semicolon(line)->list:
     return re.sub(r'\;.*', "", line)
 
-def return_df_value(df, name,name_i,  string_re) -> float:
+def return_df_value(df, name, name_i,  string_re) -> float:
+    # df: dataframe
+    # name: name of the column to look for a match
+    # name_i: the string to look for in the 'name' column
+    # string_re: return the value of the selected coulmn
     return df.loc[df[name]==name_i][string_re].values[0]
+
+def mix_epsilon(si, sj) -> float: return np.sqrt(si * sj)
+
+def mix_sigma_geometric(si, sj) -> float: return np.sqrt(si * sj)
+def mix_sigma_arithmetic(si, sj) -> float: return 0.5*(si + sj)
 
 class PDB:
     """
@@ -65,7 +63,7 @@ class PDB:
                 lineCounter += 1
                 if line.strip().startswith('ATOM'):
                     # atom_serial,atom_name, chain_id, residue_number, residue_name, x, y, z
-                    id, name, chain_id, mol, residue_name, x, y, z = procces_pdb(line)
+                    id, name, chain_id, mol, _, x, y, z = self.procces_pdb(line)
                     name = drop_digit(name)
                     self.id.append(int(id)); self.name.append(name); self.label.append(chain_id)
                     self.mol.append(mol); self.x.append(float(x)); self.y.append(float(y)); self.z.append(float(z))
@@ -78,6 +76,17 @@ class PDB:
         self.xlo = np.min(self.x); self.xhi = np.max(self.x)
         self.ylo = np.min(self.y); self.yhi = np.max(self.y)
         self.zlo = np.min(self.z); self.zhi = np.max(self.z)
+
+    def procces_pdb(self, line) -> list:
+        atom_serial = line[6:11].strip()
+        atom_name = line[12:16].strip()
+        residue_name = line[17:20].strip()
+        chain_id = line[21].strip()
+        residue_number = line[22:26].strip()
+        x = line[30:38].strip()
+        y = line[38:46].strip()
+        z = line[46:54].strip()
+        return atom_serial,atom_name, chain_id, residue_number, residue_name, x, y, z
     
     def make_dict(self) -> dict:
         dc = {'#id':self.id, 'mol':self.mol, 'type':self.type, 'charge':self.charge, \
@@ -307,7 +316,7 @@ class CHARMM:
         return pd.DataFrame.from_dict(bond_dict)
 
     def read_pairtypes(self, pairList) -> pd.DataFrame:
-        pair_dict = dict(ai=[], aj=[], func=[], sigma=[], epsilon=[])
+        pair_dict = dict(pairs=[], func=[], sigma=[], epsilon=[])
         for item in pairList:
             i_ai, i_aj, i_func, i_sigma, i_epsilon = procces_lines(item, 5)
             i_ai = i_ai.strip()
@@ -315,14 +324,15 @@ class CHARMM:
             i_func = i_func.strip()
             i_sigma = float(i_sigma.strip())
             i_epsilon = float(i_epsilon.strip())
-            pair_dict['ai'].append(i_ai); pair_dict['aj'].append(i_aj)
+            i_pairs = f'{i_ai}_{i_aj}'
+            pair_dict['pairs'].append(i_pairs)
             pair_dict['func'].append(i_func); pair_dict['sigma'].append(i_sigma)
             pair_dict['epsilon'].append(i_epsilon)
         del pairList
         return pd.DataFrame.from_dict(pair_dict)
 
     def read_angletypes(self, angleList) -> pd.DataFrame:
-        angle_dict = dict(ai=[], aj=[], ak=[], func=[], th0=[], cth=[], S0=[], Kub=[])
+        angle_dict = dict(angle=[], func=[], th0=[], cth=[], S0=[], Kub=[])
         for item in angleList:
             i_ai, i_aj, i_ak, i_func, i_th0, i_cth, i_S0, i_Kub = procces_lines(item, 8)
             i_ai = i_ai.strip()
@@ -333,7 +343,8 @@ class CHARMM:
             i_cth = float(i_cth.strip())
             i_S0 = float(i_S0.strip())
             i_Kub = float(i_Kub.strip())
-            angle_dict['ai'].append(i_ai); angle_dict['aj'].append(i_aj); angle_dict['ak'].append(i_ak)
+            i_angle = f'{i_ai}_{i_aj}_{i_ak}'
+            angle_dict['angle'].append(i_angle)
             angle_dict['func'].append(i_func); angle_dict['th0'].append(i_th0); angle_dict['cth'].append(i_cth)
             angle_dict['S0'].append(i_S0); angle_dict['Kub'].append(i_Kub)
         del angleList
@@ -387,7 +398,7 @@ class WRITE_DATA :
 
     def write_mass(self, f) -> None:
         """
-        it writen in the parmaeters file
+        they are writen in the parmaeters file
         """
         pass
 
@@ -445,7 +456,6 @@ class WRITE_PARAM:
     def write_bonds_coef(self, f) -> None:
         f.write('# Bonds coefs\n\n')
         for i, item in enumerate(self.itp.SetBonds):
-            
             Kb = return_df_value(charmm.bond_df, 'bond', item, 'Kb')
             b0 = return_df_value(charmm.bond_df, 'bond', item, 'b0')
             f.write(f'bond_coef\t{i+1} {Kb} {b0} # {item}\n')
@@ -455,11 +465,17 @@ class WRITE_PARAM:
         pairs = self.make_pairs()
         f.write(f'# Pairs coefs\n\n')
         for i, item in enumerate(list(pairs)):
-            t = [name for name, id in ATOM_TYPE.items() if id == item[0]]
-            z = [name for name, id in ATOM_TYPE.items() if id == item[1]]
-            _bond = f'{t[0]}_{z[0]}'
+            ai = [name for name, id in ATOM_TYPE.items() if id == item[0]][0]
+            aj = [name for name, id in ATOM_TYPE.items() if id == item[1]][0]
+            _bond = f'{ai}_{aj}'
+            try:
+                sigma = return_df_value(charmm.pair_df, 'pairs', _bond, 'sigma' )
+                epsilon = return_df_value(charmm.pair_df, 'pairs', _bond, 'epsilon' )
+            except:
+                sigma = 0.0
+                epsilon = 1.0
             if _bond in self.itp.SetBonds: exit('EXIT!! there is a pair with bonding and non-bonding interactions!!')
-            f.write(f'pair_coef\t{item[0]}\t{item[1]}  epsilon sigma # {_bond} \n')
+            f.write(f'pair_coef\t{item[0]}\t{item[1]}  {epsilon} {sigma} # {_bond} \n')
         f.write('\n')
         
     def make_pairs(self) -> None:
@@ -469,7 +485,13 @@ class WRITE_PARAM:
     def write_angles_coef(self, f) -> None:
         f.write(f'# Angels coefs\n\n')
         for i, item in enumerate(self.itp.SetAngles):
-            f.write(f'angle_coeff\t{i+1}\tK0\tTHETA # {item}\n')
+            try:
+                theta = return_df_value(charmm.angle_df, 'angle', item, 'th0')
+                K0 = return_df_value(charmm.angle_df, 'angle', item, 'cth')
+            except:
+                theta = 0.00
+                K0 = 0.00
+            f.write(f'angle_coeff\t{i+1}\t{K0}\t{theta} # {item}\n')
 
         
 
@@ -490,8 +512,6 @@ if __name__ == "__main__":
     # MAKE GLOBAL PARAMETERS FROM CHARMM DATA FILE
     charmm = CHARMM()
     charmm.read_charmm()
-    # print(charmm.bond_df)
-    print(return_df_value(charmm.bond_df, 'bond', 'SU_OH', 'Kb'))
     itp = ITP(ITPFILE)
     itp.read_itp()
     pdb = PDB(PDBFILE)
