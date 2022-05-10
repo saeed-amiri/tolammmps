@@ -460,9 +460,8 @@ if len(sys.argv) < 2:
 SIO2 = sys.argv[1]
 ITPFILE = f'{SIO2}.itp'
 PDBFILE = f'{SIO2}.pdb'
-DATAFILE = f'{SIO2}.data'
-PARAMFILE = f'{SIO2}.data'
 CHARMMFILE = 'charmm36_silica.itp'
+DATAFILE = f'{SIO2}.data'
 
 if __name__ == "__main__":
     # MAKE GLOBAL PARAMETERS FROM CHARMM DATA FILE
@@ -472,7 +471,5 @@ if __name__ == "__main__":
     itp.read_itp()
     pdb = PDB(PDBFILE)
     pdb.read_pdb()
-    # param = WRITE_PARAM(pdb, itp)
-    # param.write_param()
     out = WRITE_DATA(pdb, itp)
     out.write_file()
