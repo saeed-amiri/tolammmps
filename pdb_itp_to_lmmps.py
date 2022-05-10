@@ -46,12 +46,17 @@ def mix_sigma_arithmetic(si, sj) -> float: return 0.5*(si + sj)
 
 def move_to_zero(data) -> list:
     return data-np.min(data)
+def make_velocity_df(num_atoms) -> pd.DataFrame:
+    df = pd.DataFrame(np.zeros((num_atoms, 3)),columns=['vx','vy','vz'])
+    df.index += 1
+    return df
 
 class PDB:
     """
     reading pdb file and return the coordinates
     """
     def __init__(self, filename) -> None:
+        self.CENTER = False
         self.filename = filename
 
     def read_pdb(self) -> list:
@@ -72,11 +77,13 @@ class PDB:
                     self.type.append(ATOM_TYPE[name]); self.charge.append(0.0)
                     self._sharp.append('#'); self._atom_name.append(name)
                 if not line: break
-        self.x = move_to_zero(self.x)
-        self.y = move_to_zero(self.y)
-        self.z = move_to_zero(self.z)
+        if self.CENTER:
+            self.x = move_to_zero(self.x)
+            self.y = move_to_zero(self.y)
+            self.z = move_to_zero(self.z)
         self.dc = self.make_dict()        
         self.df = self.make_df()
+        print(self.df)
         self.NAtoms = len(self.id)
         self.xlo = np.min(self.x); self.xhi = np.max(self.x)
         self.ylo = np.min(self.y); self.yhi = np.max(self.y)
@@ -372,13 +379,16 @@ class WRITE_DATA :
     def write_file(self) -> None:
         with open(DATAFILE, 'w') as f:
             f.write(f'#\twrite data file with "{sys.argv[0]}" form {ITPFILE} and {PDBFILE}\n')
-            f.write(f'#\tmasses, interactions (bond and non-bond) are written in {PARAMFILE}\n\n')
+            f.write(f'\n')
             self.write_numbers_types(f)
             self.write_box(f)
             self.write_masses(f)
+            # self.write_charges(f)
             self.write_pair_coef(f)
             self.write_bonds_coef(f)
+            self.write_angles_coef(f)
             self.write_coords(f)
+            self.write_velocity(f)
             self.write_bonds(f)
             self.write_angles(f)
 
@@ -405,6 +415,12 @@ class WRITE_DATA :
             f.write(f'{ATOM_TYPE[m]}\t{ATOM_MASS[t]}\t# {m}\n')
         f.write(f'\n')    
 
+    def write_charges(self, f):
+        f.write(f'# set charges\n\n')
+        for t in ATOM_TYPE:
+            f.write(f'set type {ATOM_TYPE[t]} charge {ATOM_CHARGE[t]} # {t}\n')
+        f.write(f'\n')
+
     def write_pair_coef(self, f) -> None:
         pairs = self.make_pairs()
         f.write(f'PairIJ Coeffs\n\n')
@@ -413,27 +429,43 @@ class WRITE_DATA :
             aj = [name for name, id in ATOM_TYPE.items() if id == item[1]][0]
             _pairIJ = f'{ai}_{aj}'
             try:
-                sigma = return_df_value(charmm.pair_df, 'pairs', _pairIJ, 'sigma' )
-                epsilon = return_df_value(charmm.pair_df, 'pairs', _pairIJ, 'epsilon' )
+                sigma = return_df_value(charmm.pair_df, 'pairs', _pairIJ, 'sigma' )/100
+                epsilon = return_df_value(charmm.pair_df, 'pairs', _pairIJ, 'epsilon' )*10
             except:
                 sigma = 0.0
                 epsilon = 1.0
             if _pairIJ in self.itp.SetBonds: exit('EXIT!! there is a pair with bonding and non-bonding interactions!!')
-            f.write(f'{item[0]}\t{item[1]}  {epsilon} {sigma} # {_pairIJ} \n')
+            f.write(f'{item[0]}\t{item[1]}  {epsilon} {sigma} {12} # {_pairIJ} \n')
         f.write('\n')
 
     def write_bonds_coef(self, f) -> None:
-        f.write('Bonds Coeffs # harmonic\n\n')
+        f.write('Bond Coeffs # harmonic\n\n')
         for i, item in enumerate(self.itp.SetBonds):
-            Kb = return_df_value(charmm.bond_df, 'bond', item, 'Kb')
-            b0 = return_df_value(charmm.bond_df, 'bond', item, 'b0')
+            Kb = return_df_value(charmm.bond_df, 'bond', item, 'Kb')/100
+            b0 = return_df_value(charmm.bond_df, 'bond', item, 'b0')*10
             f.write(f'{i+1} {Kb} {b0} # {item}\n')
         f.write('\n')
 
+    def write_angles_coef(self, f) -> None:
+        f.write(f'Angle Coeffs\n\n')
+        for i, item in enumerate(self.itp.SetAngles):
+            try:
+                theta = return_df_value(charmm.angle_df, 'angle', item, 'th0')
+                K0 = return_df_value(charmm.angle_df, 'angle', item, 'cth')
+            except:
+                theta = 0.00
+                K0 = 0.00
+            f.write(f'{i+1}\t{K0}\t{theta} # {item}\n')
+        f.write(f'\n')
 
     def write_coords(self, f) -> None:
         f.write(f'Atoms\t#\tfull\n\n')
         self.pdb.df.to_csv(f, mode='a',header=None, index=False, sep=' ')
+        f.write(f'\n')
+
+    def write_velocity(self, f) -> None:
+        f.write(f'Velocities\n\n')
+        make_velocity_df(pdb.NAtoms).to_csv(f, mode='a', index=True, header=None, sep=' ')
         f.write(f'\n')
 
     def write_bonds(self, f) -> None:
