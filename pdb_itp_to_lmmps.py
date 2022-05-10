@@ -74,7 +74,7 @@ class PDB:
                     name = drop_digit(name)
                     self.id.append(int(id)); self.name.append(name); self.label.append(chain_id)
                     self.mol.append(mol); self.x.append(float(x)); self.y.append(float(y)); self.z.append(float(z))
-                    self.type.append(ATOM_TYPE[name]); self.charge.append(0.0)
+                    self.type.append(ATOM_TYPE[name]); self.charge.append(ATOM_CHARGE[name])
                     self._sharp.append('#'); self._atom_name.append(name)
                 if not line: break
         if self.CENTER:
@@ -83,7 +83,6 @@ class PDB:
             self.z = move_to_zero(self.z)
         self.dc = self.make_dict()        
         self.df = self.make_df()
-        print(self.df)
         self.NAtoms = len(self.id)
         self.xlo = np.min(self.x); self.xhi = np.max(self.x)
         self.ylo = np.min(self.y); self.yhi = np.max(self.y)
@@ -416,6 +415,9 @@ class WRITE_DATA :
         f.write(f'\n')    
 
     def write_charges(self, f):
+        """
+        added to ATOM card
+        """
         f.write(f'# set charges\n\n')
         for t in ATOM_TYPE:
             f.write(f'set type {ATOM_TYPE[t]} charge {ATOM_CHARGE[t]} # {t}\n')
@@ -435,7 +437,7 @@ class WRITE_DATA :
                 sigma = 0.0
                 epsilon = 1.0
             if _pairIJ in self.itp.SetBonds: exit('EXIT!! there is a pair with bonding and non-bonding interactions!!')
-            f.write(f'{item[0]}\t{item[1]}  {epsilon} {sigma} {12} # {_pairIJ} \n')
+            f.write(f'{item[0]}\t{item[1]}  {epsilon} {sigma} {14} # {_pairIJ} \n')
         f.write('\n')
 
     def write_bonds_coef(self, f) -> None:
