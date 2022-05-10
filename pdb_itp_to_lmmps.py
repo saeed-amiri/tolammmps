@@ -41,9 +41,11 @@ def return_df_value(df, name, name_i,  string_re) -> float:
     return df.loc[df[name]==name_i][string_re].values[0]
 
 def mix_epsilon(si, sj) -> float: return np.sqrt(si * sj)
-
 def mix_sigma_geometric(si, sj) -> float: return np.sqrt(si * sj)
 def mix_sigma_arithmetic(si, sj) -> float: return 0.5*(si + sj)
+
+def move_to_zero(data) -> list:
+    return data-np.min(data)
 
 class PDB:
     """
@@ -70,6 +72,9 @@ class PDB:
                     self.type.append(ATOM_TYPE[name]); self.charge.append(0.0)
                     self._sharp.append('#'); self._atom_name.append(name)
                 if not line: break
+        self.x = move_to_zero(self.x)
+        self.y = move_to_zero(self.y)
+        self.z = move_to_zero(self.z)
         self.dc = self.make_dict()        
         self.df = self.make_df()
         self.NAtoms = len(self.id)
@@ -368,27 +373,24 @@ class WRITE_DATA :
         with open(DATAFILE, 'w') as f:
             f.write(f'#\twrite data file with "{sys.argv[0]}" form {ITPFILE} and {PDBFILE}\n')
             f.write(f'#\tmasses, interactions (bond and non-bond) are written in {PARAMFILE}\n\n')
-            self.write_numbers(f)
-            self.write_types(f)
+            self.write_numbers_types(f)
             self.write_box(f)
-            self.write_mass(f)
+            self.write_masses(f)
+            self.write_pair_coef(f)
+            self.write_bonds_coef(f)
             self.write_coords(f)
             self.write_bonds(f)
             self.write_angles(f)
 
     
-    def write_numbers(self, f) -> None:
+    def write_numbers_types(self, f) -> None:
         f.write(f'{self.pdb.NAtoms}\tatoms\n')
-        f.write(f'{self.itp.NmBonds}\tbonds\n')
-        f.write(f'{self.itp.NmAngles}\tangles\n')        
-        f.write(f'\n')
-    
-    def write_types(self, f) -> None:
         f.write(f'{len(ATOM_TYPE)}\tatom types\n')
+        f.write(f'{self.itp.NmBonds}\tbonds\n')
         f.write(f'{itp.TypBonds}\tbond types\n')
+        f.write(f'{self.itp.NmAngles}\tangles\n')        
         f.write(f'{itp.TypAngles}\tangle types\n')
         f.write(f'\n')
-
 
     def write_box(self, f):
         f.write(f'{self.pdb.xlo}\t{self.pdb.xhi}\txlo\txhi\n')
@@ -396,11 +398,38 @@ class WRITE_DATA :
         f.write(f'{self.pdb.zlo}\t{self.pdb.zhi}\tzlo\tzhi\n')
         f.write(f'\n')
 
-    def write_mass(self, f) -> None:
-        """
-        they are writen in the parmaeters file
-        """
-        pass
+    def write_masses(self, f) -> None:
+        f.write(f'Masses\n\n')
+        for i, (m, t) in enumerate(zip(ATOM_MASS, ATOM_TYPE)):
+            if m != t : exit(f"WRONG mass and type sets: {t} :: {m}")
+            f.write(f'{ATOM_TYPE[m]}\t{ATOM_MASS[t]}\t# {m}\n')
+        f.write(f'\n')    
+
+    def write_pair_coef(self, f) -> None:
+        pairs = self.make_pairs()
+        f.write(f'PairIJ Coeffs\n\n')
+        for i, item in enumerate(list(pairs)):
+            ai = [name for name, id in ATOM_TYPE.items() if id == item[0]][0]
+            aj = [name for name, id in ATOM_TYPE.items() if id == item[1]][0]
+            _pairIJ = f'{ai}_{aj}'
+            try:
+                sigma = return_df_value(charmm.pair_df, 'pairs', _pairIJ, 'sigma' )
+                epsilon = return_df_value(charmm.pair_df, 'pairs', _pairIJ, 'epsilon' )
+            except:
+                sigma = 0.0
+                epsilon = 1.0
+            if _pairIJ in self.itp.SetBonds: exit('EXIT!! there is a pair with bonding and non-bonding interactions!!')
+            f.write(f'{item[0]}\t{item[1]}  {epsilon} {sigma} # {_pairIJ} \n')
+        f.write('\n')
+
+    def write_bonds_coef(self, f) -> None:
+        f.write('Bonds Coeffs # harmonic\n\n')
+        for i, item in enumerate(self.itp.SetBonds):
+            Kb = return_df_value(charmm.bond_df, 'bond', item, 'Kb')
+            b0 = return_df_value(charmm.bond_df, 'bond', item, 'b0')
+            f.write(f'{i+1} {Kb} {b0} # {item}\n')
+        f.write('\n')
+
 
     def write_coords(self, f) -> None:
         f.write(f'Atoms\t#\tfull\n\n')
@@ -416,84 +445,11 @@ class WRITE_DATA :
         f.write(f'Angles\n\n')
         self.itp.itpAnglesDf.to_csv(f, mode='a', header=None, index=False, sep=' ')
 
-
-
-
-class WRITE_PARAM:
-    """
-    writing the masses, interaction parameters (force fileds parameters)
-    """
-
-    def __init__(self,pdb, itp) -> None:
-        self.pdb = pdb
-        self.itp = itp
-        del pdb, itp
-
-    def write_param(self) -> None:
-        with open(PARAMFILE, 'w') as f:
-            f.write(f'# parameters for the {DATAFILE}\n')
-            f.write(f'\n')
-            self.write_masses(f)
-            self.write_charges(f)
-            self.write_bonds_coef(f)
-            self.write_pair_coef(f)
-            self.write_angles_coef(f)
-
-    def write_masses(self, f) -> None:
-        f.write(f'Masses\n\n')
-        for i, (m, t) in enumerate(zip(ATOM_MASS, ATOM_TYPE)):
-            if m != t : exit(f"WRONG mass and type sets: {t} :: {m}")
-
-            f.write(f'{ATOM_TYPE[m]}\t{ATOM_MASS[t]}\t# {m}\n')
-        f.write(f'\n')    
-    
-    def write_charges(self, f) -> None:
-        f.write(f'# set charges\n\n')
-        for t in ATOM_TYPE:
-            f.write(f'set type {ATOM_TYPE[t]} charge {ATOM_CHARGE[t]} # {t}\n')
-        f.write(f'\n')
-
-    def write_bonds_coef(self, f) -> None:
-        f.write('# Bonds coefs\n\n')
-        for i, item in enumerate(self.itp.SetBonds):
-            Kb = return_df_value(charmm.bond_df, 'bond', item, 'Kb')
-            b0 = return_df_value(charmm.bond_df, 'bond', item, 'b0')
-            f.write(f'bond_coef\t{i+1} {Kb} {b0} # {item}\n')
-        f.write('\n')
-
-    def write_pair_coef(self, f) -> None:
-        pairs = self.make_pairs()
-        f.write(f'# Pairs coefs\n\n')
-        for i, item in enumerate(list(pairs)):
-            ai = [name for name, id in ATOM_TYPE.items() if id == item[0]][0]
-            aj = [name for name, id in ATOM_TYPE.items() if id == item[1]][0]
-            _bond = f'{ai}_{aj}'
-            try:
-                sigma = return_df_value(charmm.pair_df, 'pairs', _bond, 'sigma' )
-                epsilon = return_df_value(charmm.pair_df, 'pairs', _bond, 'epsilon' )
-            except:
-                sigma = 0.0
-                epsilon = 1.0
-            if _bond in self.itp.SetBonds: exit('EXIT!! there is a pair with bonding and non-bonding interactions!!')
-            f.write(f'pair_coef\t{item[0]}\t{item[1]}  {epsilon} {sigma} # {_bond} \n')
-        f.write('\n')
-        
     def make_pairs(self) -> None:
         _type_list = [i+1 for i, _ in enumerate(ATOM_TYPE) ]
         return itertools.combinations_with_replacement(_type_list, 2)
 
-    def write_angles_coef(self, f) -> None:
-        f.write(f'# Angels coefs\n\n')
-        for i, item in enumerate(self.itp.SetAngles):
-            try:
-                theta = return_df_value(charmm.angle_df, 'angle', item, 'th0')
-                K0 = return_df_value(charmm.angle_df, 'angle', item, 'cth')
-            except:
-                theta = 0.00
-                K0 = 0.00
-            f.write(f'angle_coeff\t{i+1}\t{K0}\t{theta} # {item}\n')
 
-        
 
 
 if len(sys.argv) < 2:
@@ -505,7 +461,7 @@ SIO2 = sys.argv[1]
 ITPFILE = f'{SIO2}.itp'
 PDBFILE = f'{SIO2}.pdb'
 DATAFILE = f'{SIO2}.data'
-PARAMFILE = f'{SIO2}.param'
+PARAMFILE = f'{SIO2}.data'
 CHARMMFILE = 'charmm36_silica.itp'
 
 if __name__ == "__main__":
@@ -516,7 +472,7 @@ if __name__ == "__main__":
     itp.read_itp()
     pdb = PDB(PDBFILE)
     pdb.read_pdb()
+    # param = WRITE_PARAM(pdb, itp)
+    # param.write_param()
     out = WRITE_DATA(pdb, itp)
     out.write_file()
-    param = WRITE_PARAM(pdb, itp)
-    param.write_param()
