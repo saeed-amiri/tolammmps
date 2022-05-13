@@ -268,14 +268,12 @@ class UPDATE:
             xj = self.Atoms[aj][ax]
             distance = np.abs(xi - xj)
             if self.Atoms[ai]['mol'] != self.Atoms[aj]['mol']:
-                print('STH')
-            if distance > lim*0.5:
+                exit(f'DIFFRENT MOLECULE ID{ai}-{aj}')
+            if distance > lim*0.25:
                 if xi < xj: xi += lim
                 else: xj += lim
-                distance = np.abs(xi - xj)
-                print(ai, aj, ax, xi, xj, distance,lim,self.Atoms[ai]['mol'] , self.Atoms[aj]['mol'])
-            self.Atoms[ai][ax] = xi
-            self.Atoms[aj][ax] = xj
+                self.Atoms[ai][ax] = xi
+                self.Atoms[aj][ax] = xj
 
 if __name__ == "__main__":
     # check the input file 
@@ -283,13 +281,16 @@ if __name__ == "__main__":
         doc = DOC()
         exit(f'\nONE INPUT IS RWUIRED\n{doc.__doc__}')
     DATAFILE = sys.argv[1]
+    OUTEX = DATAFILE.split('.')[0]
     header = HEADER()
     body = BODY()
     body.read_body()
+    df = pd.DataFrame(body.Atoms).T
+    df = df.sort_index(axis=0)
+    df.to_csv(f'atoms.{OUTEX}', index=True, header=None, sep=' ')
     update = UPDATE(body.Bonds, body.Atoms, header)
     update.check_bonds()
-    # pprint(update.Atoms)
     df = pd.DataFrame(update.Atoms).T
-    # print(df.to_string())
-    df.to_csv('df', index=True, header=None, sep=' ')
+    df = df.sort_index(axis=0)
+    df.to_csv(f'bonds.{OUTEX}', index=True, header=None, sep=' ')
 
