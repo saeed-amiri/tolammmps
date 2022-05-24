@@ -21,14 +21,40 @@ class TOP:
     The cards are space-parsed in some cases, i.e. names of atoms, mols, residues
     """
     def __init__(self) -> None:
+        self.FLAG_list = []
+        self.FORMAT_list = []
         pass
 
     def read_file(self):
         """
         read line by line and subtract the data from them
         """
-        with open 
+        with open (TOPFILE, 'r') as f:
+            while True:
+                line = f.readline()
+                if line.startswith('%'):
+                    line = line.split('%')[1]
+                    if line.startswith('version'): self.get_version(line)
+                    if line.startswith('FLAG'): self.get_flag(line)
+                if not line: break
+        print(self.FLAG_list)
+    
+    def get_version(self, line) -> str:
+        """geting the version of the AMBER written in top of the file"""
+        self.version = line.strip()
+        del line
 
+    def get_flag(self, line) -> list:
+        """getting the FLAGEs and amke list of it"""
+        flag = line.split('FLAG')[1].strip()
+        self.FLAG_list.append(flag)
+        del line
+
+    def get_format(self, line) -> list:
+        format = line.split('FORMAT')[1].strip()
+        re.findall('\(.*?\)',line)
 
 if __name__=="__main__":
-    TOPFILE = "test.top"
+    TOPFILE = "test3.top"
+    top = TOP()
+    top.read_file()
