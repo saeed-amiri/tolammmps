@@ -1,5 +1,6 @@
 import os, sys, re
 from pprint import pprint
+from matplotlib.pyplot import step
 import pandas as pd
 
 class DOC:
@@ -38,6 +39,7 @@ class TOP:
         for i, key in enumerate(self.FLAG): self.FLAG[key]['format'] = self.FORMAT_list[i]
         del free_dict
         del self.FLAG_list
+        print(set(self.FORMAT_list))
         del self.FORMAT_list
 
     def get_version(self, line) -> str:
@@ -75,6 +77,7 @@ class READTOP (TOP):
     def get_data(self)->None:
         self.mk_modify()
         self.read_card()
+        self.crct_card()
 
     def mk_modify(self)-> None:
         """modify the FLAG dict"""
@@ -112,11 +115,53 @@ class READTOP (TOP):
                             # append the line to data file with trimming the trailing newline
                             self.FLAG[key]['data'].append(line.rstrip("\n"))
                 if not line: break
+    
+    def crct_card(self) -> None:
+        """correcting the data format and removing the blanks"""
+        for key in self.FLAG.keys():
+            self.FLAG[key]['data'] = ''.join(self.FLAG[key]['data'])
+            if self.FLAG[key]['format']=='20a4': self.do_string(key)
+            if self.FLAG[key]['format']=='10I8': self.do_integer(key)
+            if self.FLAG[key]['format']=='5E16.8': self.do_exponential(key)
+            if self.FLAG[key]['format']=='1a80' :self.do_long_strin(key)
+
+    def do_string(self, key) -> list:
+        """fixing the data lists with FORTRAN format: 20a4"""
+        data_list = self.FLAG[key]['data']
+        split = 4
+        data_list = [data_list[i:i+split].strip() for i in range(0,len(data_list)-split+1,split)]
+        self.FLAG[key]['data'] = data_list
+        del data_list
+    
+    def do_integer(self, key) -> list:
+        """fixing the data lists with FORTRAN format: 10I8"""
+        data_list = self.FLAG[key]['data']
+        split = 8
+        data_list = [data_list[i:i+split].strip() for i in range(0,len(data_list)-split+1,split)]
+        self.FLAG[key]['data'] = data_list
+        del data_list
+
+    def do_exponential(self, key) -> list:
+        """fixing the data lists with FORTRAN format: 5E16.8"""
+        data_list = self.FLAG[key]['data']
+        split = 16
+        data_list = [data_list[i:i+split].strip() for i in range(0,len(data_list)-split+1,split)]
+        # sanity check
+        for item in data_list: 
+            if 'E' not in item: exit("ERROR! exponential format")
+        self.FLAG[key]['data'] = data_list
+        del data_list
+
+    def do_long_strin(self, key) -> None:
+        """" this card is empty we ignored for now"""
+        if self.FLAG[key]['data']:
+            print(f"THE LONG FLAG -> {key}: {self.FLAG[key]['data']} <- ignored!\n")
+        else: pass
+
 
 if __name__== "__main__":
     TOPFILE = "test3.top"
     top = READTOP()
     top.get_data()
-    pprint(top.FLAG['ATOM_NAME'])
 
     
