@@ -36,7 +36,6 @@ class TOP:
         free_dict = [dict() for item in self.FORMAT_list]
         self.FLAG = dict(zip(self.FLAG_list, free_dict))
         for i, key in enumerate(self.FLAG): self.FLAG[key]['format'] = self.FORMAT_list[i]
-        
         del free_dict
         del self.FLAG_list
         del self.FORMAT_list
@@ -75,6 +74,7 @@ class READTOP (TOP):
 
     def get_data(self)->None:
         self.mk_modify()
+        self.read_card()
 
     def mk_modify(self)-> None:
         """modify the FLAG dict"""
@@ -82,10 +82,24 @@ class READTOP (TOP):
 
     def set_flage(self) -> list:
         """set True and False flag to cards' name"""
-        for key in self.FLAG: self.FLAG[key]['flag']=False
+        for key in self.FLAG: self.FLAG[key]['flag'] = False
+        # pprint(self.FLAG)
 
-        pprint(self.FLAG)
-if __name__=="__main__":
+    def read_card(self) -> list:
+        """reading data between two flags"""
+        with open (TOPFILE, 'r') as f:
+            while True:
+                line = f.readline()
+                if line.startswith("%FLAG"):
+                    for key in self.FLAG.keys():self.FLAG[key]['flag']=False
+                    flag = line.split('%FLAG')[1].strip()
+                    if flag in self.FLAG.keys():
+                        self.FLAG[flag]['flag']=True
+                        pprint(self.FLAG)
+                        print(' ')
+                if not line: break
+
+if __name__== "__main__":
     TOPFILE = "test3.top"
     top = READTOP()
     top.get_data()
