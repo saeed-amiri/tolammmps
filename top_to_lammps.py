@@ -119,20 +119,14 @@ class READTOP(TOP):
             if self.FLAG[key]['format'] == '20a4': self.do_string(key, 4)
             if self.FLAG[key]['format'] == '10I8': self.do_string(key, 8)
             if self.FLAG[key]['format'] == '5E16.8': self.do_string(key, 16)
-            if self.FLAG[key]['format'] == '1a80' :self.do_long_string(key)
+            if self.FLAG[key]['format'] == '1a80' :self.do_string(key, 80)
 
     def do_string(self, key, split) -> list:
-        """fixing the data lists with FORTRAN format: 20a4, 10I8, 5E16.8 """
+        """fixing the data lists with FORTRAN format: 20a4, 10I8, 5E16.8, 1a80 """
         data_list = self.FLAG[key]['data']
         data_list = [data_list[i:i+split].strip() for i in range(0,len(data_list)-split+1,split)]
         self.FLAG[key]['data'] = data_list
         del data_list
-
-    def do_long_string(self, key) -> None:
-        """" this card is empty we ignored for now"""
-        if self.FLAG[key]['data']:
-            print(f"\tTHE LONG FLAG -> {key}: {self.FLAG[key]['data']} <- ignored!\n")
-        else: pass
 
 if __name__== "__main__":
     TOPFILE = "test3.top"
