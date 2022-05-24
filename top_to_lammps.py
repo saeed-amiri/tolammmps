@@ -79,24 +79,37 @@ class READTOP (TOP):
     def mk_modify(self)-> None:
         """modify the FLAG dict"""
         self.set_flage()
+        self.set_data_list()
 
     def set_flage(self) -> list:
         """set True and False flag to cards' name"""
         for key in self.FLAG: self.FLAG[key]['flag'] = False
-        # pprint(self.FLAG)
+
+    def set_data_list(self) -> list:
+        """giving data atribute to the dict"""
+        for key in self.FLAG.keys(): self.FLAG[key]['data']=[]
 
     def read_card(self) -> list:
         """reading data between two flags"""
         with open (TOPFILE, 'r') as f:
             while True:
                 line = f.readline()
-                if line.startswith("%FLAG"):
-                    for key in self.FLAG.keys():self.FLAG[key]['flag']=False
-                    flag = line.split('%FLAG')[1].strip()
-                    if flag in self.FLAG.keys():
-                        self.FLAG[flag]['flag']=True
-                        pprint(self.FLAG)
-                        print(' ')
+                # setting flag = True for the flag we hitting
+                if line.startswith("%"):
+                    line = line.split("%")[1]
+                    if line:
+                        line = line.strip()
+                        if line.startswith("FLAG"):
+                            for key in self.FLAG.keys():self.FLAG[key]['flag'] = False
+                            flag = line.split('FLAG')[1].strip()
+                            if flag in self.FLAG.keys(): 
+                                self.FLAG[flag]['flag'] = True
+                        elif line.startswith("FORMAT"): pass
+                else:
+                    # reading data for each card
+                    for key in self.FLAG.keys():
+                        if self.FLAG[key]['flag']:
+                            self.FLAG[key]['data'].append(line)
                 if not line: break
 
 if __name__== "__main__":
@@ -104,5 +117,7 @@ if __name__== "__main__":
     top = READTOP()
     top.get_data()
     # top.read_file()
+    # for key in top.FLAG.keys(): print(key)
+    pprint(top.FLAG['ATOM_NAME'])
 
     
