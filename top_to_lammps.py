@@ -39,7 +39,6 @@ class TOP:
         for i, key in enumerate(self.FLAG): self.FLAG[key]['format'] = self.FORMAT_list[i]
         del free_dict
         del self.FLAG_list
-        print(set(self.FORMAT_list))
         del self.FORMAT_list
 
     def get_version(self, line) -> str:
@@ -103,56 +102,36 @@ class READTOP (TOP):
                     if line:
                         line = line.strip()
                         if line.startswith("FLAG"):
-                            for key in self.FLAG.keys():self.FLAG[key]['flag'] = False
+                            for key in self.FLAG.keys(): self.FLAG[key]['flag'] = False
                             flag = line.split('FLAG')[1].strip()
-                            if flag in self.FLAG.keys(): 
-                                self.FLAG[flag]['flag'] = True
+                            if flag in self.FLAG.keys(): self.FLAG[flag]['flag'] = True
                         elif line.startswith("FORMAT"): pass
                 else:
                     # reading data for each card
                     for key in self.FLAG.keys():
-                        if self.FLAG[key]['flag']:
-                            # append the line to data file with trimming the trailing newline
-                            self.FLAG[key]['data'].append(line.rstrip("\n"))
+                        # append the line to data file with trimming the trailing newline
+                        if self.FLAG[key]['flag']:self.FLAG[key]['data'].append(line.rstrip("\n"))
+
                 if not line: break
     
     def crct_card(self) -> None:
         """correcting the data format and removing the blanks"""
         for key in self.FLAG.keys():
             self.FLAG[key]['data'] = ''.join(self.FLAG[key]['data'])
-            if self.FLAG[key]['format']=='20a4': self.do_string(key)
-            if self.FLAG[key]['format']=='10I8': self.do_integer(key)
-            if self.FLAG[key]['format']=='5E16.8': self.do_exponential(key)
-            if self.FLAG[key]['format']=='1a80' :self.do_long_strin(key)
+            if self.FLAG[key]['format'] == '20a4': self.do_string(key, 4)
+            if self.FLAG[key]['format'] == '10I8': self.do_string(key, 8)
+            if self.FLAG[key]['format'] == '5E16.8': self.do_string(key, 16)
+            if self.FLAG[key]['format'] == '1a80' :self.do_long_string(key)
 
-    def do_string(self, key) -> list:
-        """fixing the data lists with FORTRAN format: 20a4"""
+    def do_string(self, key, split) -> list:
+        """fixing the data lists with FORTRAN format: 20a4, 10I8, 5E16.8 """
         data_list = self.FLAG[key]['data']
-        split = 4
-        data_list = [data_list[i:i+split].strip() for i in range(0,len(data_list)-split+1,split)]
-        self.FLAG[key]['data'] = data_list
-        del data_list
-    
-    def do_integer(self, key) -> list:
-        """fixing the data lists with FORTRAN format: 10I8"""
-        data_list = self.FLAG[key]['data']
-        split = 8
         data_list = [data_list[i:i+split].strip() for i in range(0,len(data_list)-split+1,split)]
         self.FLAG[key]['data'] = data_list
         del data_list
 
-    def do_exponential(self, key) -> list:
-        """fixing the data lists with FORTRAN format: 5E16.8"""
-        data_list = self.FLAG[key]['data']
-        split = 16
-        data_list = [data_list[i:i+split].strip() for i in range(0,len(data_list)-split+1,split)]
-        # sanity check
-        for item in data_list: 
-            if 'E' not in item: exit("ERROR! exponential format")
-        self.FLAG[key]['data'] = data_list
-        del data_list
 
-    def do_long_strin(self, key) -> None:
+    def do_long_string(self, key) -> None:
         """" this card is empty we ignored for now"""
         if self.FLAG[key]['data']:
             print(f"THE LONG FLAG -> {key}: {self.FLAG[key]['data']} <- ignored!\n")
@@ -163,5 +142,6 @@ if __name__== "__main__":
     TOPFILE = "test3.top"
     top = READTOP()
     top.get_data()
+    # print(top.FLAG['MASS'])
 
     
