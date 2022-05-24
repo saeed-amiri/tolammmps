@@ -109,15 +109,14 @@ class READTOP (TOP):
                     # reading data for each card
                     for key in self.FLAG.keys():
                         if self.FLAG[key]['flag']:
-                            self.FLAG[key]['data'].append(line)
+                            # append the line to data file with trimming the trailing newline
+                            self.FLAG[key]['data'].append(line.rstrip("\n"))
                 if not line: break
 
 if __name__== "__main__":
     TOPFILE = "test3.top"
     top = READTOP()
     top.get_data()
-    # top.read_file()
-    # for key in top.FLAG.keys(): print(key)
     pprint(top.FLAG['ATOM_NAME'])
 
     
