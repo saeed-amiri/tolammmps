@@ -17,8 +17,7 @@ class TOP:
     %FORMAT(10I8)                                                                   
     """
     def __init__(self) -> None:
-        self.FLAG_list = []
-        self.FORMAT_list = []
+        self.FLAG_list, self.FORMAT_list = [], []
 
     def read_file(self):
         """
@@ -111,7 +110,6 @@ class READTOP(TOP):
                     for key in self.FLAG.keys():
                         # append the line to data file with trimming the trailing newline
                         if self.FLAG[key]['flag']:self.FLAG[key]['data'].append(line.rstrip("\n"))
-
                 if not line: break
     
     def crct_card(self) -> None:
