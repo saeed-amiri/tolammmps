@@ -19,7 +19,6 @@ class TOP:
     def __init__(self) -> None:
         self.FLAG_list = []
         self.FORMAT_list = []
-        pass
 
     def read_file(self):
         """
@@ -59,7 +58,7 @@ class TOP:
         self.FORMAT_list.append(format)
         del line
 
-class READTOP (TOP):
+class READTOP(TOP):
     """%FLAG POINTERS                                                                  
     %FORMAT(10I8)                                                                   
     6702       7    5350       0       0       0       0       0       0       0
@@ -70,6 +69,7 @@ class READTOP (TOP):
     The cards are space-parsed in some cases, i.e. names of atoms, mols, residues
     """
     def __init__(self) -> None:
+        print(f"Reading '{TOPFILE}' ... \n")
         super().__init__()
         self.read_file()
 
@@ -130,18 +130,14 @@ class READTOP (TOP):
         self.FLAG[key]['data'] = data_list
         del data_list
 
-
     def do_long_string(self, key) -> None:
         """" this card is empty we ignored for now"""
         if self.FLAG[key]['data']:
-            print(f"THE LONG FLAG -> {key}: {self.FLAG[key]['data']} <- ignored!\n")
+            print(f"\tTHE LONG FLAG -> {key}: {self.FLAG[key]['data']} <- ignored!\n")
         else: pass
-
 
 if __name__== "__main__":
     TOPFILE = "test3.top"
     top = READTOP()
     top.get_data()
-    # print(top.FLAG['MASS'])
-
     
