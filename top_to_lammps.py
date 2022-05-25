@@ -131,15 +131,21 @@ class GETTOP:
     break down the data information read from TOP file
     """
 
-    def __init__(self, TOP) -> None:
-        self.TOP = TOP
-        del TOP
+    def __init__(self) -> None:
+        top = READTOP()
+        top.get_data()
+        self.top = top.FLAG
+        del top
 
     def set_attributes(self) -> None:
         self.get_pointers()
 
     def get_pointers(self)->int:
         """
+        his section contains the information about how many parameters are present
+        in all of the sections. There are 31 or 32 integer pointers (NCOPY might not
+        be present). The format and names of all of the pointers are listed below,
+        followed by a description of each pointer.
         %FLAG POINTERS
         %FORMAT(10I8)
         NATOM NTYPES NBONH MBONA NTHETH MTHETA NPHIH MPHIA NHPARM NPARM
@@ -155,34 +161,53 @@ class GETTOP:
         MTHETA  :    Number of angles not containing Hydrogen
         NPHIH   :    Number of torsions containing Hydrogen
         MPHIA   :    Number of torsions not containing Hydrogen
-        NHPARM Not currently used for anything
-        NPARM Used to determine if this is a LES-compatible prmtop
+        NHPARM  :    Not currently used for anything
+        NPARM   :    Used to determine if this is a LES-compatible prmtop
         NNB     :    Number of excluded atoms (length of total exclusion list)
         NRES    :    Number of residues
-        NBONA   :    MBONA + number of constraint bonds 1
-        NTHETA  :    MTHETA + number of constraint angles 1
-        NPHIA   :    MPHIA + number of constraint torsions 1
+        NBONA   :    MBONA + number of constraint bonds
+        NTHETA  :    MTHETA + number of constraint angles
+        NPHIA   :    MPHIA + number of constraint torsions
         NUMBND  :    Number of unique bond types
         NUMANG  :    Number of unique angle types
         NPTRA   :    Number of unique torsion types
         NATYP   :    Number of SOLTY terms. Currently unused.
-        NPHB    :    Number of distinct 10-12 hydrogen bond pair types 2 IFPERT Set to 1 if topology contains residue perturbation information. 3
-        NBPER   :    Number of perturbed bonds 3
-        NGPER   :    Number of perturbed angles 3
-        NDPER   :    Number of perturbed torsions 3
-        MBPER   :    Number of bonds in which both atoms are being perturbed 3
-        MGPER   :    Number of angles in which all 3 atoms are being perturbed 3
+        NPHB    :    Number of distinct 10-12 hydrogen bond pair types 2 IFPERT Set to 1 if topology contains residue perturbation information.
+        NBPER   :    Number of perturbed bonds
+        NGPER   :    Number of perturbed angles
+        NDPER   :    Number of perturbed torsions
+        MBPER   :    Number of bonds in which both atoms are being perturbed
+        MGPER   :    Number of angles in which all 3 atoms are being perturbed
         MDPER   :    Number of torsions in which all 4 atoms are being perturbed 3 IFBOX Flag indicating whether a periodic box is present. Values can be 0 (no box), 1 (orthorhombic box) or 2 (truncated octahedro
         NMXRS   :    Number of atoms in the largest residue IFCAP Set to 1 if a solvent CAP is being used
         NUMEXTRA:    Number of extra points in the topology file
-        NCOPY   :    Number of PIMD slices or number of bead
+        NCOPY   :    Number of PIMD slices or number of beads
         """
+        # since the format is 10I8 change them in to integer 
+        self.top['POINTERS']['data'] = [int(item) for item in self.top['POINTERS']['data']]
+        # setting the attributes:
+        # set them to None
+        length = len(self.top['POINTERS']['data'])
+        nones = lambda n: [None for _ in range(n)]
+        self.NATOM, self.NTYPES, self.NBONH, self.MBONA, self.NTHETH, self.MTHETA,\
+        self.NPHIH, self.MPHIA, self.NHPARM, self.NPARM, self.NNB, self.NRES, self.NBONA,\
+        self.NTHETA, self.NPHIA, self.NUMBND, self.NUMANG, self.NPTRA, self.NATYP, self.NPHB,\
+        self.IFPERT, self.NBPER, self.NGPER, self.NDPER, self.MBPER, self.MGPER, self.MDPER,\
+        self.IFBOX, self.NMXRS, self.IFCAP, self.NUMEXTRA = nones(31)
+        # NCOPY may not be present!
+        self.NCOPY = nones(1)
+        # setting all the data
+        self.NATOM, self.NTYPES, self.NBONH, self.MBONA, self.NTHETH, self.MTHETA,\
+        self.NPHIH, self.MPHIA, self.NHPARM, self.NPARM, self.NNB, self.NRES, self.NBONA,\
+        self.NTHETA, self.NPHIA, self.NUMBND, self.NUMANG, self.NPTRA, self.NATYP, self.NPHB,\
+        self.IFPERT, self.NBPER, self.NGPER, self.NDPER, self.MBPER, self.MGPER, self.MDPER,\
+        self.IFBOX, self.NMXRS, self.IFCAP, self.NUMEXTRA = self.top['POINTERS']['data'][0:31]
+        if length > 31: self.NCOPY = self.top['POINTERS']['data'][31]
 
-        
+
 if __name__== "__main__":
     TOPFILE = "test3.top"
-    top = READTOP()
-    top.get_data()
-    for key in top.FLAG.keys():
-        print(key, len(top.FLAG[key]['data']))
+    top = GETTOP()    
+    top.set_attributes()
+    print(top.NATOM)
 
