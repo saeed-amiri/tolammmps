@@ -139,6 +139,7 @@ class GETTOP:
         top.get_data()
         self.top = top.FLAG
         del top
+        print("Setting the attributs ...\n")
 
     def set_attributes(self) -> None:
         self.get_pointers()
@@ -148,6 +149,7 @@ class GETTOP:
         self.get_atom_type()
         self.get_residue_label()
         self.get_residue_pointer()
+        self.get_LJ_coeff()
 
     def get_pointers(self)->int:
         """
@@ -297,12 +299,26 @@ class GETTOP:
         self.RESIDUE_POINTER = residue
         del residue
         
-        
-
-
-
-
-
+    def get_LJ_coeff(self) -> list:
+        """
+        This section contains the LJ A and B-coefficients (ai,j, bi,j in Eq. LENNARD JONES) for all pairs of
+        distinct LJ types (see sections ATOM TYPE INDEX and NONBONDED PARM INDEX
+        above).
+        %FORMAT(5E16.8)
+        There are [NTYPES * (NTYPES + 1)] /2 floating point numbers in this section.
+        """
+        acoeffs = self.top['LENNARD_JONES_ACOEF']['data']
+        bcoeffs = self.top['LENNARD_JONES_BCOEF']['data']
+        alength = len(acoeffs)
+        blength = len(acoeffs)
+        len_lj = (self.NTYPES * (self.NTYPES + 1))/2
+        if len_lj != alength:exit("\n\tWRONG N of LJ A coeffs\n")
+        if len_lj != blength:exit("\n\tWRONG N of LJ B coeffs\n")
+        acoeffs = [float(a) for a in acoeffs]
+        bcoeffs = [float(b) for b in bcoeffs]
+        self.LJA = acoeffs
+        self.LJB = bcoeffs
+        del acoeffs, bcoeffs
 
 
 if __name__== "__main__":
