@@ -143,6 +143,7 @@ class GETTOP:
         self.get_pointers()
         self.get_atom_name()
         self.get_charges()
+        self.get_masses()
 
     def get_pointers(self)->int:
         """
@@ -188,11 +189,11 @@ class GETTOP:
         NCOPY   :    Number of PIMD slices or number of beads
         https://ambermd.org/prmtop.pdf
         """
+        length = len(self.top['POINTERS']['data'])
         # since the format is 10I8 change them in to integer 
         self.top['POINTERS']['data'] = [int(item) for item in self.top['POINTERS']['data']]
         # setting the attributes:
         # set them to None
-        length = len(self.top['POINTERS']['data'])
         nones = lambda n: [None for _ in range(n)]
         self.NATOM, self.NTYPES, self.NBONH, self.MBONA, self.NTHETH, self.MTHETA,\
         self.NPHIH, self.MPHIA, self.NHPARM, self.NPARM, self.NNB, self.NRES, self.NBONA,\
@@ -227,8 +228,8 @@ class GETTOP:
         %FORMAT(5E16.8)
         There are NATOM floating-point numbers in this section.
         """
-        length = len(self.top['CHARGE']['data'])
         kele = 18.2223
+        length = len(self.top['CHARGE']['data'])
         if length != self.NATOM: exit(f"NATOM != N of CHARGE: {length}")
         charges = self.top['CHARGE']['data']
         # convert to float
@@ -240,6 +241,18 @@ class GETTOP:
         self.CHARGE = charges
         del charges
         
+    def get_masses(self) -> list:
+        """
+        This section contains the atomic mass of every atom in g mol^{-1}.
+        %FORMAT(5E16.8)
+        There are NATOM floating-point numbers in this section.
+        """
+        length = len(self.top['MASS']['data'])
+        if length != self.NATOM: exit(f"NATOM != N of MASS: {length}")
+        masses = self.top['MASS']['data']
+        masses = [float(m) for m in masses]
+        self.MASS = masses
+        del masses
 
 
 
