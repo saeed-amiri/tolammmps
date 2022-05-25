@@ -147,6 +147,7 @@ class GETTOP:
         self.get_masses()
         self.get_atom_type()
         self.get_residue_label()
+        self.get_residue_pointer()
 
     def get_pointers(self)->int:
         """
@@ -232,9 +233,9 @@ class GETTOP:
         There are NATOM floating-point numbers in this section.
         """
         kele = 18.2223
-        length = len(self.top['CHARGE']['data'])
-        if length != self.NATOM: exit(f"NATOM != N of CHARGE: {length}")
         charges = self.top['CHARGE']['data']
+        length = len(charges)
+        if length != self.NATOM: exit(f"NATOM != N of CHARGE: {length}")
         # convert to float
         charges = [float(q) for q in charges]
         # convert to [e] unit
@@ -250,9 +251,9 @@ class GETTOP:
         %FORMAT(5E16.8)
         There are NATOM floating-point numbers in this section.
         """
-        length = len(self.top['MASS']['data'])
-        if length != self.NATOM: exit(f"NATOM != N of MASS: {length}")
         masses = self.top['MASS']['data']
+        length = len(masses)
+        if length != self.NATOM: exit(f"NATOM != N of MASS: {length}")
         masses = [float(m) for m in masses]
         self.MASS = masses
         del masses
@@ -264,9 +265,9 @@ class GETTOP:
         %FORMAT(10I8)
         There are NATOM integers in this section.
         """
-        length = len(self.top['ATOM_TYPE_INDEX']['data'])
-        if length != self.NATOM: exit(f"NATOM != N of ATOM_TYPE_INDEX: {length}")
         atom_type = self.top['ATOM_TYPE_INDEX']['data']
+        length = len(atom_type)
+        if length != self.NATOM: exit(f"NATOM != N of ATOM_TYPE_INDEX: {length}")
         atom_type = [int(atom) for atom in atom_type ]
         self.ATOM_TYPE = atom_type
         del atom_type
@@ -283,6 +284,20 @@ class GETTOP:
         if length != self.NRES: exit(f"NRES != N of RESIDUE_LABEL: {length}")
         self.RESIDUE_LABLE = self.top['RESIDUE_LABEL']['data']
 
+    def get_residue_pointer(self):
+        """
+        This section lists the first atom in each residue.
+        %FORMAT(10i8)
+        There are NRES integers in this section
+        """
+        residue = self.top['RESIDUE_POINTER']['data']
+        length = len(residue)
+        if length != self.NRES: exit(f"NRES != N of RESIDUE_POINTER: {length}")
+        residue = [int(item) for item in residue]
+        self.RESIDUE_POINTER = residue
+        del residue
+        
+        
 
 
 
@@ -294,4 +309,3 @@ if __name__== "__main__":
     TOPFILE = "test3.top"
     top = GETTOP()    
     top.set_attributes()
-    print(top.RESIDUE_LABLE)
