@@ -56,7 +56,8 @@ class TOP:
         del line
 
 class READTOP(TOP):
-    """%FLAG POINTERS                                                                  
+    """
+    %FLAG POINTERS                                                                  
     %FORMAT(10I8)                                                                   
     6702       7    5350       0       0       0       0       0       0       0
     8468    3062       0       0       0       3       0       0      10       1
@@ -144,7 +145,7 @@ class GETTOP:
         self.get_atom_name()
         self.get_charges()
         self.get_masses()
-
+        self.get_atom_type()
     def get_pointers(self)->int:
         """
         This section contains the information about how many parameters are present
@@ -253,6 +254,22 @@ class GETTOP:
         masses = [float(m) for m in masses]
         self.MASS = masses
         del masses
+    
+    def get_atom_type(self) -> list:
+        """
+        This section contains the Lennard-Jones atom type index. The Lennard-
+        Jones potential contains parameters for every pair of atoms in the system.
+        %FORMAT(10I8)
+        There are NATOM integers in this section.
+        """
+        length = len(self.top['ATOM_TYPE_INDEX']['data'])
+        if length != self.NATOM: exit(f"NATOM != N of ATOM_TYPE_INDEX: {length}")
+        atom_type = self.top['ATOM_TYPE_INDEX']['data']
+        atom_type = [int(atom) for atom in atom_type ]
+        self.ATOM_TYPE = atom_type
+        del atom_type
+
+
 
 
 
