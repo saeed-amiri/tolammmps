@@ -29,7 +29,7 @@ class TOP:
                     if line.startswith('FLAG'): self.get_flag(line)
                     if line.startswith('FORMAT'): self.get_format(line)
                 if not line: break
-        free_dict = [dict() for item in self.FORMAT_list]
+        free_dict = [dict() for _ in self.FORMAT_list]
         self.FLAG = dict(zip(self.FLAG_list, free_dict))
         for i, key in enumerate(self.FLAG): self.FLAG[key]['format'] = self.FORMAT_list[i]
         del free_dict
@@ -114,9 +114,10 @@ class READTOP(TOP):
         for key in self.FLAG.keys():
             self.FLAG[key]['data'] = ''.join(self.FLAG[key]['data'])
             if self.FLAG[key]['format'] == '20a4': self.do_string(key, 4)
-            if self.FLAG[key]['format'] == '10I8': self.do_string(key, 8)
-            if self.FLAG[key]['format'] == '5E16.8': self.do_string(key, 16)
-            if self.FLAG[key]['format'] == '1a80' :self.do_string(key, 80)
+            elif self.FLAG[key]['format'] == '10I8': self.do_string(key, 8)
+            elif self.FLAG[key]['format'] == '5E16.8': self.do_string(key, 16)
+            elif self.FLAG[key]['format'] == '1a80' :self.do_string(key, 80)
+            else: exit(f"\n\tUNDEFINED format in {self.FLAG[key]['format']}\n")
 
     def do_string(self, key, split) -> list:
         """ fixing the data lists with FORTRAN format: 20a4, 10I8, 5E16.8, 1a80 """
@@ -140,7 +141,7 @@ class GETTOP:
     def set_attributes(self) -> None:
         self.get_pointers()
 
-    def get_pointers(self) -> int:
+    def get_pointers(self)->int:
         """
         This section contains the information about how many parameters are present
         in all of the sections. There are 31 or 32 integer pointers (NCOPY might not
@@ -210,5 +211,4 @@ if __name__== "__main__":
     TOPFILE = "test3.top"
     top = GETTOP()    
     top.set_attributes()
-    print(top.NATOM)
 
