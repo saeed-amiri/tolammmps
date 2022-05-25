@@ -1,6 +1,7 @@
+from pprint import pprint
 import re
 import numpy as np
-
+import pandas as pd
 class DOC:
     """"
     Reading the AMBER data file for SiO2 slab and converting to LAMMPS data file
@@ -320,8 +321,75 @@ class GETTOP:
         self.LJB = bcoeffs
         del acoeffs, bcoeffs
 
+class PDB:
+    """
+    reading pdb file and return the coordinates
+    The pdb file is written in a normal format it is NOT in a standard PDB structure
+    """
+    def __init__(self) -> None:
+        self.CENTER = False
 
+    def read_pdb(self) -> list:
+        id, name, residue, chain, x, y, z = [], [], [], [], [], [], []
+        type, charge = [], []
+        _sharp, _atom_name = [], []
+        lineCounter = 0
+        with open (PDBFILE, 'r') as f:
+            while True:
+                line = f.readline()
+                lineCounter += 1
+                if line.strip().startswith('ATOM'):
+                    line = line.strip().split(' ')
+                    line = [item for item in line if item]
+                    # ATOM      9 Si   Si      9      -6.272  -1.062  -5.117  1.00  0.00
+                    _, i_id, i_name, i_residue, i_chain, i_x, i_y, i_z, _, _ = line
+                    id.append(i_id); name.append(i_name); 
+                    residue.append(i_residue); chain.append(i_chain)
+                    x.append(i_x); y.append(i_y); z.append(i_z) 
+                if not line: break
+        id = [int(i) for i in id]
+        chain = [int(i) for i in chain]
+        x = [float(pos) for pos in x]        
+        y = [float(pos) for pos in y]        
+        z = [float(pos) for pos in z]        
+        sharp = ['#' for _ in range(len(x))]
+        q = [float(0) for _ in range(len(x))]
+        nx = [int(0) for _ in range(len(x))]
+        ny = [int(0) for _ in range(len(x))]
+        nz = [int(0) for _ in range(len(x))]
+        # making a DataFrame in LAMMPS format
+        self.mk_lmp_df(id, chain, name, q, x, y, z, nx, ny, nz, sharp)
+    
+    def mk_lmp_df(self, id, chain, name, q, x, y, z, nx, ny, nz, sharp) -> dict:
+        """
+        making a DataFrame in LAMMPS 'full' atom style:
+
+        id molecule-tag atom-type q x y z nx ny nz
+
+        Since the atom type is not defined yet, the atom name will be used, and later it will be replaced with the atom type from TOPFILE. 
+        Also, all q=0.0 will be set later the charges information will write into a different file.
+        'chain' here is the same as molecule-tag in LAMMPS
+        """
+        data_dict = {'id':id, 'chain':chain, 'name':name, 'q':q, 'x':x, 'y':y, 'z':z, 'nx':nx, 'ny':ny, 'nz':nz, 'sharp':sharp, 'symbol':name}
+        self.PDBATOMS = pd.DataFrame(data_dict)
+        print(self.PDBATOMS)
+
+
+
+
+
+
+
+def move_to_zero(data) -> list:
+    return data-np.min(data)
+def drop_digit(obj) -> str:
+    return re.sub("\d", "", obj)
+ATOM_CHARGE = dict(N=0.000, HO=0.400, OH=-0.800, SI=1.600, OB=-0.800, SD=1.500, OD=-1.000, OM=-0.900, OMH=-0.900, SU=1.200)
+ATOM_TYPE = dict(HO=1, OB=2, OH=3, OM=4, OMH=5, OD=6, SI=7, SU=8, SD=9)
 if __name__== "__main__":
     TOPFILE = "test3.top"
+    PDBFILE = "test.pdb"
     top = GETTOP()    
     top.set_attributes()
+    pdb = PDB()
+    pdb.read_pdb()
