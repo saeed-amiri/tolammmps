@@ -1,7 +1,4 @@
-import os, sys, re
-from pprint import pprint
-from matplotlib.pyplot import step
-import pandas as pd
+import re
 
 class DOC:
     """"
@@ -122,14 +119,70 @@ class READTOP(TOP):
             if self.FLAG[key]['format'] == '1a80' :self.do_string(key, 80)
 
     def do_string(self, key, split) -> list:
-        """fixing the data lists with FORTRAN format: 20a4, 10I8, 5E16.8, 1a80 """
+        """ fixing the data lists with FORTRAN format: 20a4, 10I8, 5E16.8, 1a80 """
         data_list = self.FLAG[key]['data']
-        data_list = [data_list[i:i+split].strip() for i in range(0,len(data_list)-split+1,split)]
+        data_list = [ data_list[i:i+split].strip() for i in range(0, len(data_list)-split+1, split) ]
         self.FLAG[key]['data'] = data_list
         del data_list
 
+
+class GETTOP:
+    """
+    break down the data information read from TOP file
+    """
+
+    def __init__(self, TOP) -> None:
+        self.TOP = TOP
+        del TOP
+
+    def set_attributes(self) -> None:
+        self.get_pointers()
+
+    def get_pointers(self)->int:
+        """
+        %FLAG POINTERS
+        %FORMAT(10I8)
+        NATOM NTYPES NBONH MBONA NTHETH MTHETA NPHIH MPHIA NHPARM NPARM
+        NNB NRES NBONA NTHETA NPHIA NUMBND NUMANG NPTRA NATYP NPHB
+        IFPERT NBPER NGPER NDPER MBPER MGPER MDPER IFBOX NMXRS IFCAP
+        NUMEXTRA NCOPY
+        i.e.:
+        NATOM   :    Number of atoms
+        NTYPES  :    Number of distinct Lennard-Jones atom types
+        NBONH   :    Number of bonds containing Hydrogen
+        MBONA   :    Number of bonds not containing Hydrogen
+        NTHETH  :    Number of angles containing Hydrogen
+        MTHETA  :    Number of angles not containing Hydrogen
+        NPHIH   :    Number of torsions containing Hydrogen
+        MPHIA   :    Number of torsions not containing Hydrogen
+        NHPARM Not currently used for anything
+        NPARM Used to determine if this is a LES-compatible prmtop
+        NNB     :    Number of excluded atoms (length of total exclusion list)
+        NRES    :    Number of residues
+        NBONA   :    MBONA + number of constraint bonds 1
+        NTHETA  :    MTHETA + number of constraint angles 1
+        NPHIA   :    MPHIA + number of constraint torsions 1
+        NUMBND  :    Number of unique bond types
+        NUMANG  :    Number of unique angle types
+        NPTRA   :    Number of unique torsion types
+        NATYP   :    Number of SOLTY terms. Currently unused.
+        NPHB    :    Number of distinct 10-12 hydrogen bond pair types 2 IFPERT Set to 1 if topology contains residue perturbation information. 3
+        NBPER   :    Number of perturbed bonds 3
+        NGPER   :    Number of perturbed angles 3
+        NDPER   :    Number of perturbed torsions 3
+        MBPER   :    Number of bonds in which both atoms are being perturbed 3
+        MGPER   :    Number of angles in which all 3 atoms are being perturbed 3
+        MDPER   :    Number of torsions in which all 4 atoms are being perturbed 3 IFBOX Flag indicating whether a periodic box is present. Values can be 0 (no box), 1 (orthorhombic box) or 2 (truncated octahedro
+        NMXRS   :    Number of atoms in the largest residue IFCAP Set to 1 if a solvent CAP is being used
+        NUMEXTRA:    Number of extra points in the topology file
+        NCOPY   :    Number of PIMD slices or number of bead
+        """
+
+        
 if __name__== "__main__":
     TOPFILE = "test3.top"
     top = READTOP()
     top.get_data()
-    
+    for key in top.FLAG.keys():
+        print(key, len(top.FLAG[key]['data']))
+
