@@ -68,7 +68,7 @@ class READTOP(TOP):
     The cards are space-parsed in some cases, i.e. names of atoms, mols, residues
     """
     def __init__(self) -> None:
-        print(f"Reading '{TOPFILE}' ... \n")
+        print(f"Reading '{TOPFILE}' ...")
         super().__init__()
         self.read_file()
 
@@ -133,6 +133,9 @@ class READTOP(TOP):
 class GETTOP:
     """
     break down the data information read from TOP file
+    This class only extract data from TOPFILE which was read by TOP class.
+    Extracting data (anlaysing!), atom-type, ... to be used for making LAMMPS input file will be 
+    done by DOTOP class
     """
 
     def __init__(self) -> None:
@@ -140,7 +143,7 @@ class GETTOP:
         top.get_data()
         self.top = top.FLAG
         del top
-        print("Setting the attributs ...\n")
+        print("  Setting the attributs ...")
 
     def set_attributes(self) -> None:
         self.get_pointers()
@@ -320,6 +323,26 @@ class GETTOP:
         self.LJA = acoeffs
         self.LJB = bcoeffs
         del acoeffs, bcoeffs
+        self.print_info()
+    
+    def print_info(self) -> None:
+        print(f"\tseeing {self.NATOM}\t atoms")
+        print(f"\tseeing {self.NRES}\t residues")
+        print(f"\tseeing {len(set(self.ATOM_NAME))}\t atom names")
+        print(f"\tseeing {self.NTYPES}\t atom types")
+        print(f"\n")
+
+class DOTOP:
+    """
+    Extracting data for making LAMMPS inputs
+    """
+
+    def __init__(self) -> None:
+        top = READTOP()
+        top.get_data()
+        self.top = top.FLAG
+        del top
+        print("Extracting data from TOPFILE ...\n")
 
 class PDB:
     """
@@ -327,7 +350,7 @@ class PDB:
     The pdb file is written in a normal format it is NOT in a standard PDB structure
     """
     def __init__(self) -> None:
-        self.CENTER = False
+        print(f"Reading '{PDBFILE}' ...")
 
     def read_pdb(self) -> list:
         id, name, residue, chain, x, y, z = [], [], [], [], [], [], []
@@ -347,18 +370,28 @@ class PDB:
                     residue.append(i_residue); chain.append(i_chain)
                     x.append(i_x); y.append(i_y); z.append(i_z) 
                 if not line: break
+
+        # set the formats
         id = [int(i) for i in id]
         chain = [int(i) for i in chain]
-        x = [float(pos) for pos in x]        
-        y = [float(pos) for pos in y]        
-        z = [float(pos) for pos in z]        
+        x = [float(pos) for pos in x]
+        y = [float(pos) for pos in y]
+        z = [float(pos) for pos in z]
+        # put mins to origin (0,0,0)
+        x = self.move_to_zero(x)
+        y = self.move_to_zero(y)
+        z = self.move_to_zero(z)
+        # make column for comments
         sharp = ['#' for _ in range(len(x))]
+        # make columnm for charges
         q = [float(0) for _ in range(len(x))]
+        # make columns for the flags
         nx = [int(0) for _ in range(len(x))]
         ny = [int(0) for _ in range(len(x))]
         nz = [int(0) for _ in range(len(x))]
         # making a DataFrame in LAMMPS format
         self.mk_lmp_df(id, chain, name, q, x, y, z, nx, ny, nz, sharp)
+        del id, chain, name, q, x, y, z, nx, ny, nz, sharp
     
     def mk_lmp_df(self, id, chain, name, q, x, y, z, nx, ny, nz, sharp) -> dict:
         """
@@ -372,20 +405,22 @@ class PDB:
         """
         data_dict = {'id':id, 'chain':chain, 'name':name, 'q':q, 'x':x, 'y':y, 'z':z, 'nx':nx, 'ny':ny, 'nz':nz, 'sharp':sharp, 'symbol':name}
         self.PDBATOMS = pd.DataFrame(data_dict)
-        print(self.PDBATOMS)
+        self.NATOM = len(id)
+        self.NRES = np.max(chain)
+        self.ATOM_NAMES= list(set(name))
+        self.NNAMES = len(self.ATOM_NAMES)
+        del id, chain, name, q, x, y, z, nx, ny, nz, sharp, data_dict
+        self.print_info()
+    
+    def print_info(self) -> None:
+        print(f"\t seeing {self.NATOM}\t atoms")
+        print(f"\t seeing {self.NRES}\t reseidues (molecules)")
+        print(f"\t seeing {self.NNAMES}\t atom names")
+        print(f"\n")
 
+    def move_to_zero(self, data) -> list:
+        return data-np.min(data)
 
-
-
-
-
-
-def move_to_zero(data) -> list:
-    return data-np.min(data)
-def drop_digit(obj) -> str:
-    return re.sub("\d", "", obj)
-ATOM_CHARGE = dict(N=0.000, HO=0.400, OH=-0.800, SI=1.600, OB=-0.800, SD=1.500, OD=-1.000, OM=-0.900, OMH=-0.900, SU=1.200)
-ATOM_TYPE = dict(HO=1, OB=2, OH=3, OM=4, OMH=5, OD=6, SI=7, SU=8, SD=9)
 if __name__== "__main__":
     TOPFILE = "test3.top"
     PDBFILE = "test.pdb"
