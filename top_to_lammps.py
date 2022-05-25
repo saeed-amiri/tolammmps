@@ -146,6 +146,8 @@ class GETTOP:
         self.get_charges()
         self.get_masses()
         self.get_atom_type()
+        self.get_residue_label()
+
     def get_pointers(self)->int:
         """
         This section contains the information about how many parameters are present
@@ -268,6 +270,20 @@ class GETTOP:
         atom_type = [int(atom) for atom in atom_type ]
         self.ATOM_TYPE = atom_type
         del atom_type
+    
+    def get_residue_label(self) -> list:
+        """
+        This section contains the residue name for every residue in the prmtop.
+        Residue names are limited to 4 letters, and might not be whitespace-delimited
+        if any residues have 4-letter names.
+        %FORMAT(20a4)
+        There are NRES 4-character strings in this section
+        """
+        length = len(self.top['RESIDUE_LABEL']['data'])
+        if length != self.NRES: exit(f"NRES != N of RESIDUE_LABEL: {length}")
+        self.RESIDUE_LABLE = self.top['RESIDUE_LABEL']['data']
+
+
 
 
 
@@ -278,3 +294,4 @@ if __name__== "__main__":
     TOPFILE = "test3.top"
     top = GETTOP()    
     top.set_attributes()
+    print(top.RESIDUE_LABLE)
