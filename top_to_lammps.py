@@ -142,7 +142,7 @@ class GETTOP:
 
     def get_pointers(self)->int:
         """
-        his section contains the information about how many parameters are present
+        This section contains the information about how many parameters are present
         in all of the sections. There are 31 or 32 integer pointers (NCOPY might not
         be present). The format and names of all of the pointers are listed below,
         followed by a description of each pointer.
@@ -182,6 +182,7 @@ class GETTOP:
         NMXRS   :    Number of atoms in the largest residue IFCAP Set to 1 if a solvent CAP is being used
         NUMEXTRA:    Number of extra points in the topology file
         NCOPY   :    Number of PIMD slices or number of beads
+        https://ambermd.org/prmtop.pdf
         """
         # since the format is 10I8 change them in to integer 
         self.top['POINTERS']['data'] = [int(item) for item in self.top['POINTERS']['data']]
