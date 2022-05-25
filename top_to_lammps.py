@@ -1,4 +1,5 @@
 import re
+import numpy as np
 
 class DOC:
     """"
@@ -140,6 +141,8 @@ class GETTOP:
 
     def set_attributes(self) -> None:
         self.get_pointers()
+        self.get_atom_name()
+        self.get_charges()
 
     def get_pointers(self)->int:
         """
@@ -206,9 +209,42 @@ class GETTOP:
         self.IFBOX, self.NMXRS, self.IFCAP, self.NUMEXTRA = self.top['POINTERS']['data'][0:31]
         if length > 31: self.NCOPY = self.top['POINTERS']['data'][31]
 
+    def get_atom_name(self) -> list:
+        """
+        make a list of the atoms' name
+        his section contains the atom name for every atom in the prmtop.
+        %FORMAT(20a4) There are NATOM 4-character strings in this section.
+        """
+        length = len(self.top['ATOM_NAME']['data'])
+        if length != self.NATOM: exit(f"NATOM != N of ATOM_NAME: {length}")
+        self.ATOM_NAME = self.top['ATOM_NAME']['data']
+        
+    def get_charges(self) -> list:
+        """
+        This section contains the charge for every atom in the prmtop. Charges
+        are multiplied by 18.2223 (sqre(k_{ele}) where k_{ele} is the electrostatic constant in
+        kcal  ̊A mol^{-1} q^{-2}, where q is the charge of an electron).
+        %FORMAT(5E16.8)
+        There are NATOM floating-point numbers in this section.
+        """
+        length = len(self.top['CHARGE']['data'])
+        kele = 18.2223
+        if length != self.NATOM: exit(f"NATOM != N of CHARGE: {length}")
+        charges = self.top['CHARGE']['data']
+        # convert to float
+        charges = [float(q) for q in charges]
+        # convert to [e] unit
+        charges = [q/kele for q in charges]
+        # correct the precision
+        charges = [np.round(q, decimals=10) for q in charges]
+        self.CHARGE = charges
+        del charges
+        
+
+
+
 
 if __name__== "__main__":
     TOPFILE = "test3.top"
     top = GETTOP()    
     top.set_attributes()
-
