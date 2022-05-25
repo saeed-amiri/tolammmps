@@ -140,7 +140,7 @@ class GETTOP:
     def set_attributes(self) -> None:
         self.get_pointers()
 
-    def get_pointers(self)->int:
+    def get_pointers(self) -> int:
         """
         This section contains the information about how many parameters are present
         in all of the sections. There are 31 or 32 integer pointers (NCOPY might not
