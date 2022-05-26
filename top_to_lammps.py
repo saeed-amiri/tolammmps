@@ -1,9 +1,7 @@
-from operator import index
-from pprint import pprint
 import re
 import numpy as np
 import pandas as pd
-from sqlalchemy import column
+
 class DOC:
     """"
     Reading the AMBER data file for SiO2 slab and converting to LAMMPS data file
@@ -516,7 +514,7 @@ class LMP:
         self.zlo = self.lmp_df['z'].min() - 1; self.zhi = self.lmp_df['z'].max() + 1
 
     def write_data(self):
-        with open('slab.data', 'w') as f:
+        with open(LMPFILE, 'w') as f:
             f.write(f"# dtat from: {TOPFILE} and {PDBFILE}\n")
             f.write(f"\n")
             f.write(f"{self.NATOM} atoms\n")
@@ -528,22 +526,28 @@ class LMP:
             f.write(f"\n")
             f.write(f"Atoms # full\n")
             f.write(f"\n")
-
             self.lmp_df.to_csv(f, sep='\t', index=False, header=None, float_format='%g')
+            self.print_info()
+
+    def print_info(self) -> None:
+        print(f"Writing '{LMPFILE}' (LAMMPS data file) ... \n")
+        print(f"\t writting {self.NATOM}\t atoms")
+        print(f"\t writting {self.NRES}\t reseidues (molecules)")
+        print(f"\t writting {self.NTYPES}\t atom types")
+        print(f"\n")
 
 
 if __name__== "__main__":
     TOPFILE = "test3.top"
     PDBFILE = "test.pdb"
+    LMPFILE = "slab.data"
     data = READTOP()
     data.get_data()
     top = GETTOP(data.FLAG)    
     top.get_top()
     pdb = PDB()
     pdb.read_pdb()
-    print(pdb.lmp_df)
     lmp = LMP(pdb, top)
     lmp.mk_lmp()
     lmp.write_data()
-    print(lmp.lmp_df)
 
