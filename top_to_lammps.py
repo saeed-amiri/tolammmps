@@ -1,7 +1,9 @@
+from operator import index
 from pprint import pprint
 import re
 import numpy as np
 import pandas as pd
+from sqlalchemy import column
 class DOC:
     """"
     Reading the AMBER data file for SiO2 slab and converting to LAMMPS data file
@@ -479,6 +481,10 @@ class LMP:
         del types, charges
         return typ_lst, q_lst
     
+    def write_data(self):
+        with open('slab.data', 'w') as f:
+            f.write(f"# dtat from: {TOPFILE} and {PDBFILE}")
+            self.pdb.to_csv(f, sep='\t', index=False, columns=None)
 
 if __name__== "__main__":
     TOPFILE = "test3.top"
@@ -491,5 +497,6 @@ if __name__== "__main__":
     pdb.read_pdb()
     lmp = LMP(pdb.lmp_df, top.df)
     lmp.update_df()
+    lmp.write_data()
     print(lmp.pdb)
 
