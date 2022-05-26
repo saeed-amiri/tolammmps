@@ -178,7 +178,7 @@ class GETTOP:
         self.get_residue_pointer()
         self.get_LJ_coeff()
 
-    def get_pointers(self)->int:
+    def get_pointers(self) -> int:
         """
         This section contains the information about how many parameters are present
         in all of the sections. There are 31 or 32 integer pointers (NCOPY might not
@@ -268,7 +268,6 @@ class GETTOP:
         # correct the precision
         charges = [np.round(q, decimals=10) for q in charges]
         self.top['CHARGE']['data'] = charges
-        self.CHARGE = charges
         del charges
         
     def get_masses(self) -> list:
@@ -280,7 +279,6 @@ class GETTOP:
         masses = self.top['MASS']['data']
         length = len(masses)
         if length != self.NATOM: exit(f"NATOM != N of MASS: {length}")
-        self.MASS = masses
         self.top['MASS']['data'] = masses
         del masses
     
@@ -295,7 +293,6 @@ class GETTOP:
         length = len(atom_type)
         if length != self.NATOM: exit(f"NATOM != N of ATOM_TYPE_INDEX: {length}")
         self.top['ATOM_TYPE_INDEX']['data'] = atom_type
-        self.ATOM_TYPE = atom_type
         del atom_type
     
     def get_residue_label(self) -> list:
@@ -308,7 +305,6 @@ class GETTOP:
         """
         length = len(self.top['RESIDUE_LABEL']['data'])
         if length != self.NRES: exit(f"NRES != N of RESIDUE_LABEL: {length}")
-        self.RESIDUE_LABLE = self.top['RESIDUE_LABEL']['data']
 
     def get_residue_pointer(self) -> list:
         """
@@ -320,7 +316,6 @@ class GETTOP:
         length = len(residue)
         if length != self.NRES: exit(f"NRES != N of RESIDUE_POINTER: {length}")
         self.top['RESIDUE_POINTER']['data'] = residue
-        self.RESIDUE_POINTER = residue
         del residue
         
     def get_LJ_coeff(self) -> list:
@@ -342,7 +337,6 @@ class GETTOP:
         self.LJB = bcoeffs
         self.top['LENNARD_JONES_ACOEF']['data'] = acoeffs
         self.top['LENNARD_JONES_BCOEF']['data'] = bcoeffs
-        del acoeffs, bcoeffs
         self.print_info()
     
     def get_types(self) -> list:
@@ -357,14 +351,14 @@ class GETTOP:
         # make a dataframe to extract infos
         self.df = self.mk_df(data_dict)
         del data_dict
-        
+
     def mk_df(self, data_dict) -> pd.DataFrame:
         df = pd.DataFrame.from_dict(data_dict)
         df = df.drop(['EXCLUDED_ATOMS_LIST'], axis=1)
         df.to_csv('df', sep='\t', index=False)
-        df1 = df.groupby('ATOM_NAME', as_index=False).mean()
-        del df
-        return df1
+        df = df.groupby('ATOM_NAME', as_index=False).mean()
+        df = df.astype({"ATOM_TYPE_INDEX":int})
+        return df
 
 
     def print_info(self) -> None:
@@ -433,7 +427,7 @@ class PDB:
         'chain' here is the same as molecule-tag in LAMMPS
         """
         data_dict = {'id':id, 'chain':chain, 'name':name, 'q':q, 'x':x, 'y':y, 'z':z, 'nx':nx, 'ny':ny, 'nz':nz, 'sharp':sharp, 'symbol':name}
-        self.PDBATOMS = pd.DataFrame(data_dict)
+        self.lmp_df = pd.DataFrame(data_dict)
         self.NATOM = len(id)
         self.NRES = np.max(chain)
         self.ATOM_NAMES= list(set(name))
@@ -449,8 +443,42 @@ class PDB:
 
     def move_to_zero(self, data) -> list: return data-np.min(data)
 
+class LMP:
+    """
+    Update DataFrame for LAMMPS input
+    """
+    def __init__(self, pdb, top) -> None:
+        self.pdb = pdb
+        self.top = top
+        del pdb, top
 
+    def mk_lmp(self) -> None:
+        self.data = self.update_df()
 
+    def update_df(self) -> pd.DataFrame:
+        """
+        Update DataFram from PDB (self.pdb) by substituting the type and charge with date
+        from DataFrame from TOP (self.top)
+        """
+        # replace the columns in lmp_df (pdb)
+        self.pdb['name'], self.pdb['q'] = self.get_q_name()
+    
+    def get_q_name(self) -> list:
+        types = dict()
+        charges = dict()
+        # make a dict from types and names and charges
+        for i, name in enumerate(self.top['ATOM_NAME']):
+            types[name]=self.top.iloc[i]['ATOM_TYPE_INDEX']
+            charges[name] = self.top.iloc[i]['CHARGE']
+        # make a list with types then replace whole column at once
+        typ_lst = []
+        q_lst = []
+        for name in self.pdb['name']:
+            typ_lst.append(types[name])
+            q_lst.append(charges[name])
+        del types, charges
+        return typ_lst, q_lst
+    
 
 if __name__== "__main__":
     TOPFILE = "test3.top"
@@ -461,3 +489,7 @@ if __name__== "__main__":
     top.get_top()
     pdb = PDB()
     pdb.read_pdb()
+    lmp = LMP(pdb.lmp_df, top.df)
+    lmp.update_df()
+    print(lmp.pdb)
+
