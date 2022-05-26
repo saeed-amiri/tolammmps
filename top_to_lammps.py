@@ -452,8 +452,6 @@ class LMP:
         # there are Na+ in files, remove them and update all the related attributs
         self.data = self.update_df()
         self.rm_Na()
-        # make sure of x, y, z formats
-        # self.df_atypes()
         # get box
         self.get_box()
 
@@ -503,9 +501,6 @@ class LMP:
             q_lst.append(self.charges[name])
         return typ_lst, q_lst
     
-    def df_astypes(self) -> None:
-        self.lmp_df = self.lmp_df(['x'], astype=np.float16)
-
     def get_box(self) -> None:
         # finding box limits
         offset = 1
