@@ -167,6 +167,7 @@ class GETTOP:
         # get genral data about types: masses, charges, ...
         self.get_types()
 
+
     def set_attributes(self) -> None:
         self.get_pointers()
         self.get_atom_name()
@@ -353,14 +354,18 @@ class GETTOP:
         for key in self.top.keys():
             if len(self.top[key]['data'])==self.NATOM:
                 data_dict[key]=self.top[key]['data']
+        # make a dataframe to extract infos
+        self.df = self.mk_df(data_dict)
+        del data_dict
+        
+    def mk_df(self, data_dict) -> pd.DataFrame:
         df = pd.DataFrame.from_dict(data_dict)
         df = df.drop(['EXCLUDED_ATOMS_LIST'], axis=1)
         df.to_csv('df', sep='\t', index=False)
-        df1 = df.groupby('ATOM_TYPE_INDEX').max()
-        pprint(df1)
         df1 = df.groupby('ATOM_NAME', as_index=False).mean()
-        pprint(df1)
-#       
+        del df
+        return df1
+
 
     def print_info(self) -> None:
         print(f"\tseeing {self.NATOM}\t atoms")
