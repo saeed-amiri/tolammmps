@@ -138,12 +138,16 @@ class GETTOP:
     done by DOTOP class
     """
 
-    def __init__(self) -> None:
-        top = READTOP()
-        top.get_data()
-        self.top = top.FLAG
+    def __init__(self, top) -> None:
+        self.top = top
         del top
         print("  Setting the attributs ...")
+
+    def get_top(self) -> None:
+        # set general attributes which has either NATOM or NRES data-length
+        self.set_attributes()
+        # get genral data about types: masses, charges, ...
+        self.get_types()
 
     def set_attributes(self) -> None:
         self.get_pointers()
@@ -248,6 +252,7 @@ class GETTOP:
         charges = [q/kele for q in charges]
         # correct the precision
         charges = [np.round(q, decimals=10) for q in charges]
+        self.top['CHARGE']['data'] = charges
         self.CHARGE = charges
         del charges
         
@@ -262,6 +267,7 @@ class GETTOP:
         if length != self.NATOM: exit(f"NATOM != N of MASS: {length}")
         masses = [float(m) for m in masses]
         self.MASS = masses
+        self.top['MASS']['data'] = masses
         del masses
     
     def get_atom_type(self) -> list:
@@ -275,6 +281,7 @@ class GETTOP:
         length = len(atom_type)
         if length != self.NATOM: exit(f"NATOM != N of ATOM_TYPE_INDEX: {length}")
         atom_type = [int(atom) for atom in atom_type ]
+        self.top['ATOM_TYPE_INDEX']['data'] = atom_type
         self.ATOM_TYPE = atom_type
         del atom_type
     
@@ -290,7 +297,7 @@ class GETTOP:
         if length != self.NRES: exit(f"NRES != N of RESIDUE_LABEL: {length}")
         self.RESIDUE_LABLE = self.top['RESIDUE_LABEL']['data']
 
-    def get_residue_pointer(self):
+    def get_residue_pointer(self) -> list:
         """
         This section lists the first atom in each residue.
         %FORMAT(10i8)
@@ -300,6 +307,7 @@ class GETTOP:
         length = len(residue)
         if length != self.NRES: exit(f"NRES != N of RESIDUE_POINTER: {length}")
         residue = [int(item) for item in residue]
+        self.top['RESIDUE_POINTER']['data'] = residue
         self.RESIDUE_POINTER = residue
         del residue
         
@@ -322,9 +330,25 @@ class GETTOP:
         bcoeffs = [float(b) for b in bcoeffs]
         self.LJA = acoeffs
         self.LJB = bcoeffs
+        self.top['LENNARD_JONES_ACOEF']['data'] = acoeffs
+        self.top['LENNARD_JONES_BCOEF']['data'] = bcoeffs
         del acoeffs, bcoeffs
         self.print_info()
     
+    def get_types(self) -> list:
+        """
+        making a DataFrame from the atoms' name, charges, residues
+        to extract the information about the number of types, with their symbols and properties
+        """
+        data_dict = dict()
+        for key in self.top.keys():
+            if len(self.top[key]['data'])==self.NATOM:
+                data_dict[key]=self.top[key]['data']
+        df = pd.DataFrame.from_dict(data_dict)
+        df.to_csv('df', sep='\t', index=False)
+        print(df)
+#       
+
     def print_info(self) -> None:
         print(f"\tseeing {self.NATOM}\t atoms")
         print(f"\tseeing {self.NRES}\t residues")
@@ -332,22 +356,11 @@ class GETTOP:
         print(f"\tseeing {self.NTYPES}\t atom types")
         print(f"\n")
 
-class DOTOP:
-    """
-    Extracting data for making LAMMPS inputs
-    """
-
-    def __init__(self) -> None:
-        top = READTOP()
-        top.get_data()
-        self.top = top.FLAG
-        del top
-        print("Extracting data from TOPFILE ...\n")
 
 class PDB:
     """
-    reading pdb file and return the coordinates
-    The pdb file is written in a normal format it is NOT in a standard PDB structure
+    reading the PDB file and returning the coordinates
+    The PDB file is written in a normal format it is NOT in a standard PDB structure
     """
     def __init__(self) -> None:
         print(f"Reading '{PDBFILE}' ...")
@@ -383,7 +396,7 @@ class PDB:
         z = self.move_to_zero(z)
         # make column for comments
         sharp = ['#' for _ in range(len(x))]
-        # make columnm for charges
+        # make column for charges
         q = [float(0) for _ in range(len(x))]
         # make columns for the flags
         nx = [int(0) for _ in range(len(x))]
@@ -418,13 +431,17 @@ class PDB:
         print(f"\t seeing {self.NNAMES}\t atom names")
         print(f"\n")
 
-    def move_to_zero(self, data) -> list:
-        return data-np.min(data)
+    def move_to_zero(self, data) -> list: return data-np.min(data)
+
+
+
 
 if __name__== "__main__":
     TOPFILE = "test3.top"
     PDBFILE = "test.pdb"
-    top = GETTOP()    
-    top.set_attributes()
+    data = READTOP()
+    data.get_data()
+    top = GETTOP(data.FLAG)    
+    top.get_top()
     pdb = PDB()
     pdb.read_pdb()
