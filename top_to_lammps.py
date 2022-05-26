@@ -402,10 +402,6 @@ class PDB:
         x = [float(pos) for pos in x]
         y = [float(pos) for pos in y]
         z = [float(pos) for pos in z]
-        # put mins to origin (0,0,0)
-        x = self.move_to_zero(x)
-        y = self.move_to_zero(y)
-        z = self.move_to_zero(z)
         # make column for comments
         sharp = ['#' for _ in range(len(x))]
         # make column for charges
@@ -443,62 +439,88 @@ class PDB:
         print(f"\t seeing {self.NNAMES}\t atom names")
         print(f"\n")
 
-    def move_to_zero(self, data) -> list: return data-np.min(data)
 
 class LMP:
     """
     Update DataFrame for LAMMPS input
     """
     def __init__(self, pdb, top) -> None:
-        self.pdb = pdb
+        self.lmp_df = pdb.lmp_df
         self.top = top
+        del pdb
 
     def mk_lmp(self) -> None:
+        self.types, self.charges = self.get_q_name()
+        # there are Na+ in files, remove them and update all the related attributs
         self.data = self.update_df()
+        self.rm_Na()
         # make sure of x, y, z formats
         # self.df_atypes()
         # get box
         self.get_box()
 
+    def rm_Na(self) -> None:
+        # checking for the Na+
+        # removing Na+
+        self.lmp_df = self.lmp_df[self.lmp_df.symbol != 'Na+']
+        self.NATOM = len(self.lmp_df.id)
+        self.NTYPES = self.top.NTYPES - 1
+        self.NRES = self.lmp_df.chain.max()
+        
+    
+    def to_orgin(self) -> None:
+        # put mins to origin (0,0,0)
+        self.lmp_df.x = self.move_to_zero(self.lmp_df.x)
+        self.lmp_df.y = self.move_to_zero(self.lmp_df.y)
+        self.lmp_df.z = self.move_to_zero(self.lmp_df.z)
+
+
+    def move_to_zero(self, data) -> list: return data-np.min(data)
+
     def update_df(self) -> pd.DataFrame:
         """
-        Update DataFram from PDB (self.pdb.lmp_df) by substituting the type and charge with date
+        Update DataFram from PDB (self.lmp_df) by substituting the type and charge with date
         from DataFrame from TOP (self.top.df)
         """
         # replace the columns in lmp_df (pdb)
-        self.pdb.lmp_df['name'], self.pdb.lmp_df['q'] = self.get_q_name()
-    
-    def get_q_name(self) -> list:
+        self.lmp_df['name'], self.lmp_df['q'] = self.set_q_name()
+
+    def get_q_name(self) -> dict:
         types = dict()
         charges = dict()
         # make a dict from types and names and charges
         for i, name in enumerate(self.top.df['ATOM_NAME']):
             types[name]=self.top.df.iloc[i]['ATOM_TYPE_INDEX']
             charges[name] = self.top.df.iloc[i]['CHARGE']
-        # make a list with types then replace whole column at once
+        return types, charges
+
+
+
+    def set_q_name(self) -> list:
+        # make a list with self.types then replace whole column at once
         typ_lst = []
         q_lst = []
-        for name in self.pdb.lmp_df['name']:
-            typ_lst.append(types[name])
-            q_lst.append(charges[name])
-        del types, charges
+        for name in self.lmp_df['name']:
+            typ_lst.append(self.types[name])
+            q_lst.append(self.charges[name])
         return typ_lst, q_lst
     
     def df_astypes(self) -> None:
-        self.pdb.lmp_df = self.pdb.lmp_df(['x'], astype=np.float16)
+        self.lmp_df = self.lmp_df(['x'], astype=np.float16)
 
     def get_box(self) -> None:
         # finding box limits
-        self.xlo = self.pdb.lmp_df['x'].min(); self.xhi = self.pdb.lmp_df['x'].max()
-        self.ylo = self.pdb.lmp_df['y'].min(); self.yhi = self.pdb.lmp_df['y'].max()
-        self.zlo = self.pdb.lmp_df['z'].min(); self.zhi = self.pdb.lmp_df['z'].max()
+        offset = 1
+        self.xlo = self.lmp_df['x'].min() - 1; self.xhi = self.lmp_df['x'].max() + 1
+        self.ylo = self.lmp_df['y'].min() - 1; self.yhi = self.lmp_df['y'].max() + 1
+        self.zlo = self.lmp_df['z'].min() - 1; self.zhi = self.lmp_df['z'].max() + 1
 
     def write_data(self):
         with open('slab.data', 'w') as f:
             f.write(f"# dtat from: {TOPFILE} and {PDBFILE}\n")
             f.write(f"\n")
-            f.write(f"{self.top.NATOM} atoms\n")
-            f.write(f"{self.top.NTYPES} atom types\n")
+            f.write(f"{self.NATOM} atoms\n")
+            f.write(f"{self.NTYPES} atom types\n")
             f.write(f"\n")
             f.write(f"{self.xlo} {self.xhi} xlo xhi\n")
             f.write(f"{self.ylo} {self.yhi} ylo yhi\n")
@@ -507,7 +529,7 @@ class LMP:
             f.write(f"Atoms # full\n")
             f.write(f"\n")
 
-            self.pdb.lmp_df.to_csv(f, sep='\t', index=False, header=None, float_format='%g')
+            self.lmp_df.to_csv(f, sep='\t', index=False, header=None, float_format='%g')
 
 
 if __name__== "__main__":
@@ -519,7 +541,9 @@ if __name__== "__main__":
     top.get_top()
     pdb = PDB()
     pdb.read_pdb()
+    print(pdb.lmp_df)
     lmp = LMP(pdb, top)
     lmp.mk_lmp()
     lmp.write_data()
+    print(lmp.lmp_df)
 
