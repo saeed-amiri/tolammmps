@@ -452,39 +452,63 @@ class LMP:
     def __init__(self, pdb, top) -> None:
         self.pdb = pdb
         self.top = top
-        del pdb, top
 
     def mk_lmp(self) -> None:
         self.data = self.update_df()
+        # make sure of x, y, z formats
+        # self.df_atypes()
+        # get box
+        self.get_box()
 
     def update_df(self) -> pd.DataFrame:
         """
-        Update DataFram from PDB (self.pdb) by substituting the type and charge with date
-        from DataFrame from TOP (self.top)
+        Update DataFram from PDB (self.pdb.lmp_df) by substituting the type and charge with date
+        from DataFrame from TOP (self.top.df)
         """
         # replace the columns in lmp_df (pdb)
-        self.pdb['name'], self.pdb['q'] = self.get_q_name()
+        self.pdb.lmp_df['name'], self.pdb.lmp_df['q'] = self.get_q_name()
     
     def get_q_name(self) -> list:
         types = dict()
         charges = dict()
         # make a dict from types and names and charges
-        for i, name in enumerate(self.top['ATOM_NAME']):
-            types[name]=self.top.iloc[i]['ATOM_TYPE_INDEX']
-            charges[name] = self.top.iloc[i]['CHARGE']
+        for i, name in enumerate(self.top.df['ATOM_NAME']):
+            types[name]=self.top.df.iloc[i]['ATOM_TYPE_INDEX']
+            charges[name] = self.top.df.iloc[i]['CHARGE']
         # make a list with types then replace whole column at once
         typ_lst = []
         q_lst = []
-        for name in self.pdb['name']:
+        for name in self.pdb.lmp_df['name']:
             typ_lst.append(types[name])
             q_lst.append(charges[name])
         del types, charges
         return typ_lst, q_lst
     
+    def df_astypes(self) -> None:
+        self.pdb.lmp_df = self.pdb.lmp_df(['x'], astype=np.float16)
+
+    def get_box(self) -> None:
+        # finding box limits
+        self.xlo = self.pdb.lmp_df['x'].min(); self.xhi = self.pdb.lmp_df['x'].max()
+        self.ylo = self.pdb.lmp_df['y'].min(); self.yhi = self.pdb.lmp_df['y'].max()
+        self.zlo = self.pdb.lmp_df['z'].min(); self.zhi = self.pdb.lmp_df['z'].max()
+
     def write_data(self):
         with open('slab.data', 'w') as f:
-            f.write(f"# dtat from: {TOPFILE} and {PDBFILE}")
-            self.pdb.to_csv(f, sep='\t', index=False, columns=None)
+            f.write(f"# dtat from: {TOPFILE} and {PDBFILE}\n")
+            f.write(f"\n")
+            f.write(f"{self.top.NATOM} atoms\n")
+            f.write(f"{self.top.NTYPES} atom types\n")
+            f.write(f"\n")
+            f.write(f"{self.xlo} {self.xhi} xlo xhi\n")
+            f.write(f"{self.ylo} {self.yhi} ylo yhi\n")
+            f.write(f"{self.zlo} {self.zhi} zlo zhi\n")
+            f.write(f"\n")
+            f.write(f"Atoms # full\n")
+            f.write(f"\n")
+
+            self.pdb.lmp_df.to_csv(f, sep='\t', index=False, header=None, float_format='%g')
+
 
 if __name__== "__main__":
     TOPFILE = "test3.top"
@@ -495,8 +519,7 @@ if __name__== "__main__":
     top.get_top()
     pdb = PDB()
     pdb.read_pdb()
-    lmp = LMP(pdb.lmp_df, top.df)
-    lmp.update_df()
+    lmp = LMP(pdb, top)
+    lmp.mk_lmp()
     lmp.write_data()
-    print(lmp.pdb)
 
