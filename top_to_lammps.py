@@ -72,12 +72,13 @@ class READTOP(TOP):
         super().__init__()
         self.read_file()
 
-    def get_data(self)->None:
+    def get_data(self) -> None:
         self.mk_modify()
         self.read_card()
         self.crct_card()
+        self.mk_format()
 
-    def mk_modify(self)-> None:
+    def mk_modify(self) -> None:
         """modify the FLAG dict"""
         self.set_flage()
         self.set_data_list()
@@ -113,7 +114,7 @@ class READTOP(TOP):
                 if not line: break
     
     def crct_card(self) -> None:
-        """correcting the data format and removing the blanks"""
+        """correcting the data based on format and removing the blanks"""
         for key in self.FLAG.keys():
             self.FLAG[key]['data'] = ''.join(self.FLAG[key]['data'])
             if self.FLAG[key]['format'] == '20a4': self.do_string(key, 4)
@@ -128,6 +129,23 @@ class READTOP(TOP):
         data_list = [ data_list[i:i+split].strip() for i in range(0, len(data_list)-split+1, split) ]
         self.FLAG[key]['data'] = data_list
         del data_list
+    
+    def mk_format(self) -> None:
+        """correcting the data format """
+        for key in self.FLAG.keys():
+            if self.FLAG[key]['format'] == '10I8': self.do_integer(key)
+            elif self.FLAG[key]['format'] == '5E16.8': self.do_float(key)
+            else: pass
+
+    def do_integer(self, key) -> list:
+        # fixing the integer format of 10I8
+        self.FLAG[key]['data'] = [int(x) for x in self.FLAG[key]['data']]
+    
+    def do_float(self, key) -> list:
+        # fixing the float format of 5E16.8
+        self.FLAG[key]['data'] = [float(x) for x in self.FLAG[key]['data']]
+
+    
 
 
 class GETTOP:
@@ -204,8 +222,6 @@ class GETTOP:
         https://ambermd.org/prmtop.pdf
         """
         length = len(self.top['POINTERS']['data'])
-        # since the format is 10I8 change them in to integer 
-        self.top['POINTERS']['data'] = [int(item) for item in self.top['POINTERS']['data']]
         # setting the attributes:
         # set them to None
         nones = lambda n: [None for _ in range(n)]
@@ -246,8 +262,6 @@ class GETTOP:
         charges = self.top['CHARGE']['data']
         length = len(charges)
         if length != self.NATOM: exit(f"NATOM != N of CHARGE: {length}")
-        # convert to float
-        charges = [float(q) for q in charges]
         # convert to [e] unit
         charges = [q/kele for q in charges]
         # correct the precision
@@ -265,7 +279,6 @@ class GETTOP:
         masses = self.top['MASS']['data']
         length = len(masses)
         if length != self.NATOM: exit(f"NATOM != N of MASS: {length}")
-        masses = [float(m) for m in masses]
         self.MASS = masses
         self.top['MASS']['data'] = masses
         del masses
@@ -280,7 +293,6 @@ class GETTOP:
         atom_type = self.top['ATOM_TYPE_INDEX']['data']
         length = len(atom_type)
         if length != self.NATOM: exit(f"NATOM != N of ATOM_TYPE_INDEX: {length}")
-        atom_type = [int(atom) for atom in atom_type ]
         self.top['ATOM_TYPE_INDEX']['data'] = atom_type
         self.ATOM_TYPE = atom_type
         del atom_type
@@ -306,7 +318,6 @@ class GETTOP:
         residue = self.top['RESIDUE_POINTER']['data']
         length = len(residue)
         if length != self.NRES: exit(f"NRES != N of RESIDUE_POINTER: {length}")
-        residue = [int(item) for item in residue]
         self.top['RESIDUE_POINTER']['data'] = residue
         self.RESIDUE_POINTER = residue
         del residue
@@ -326,8 +337,6 @@ class GETTOP:
         len_lj = (self.NTYPES * (self.NTYPES + 1))/2
         if len_lj != alength:exit("\n\tWRONG N of LJ A coeffs\n")
         if len_lj != blength:exit("\n\tWRONG N of LJ B coeffs\n")
-        acoeffs = [float(a) for a in acoeffs]
-        bcoeffs = [float(b) for b in bcoeffs]
         self.LJA = acoeffs
         self.LJB = bcoeffs
         self.top['LENNARD_JONES_ACOEF']['data'] = acoeffs
@@ -345,8 +354,12 @@ class GETTOP:
             if len(self.top[key]['data'])==self.NATOM:
                 data_dict[key]=self.top[key]['data']
         df = pd.DataFrame.from_dict(data_dict)
+        df = df.drop(['EXCLUDED_ATOMS_LIST'], axis=1)
         df.to_csv('df', sep='\t', index=False)
-        print(df)
+        df1 = df.groupby('ATOM_TYPE_INDEX').max()
+        pprint(df1)
+        df1 = df.groupby('ATOM_NAME', as_index=False).mean()
+        pprint(df1)
 #       
 
     def print_info(self) -> None:
@@ -367,8 +380,6 @@ class PDB:
 
     def read_pdb(self) -> list:
         id, name, residue, chain, x, y, z = [], [], [], [], [], [], []
-        type, charge = [], []
-        _sharp, _atom_name = [], []
         lineCounter = 0
         with open (PDBFILE, 'r') as f:
             while True:
