@@ -1,4 +1,5 @@
 import re
+from tokenize import group
 import typing
 import numpy as np
 import pandas as pd
@@ -585,12 +586,12 @@ class LMPPARAM:
             f.write(f"\n")
             self.write_mass(f)
             self.write_q(f)
-            pass
+            self.write_group(f)
 
     def write_mass(self, f) -> typing.TextIO:
         f.write(f"# mass of each type\n")
         for key, value in self.lmp.masses.items():
-            f.write(f"mass {self.lmp.types[key]}\t{value}\t# {self.drop_digit(key)}\n")
+            f.write(f"mass {self.lmp.types[key]}\t{value:.3f}\t# {self.drop_digit(key)}\n")
         f.write("\n")
     
     def write_q(self, f) -> typing.TextIO:
@@ -598,12 +599,16 @@ class LMPPARAM:
         f.write(f"# charges are already set in data file ({DATAFILE}), here added as comments\n")
         f.write(f"CC\n")
         for key, value in self.lmp.charges.items():
-            f.write(f"set type {self.lmp.types[key]}\t{value:.4f}\t# {self.drop_digit(key)}\n")
+            f.write(f"set type {self.lmp.types[key]}\t{value:.3f}\t# {self.drop_digit(key)}\n")
         f.write(f"CC\n")
         f.write(f"\n")
 
+    def write_group(self, f) -> typing.TextIO:
+        # define Hydrogen group
+        f.write(f"# defined name of the group \n")
+        f.write(f"group Hy_silica type {self.lmp.types['H']}\n")
+        f.write(f"\n")
 
-        
     
     def drop_digit(self, obj) -> str: return re.sub("\d", "", obj)
 
