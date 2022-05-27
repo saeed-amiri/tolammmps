@@ -29,8 +29,8 @@ class TOP:
                 if line.startswith('%'):
                     line = line.split('%')[1]
                     if line.startswith('version'): self.get_version(line)
-                    if line.startswith('FLAG'): self.get_flag(line)
-                    if line.startswith('FORMAT'): self.get_format(line)
+                    elif line.startswith('FLAG'): self.get_flag(line)
+                    elif line.startswith('FORMAT'): self.get_format(line)
                 if not line: break
         free_dict = [dict() for _ in self.FORMAT_list]
         self.FLAG = dict(zip(self.FLAG_list, free_dict))
@@ -554,6 +554,9 @@ class LMPPARAM:
 
     def mk_types(self) -> None:
         self.get_types()
+        self.get_masses()
+        self.get_charges()
+        self.write_parameters()
 
     def get_types(self) -> None:
         """
@@ -567,6 +570,42 @@ class LMPPARAM:
         self.lmp.types = {v: k[0] for k, v in d.items()}
         del d
 
+    def get_masses(self) -> None:
+        """ Update masses attribute based on the types """
+        self.lmp.masses = {k: v for k, v in self.lmp.masses.items() if k in self.lmp.types.keys()}
+
+    def get_charges(self) -> None:
+        """ Update charges (NOT needed, bu incase!) attribute based on the types """
+        self.lmp.charges = {k: v for k, v in self.lmp.charges.items() if k in self.lmp.types.keys()}
+
+
+    def write_parameters(self) -> typing.TextIO:
+        with open(PARAMFILE, 'w') as f:
+            f.write(f"# Parameters for '{DATAFILE}' from '{TOPFILE}' and '{PDBFILE}'\n")
+            f.write(f"\n")
+            self.write_mass(f)
+            self.write_q(f)
+            pass
+
+    def write_mass(self, f) -> typing.TextIO:
+        f.write(f"# mass of each type\n")
+        for key, value in self.lmp.masses.items():
+            f.write(f"mass {self.lmp.types[key]}\t{value}\t# {self.drop_digit(key)}\n")
+        f.write("\n")
+    
+    def write_q(self, f) -> typing.TextIO:
+        f.write(f"# charge of each type\n")
+        f.write(f"# charges are already set in data file ({DATAFILE}), here added as comments\n")
+        f.write(f"CC\n")
+        for key, value in self.lmp.charges.items():
+            f.write(f"set type {self.lmp.types[key]}\t{value:.4f}\t# {self.drop_digit(key)}\n")
+        f.write(f"CC\n")
+        f.write(f"\n")
+
+
+        
+    
+    def drop_digit(self, obj) -> str: return re.sub("\d", "", obj)
 
 if __name__== "__main__":
     TOPFILE = "test3.top"
