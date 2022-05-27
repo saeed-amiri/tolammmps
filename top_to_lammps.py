@@ -450,10 +450,11 @@ class LMPDATA:
     data file in full Atom style:
     id mol type q x y z nx ny nz
     """
-    def __init__(self, pdb, top) -> None:
+    def __init__(self, pdb, top, bonds) -> None:
         self.lmp_df = pdb.lmp_df
         self.top = top
-        del pdb, top
+        self.bond_df = bonds
+        del pdb, top, bonds
 
     def mk_lmp(self) -> None:
         self.types, self.charges, self.masses = self.get_q_name_mass()
@@ -462,6 +463,8 @@ class LMPDATA:
         self.ppo_key('Na+')
         # get box
         self.get_box()
+        # get the Number of bonds, index from one
+        self.do_bonds()
         # write LAMMPS data file (DATAFILE)
         self.write_data()
 
@@ -477,8 +480,6 @@ class LMPDATA:
             self.types.pop(popkey), self.charges.pop(popkey), self.masses.pop(popkey)
         except: 
             print(f"\tthere were no {popkey} to drop!!\n")
-
-        
     
     def to_orgin(self) -> None:
         # put mins to origin (0,0,0)
@@ -524,12 +525,20 @@ class LMPDATA:
         self.ylo = self.lmp_df['y'].min() - OFFSET; self.yhi = self.lmp_df['y'].max() + OFFSET
         self.zlo = self.lmp_df['z'].min() - OFFSET; self.zhi = self.lmp_df['z'].max() + OFFSET
 
+    def do_bonds(self) -> None:
+        # set attributes for bonnds
+        self.NBONDS = len(self.bond_df)
+        self.NBTYPES = self.bond_df['type'].max()
+        self.bond_df.index += 1
+
     def write_data(self) -> typing.TextIO:
         with open(DATAFILE, 'w') as f:
             f.write(f"# dtat from: {TOPFILE} and {PDBFILE}\n")
             f.write(f"\n")
             f.write(f"{self.NATOM} atoms\n")
             f.write(f"{self.NTYPES} atom types\n")
+            f.write(f"{self.NBONDS} bonds\n")
+            f.write(f"{self.NBTYPES} bond types\n")
             f.write(f"\n")
             f.write(f"{self.xlo} {self.xhi} xlo xhi\n")
             f.write(f"{self.ylo} {self.yhi} ylo yhi\n")
@@ -538,6 +547,10 @@ class LMPDATA:
             f.write(f"Atoms # full\n")
             f.write(f"\n")
             self.lmp_df.to_csv(f, sep='\t', index=False, header=None, float_format='%g')
+            f.write(f"\n")
+            f.write(f"Bonds \n")
+            f.write(f"\n")
+            self.bond_df.to_csv(f, sep='\t', index=True, header=None, columns=['type', 'ai', 'aj'],float_format='%g')
             self.print_info()
 
     def print_info(self) -> typing.TextIO:
@@ -563,12 +576,47 @@ class LMPBOND:
         - BONDS_WITHOUT_HYDROGEN
     """
 
-    def __init__(self, lmpdata) -> None:
-        self.lmp = lmpdata
-        del lmpdata
+    def __init__(self, top) -> None:
+        self.top = top
+        del top
 
     def mk_bonds(self) -> None:
-        pass
+        # print(f"BOND_FORCE_CONSTANT: {self.top.top['BOND_FORCE_CONSTANT']['data']}")
+        # print(f"BOND_EQUIL_VALUE: {self.top.top['BOND_EQUIL_VALUE']['data']}")
+        # print(f"BONDS_WITHOUT_HYDROGEN: {self.top.top['BONDS_WITHOUT_HYDROGEN']['data']}")
+        h_bonds = self.get_h_bond()
+        self.bonds = self.mk_hbond_df(h_bonds)
+
+    def get_h_bond(self) -> list:
+        """
+        BONDS INC HYDROGEN
+        This section contains a list of every bond in the system in which at least
+        one atom is Hydrogen. Each bond is identified by 3 integers—the two
+        atoms involved in the bond and the index into the BOND FORCE CONSTANT
+        and BOND EQUIL VALUE. For run-time efficiency, the atom indexes are actu-
+        ally indexes into a coordinate array, so the actual atom index A is calculated
+        from the coordinate array index N by A = N/3 + 1. (N is the value in the
+        topology file)
+        %FORMAT(10I8)
+        There are 3 * NBONH integers in this section.
+        """
+        h_bonds = self.top.top['BONDS_INC_HYDROGEN']['data']
+        h_bonds = [h_bonds[i:i+3] for i in range(0,len(h_bonds),3)]
+        h_bonds = [self.crct_index(lst) for lst in h_bonds]
+        return h_bonds
+    
+    def crct_index(self, lst) -> list:
+        for i in range(2):
+            lst[i] = self.return_index(lst[i])
+        return lst
+
+    def return_index(self, x) -> int: return int((x/3)+1)
+
+
+
+    def mk_hbond_df(self, h_bonds) -> pd.DataFrame:
+        """return datafram from h_bond list"""
+        return pd.DataFrame(h_bonds, columns=['ai', 'aj', 'type'])
 
 
 class LMPPARAM:
@@ -649,20 +697,20 @@ if __name__== "__main__":
     data.get_data()
     top = GETTOP(data.FLAG)    
     top.get_top()
-    k = 1
-    for i in range(1, top.NTYPES+1):
-        for j in range(1, top.NTYPES+1):
-            ind = (top.NTYPES * (data.FLAG['ATOM_TYPE_INDEX']['data'][i]-1)) + data.FLAG['ATOM_TYPE_INDEX']['data'][j]
-            print(k, i, j,data.FLAG['NONBONDED_PARM_INDEX']['data'][ind])
-            k+=1
+    # k = 1
+    # for i in range(1, top.NTYPES+1):
+        # for j in range(1, top.NTYPES+1):
+            # ind = (top.NTYPES * (data.FLAG['ATOM_TYPE_INDEX']['data'][i]-1)) + data.FLAG['ATOM_TYPE_INDEX']['data'][j]
+            # print(k, i, j,data.FLAG['NONBONDED_PARM_INDEX']['data'][ind])
+            # k+=1
     pdb = PDB()
     pdb.read_pdb()
-    lmpdata = LMPDATA(pdb, top)
+    lmpbond = LMPBOND(top)
+    lmpbond.mk_bonds()
+    lmpdata = LMPDATA(pdb, top, lmpbond.bonds)
     lmpdata.mk_lmp()
     lmpparam = LMPPARAM(lmpdata)
     lmpparam.mk_types()
     # pprint(data.FLAG['LENNARD_JONES_BCOEF']['data'])
     # print(len(data.FLAG['ATOM_TYPE_INDEX']['data']))
-    print(data.FLAG['NONBONDED_PARM_INDEX']['data'])
-    print(data.FLAG['BOND_EQUIL_VALUE']['data'])
-    print(top.NBONA, top.NBONH)
+    
