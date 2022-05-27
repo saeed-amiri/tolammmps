@@ -1,8 +1,8 @@
 import re
-from tokenize import group
 import typing
 import numpy as np
 import pandas as pd
+from pprint import pprint
 
 class DOC:
     """"
@@ -325,8 +325,12 @@ class GETTOP:
         This section contains the LJ A and B-coefficients (ai,j, bi,j in Eq. LENNARD JONES) for all pairs of
         distinct LJ types (see sections ATOM TYPE INDEX and NONBONDED PARM INDEX
         above).
+        E_{ij} = [a_{ij}/r^{12}] - [b_{ij}/r^{6}]
         %FORMAT(5E16.8)
         There are [NTYPES * (NTYPES + 1)] /2 floating point numbers in this section.
+        !!!!!!!!!!!
+        The standard LJ equation in LAMMPS is:
+        E_{ij} = 4 * epsilon [ (sigma/r)^{12} - (sigma/r)^{6} ]
         """
         acoeffs = self.top['LENNARD_JONES_ACOEF']['data']
         bcoeffs = self.top['LENNARD_JONES_BCOEF']['data']
@@ -543,6 +547,29 @@ class LMPDATA:
         print(f"\t writting {self.NTYPES}\t atom types")
         print(f"\n")
 
+class LMPBOND:
+    """
+    Extract the bonds in the system
+    related cards to work with:
+     * integer:
+        - NTYPES Number of distinct Lennard-Jones atom types
+        - NBONH Number of bonds containing Hydrogen
+        - MBONA Number of bonds not containing Hydrogen
+        - NBONA MBONA + number of constraint bond
+     * in cards:
+        - BOND_FORCE_CONSTANT
+        - BOND_EQUIL_VALUE
+        - BONDS_INC_HYDROGEN
+        - BONDS_WITHOUT_HYDROGEN
+    """
+
+    def __init__(self, lmpdata) -> None:
+        self.lmp = lmpdata
+        del lmpdata
+
+    def mk_bonds(self) -> None:
+        pass
+
 
 class LMPPARAM:
     """
@@ -622,10 +649,20 @@ if __name__== "__main__":
     data.get_data()
     top = GETTOP(data.FLAG)    
     top.get_top()
+    k = 1
+    for i in range(1, top.NTYPES+1):
+        for j in range(1, top.NTYPES+1):
+            ind = (top.NTYPES * (data.FLAG['ATOM_TYPE_INDEX']['data'][i]-1)) + data.FLAG['ATOM_TYPE_INDEX']['data'][j]
+            print(k, i, j,data.FLAG['NONBONDED_PARM_INDEX']['data'][ind])
+            k+=1
     pdb = PDB()
     pdb.read_pdb()
     lmpdata = LMPDATA(pdb, top)
     lmpdata.mk_lmp()
     lmpparam = LMPPARAM(lmpdata)
     lmpparam.mk_types()
-
+    # pprint(data.FLAG['LENNARD_JONES_BCOEF']['data'])
+    # print(len(data.FLAG['ATOM_TYPE_INDEX']['data']))
+    print(data.FLAG['NONBONDED_PARM_INDEX']['data'])
+    print(data.FLAG['BOND_EQUIL_VALUE']['data'])
+    print(top.NBONA, top.NBONH)
