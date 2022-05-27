@@ -454,13 +454,13 @@ class LMPDATA:
         self.types, self.charges, self.masses = self.get_q_name_mass()
         # there are Na+ in files, remove them and update all the related attributs
         self.data = self.update_df()
-        self.rm_Na('Na+')
+        self.ppo_key('Na+')
         # get box
         self.get_box()
         # write LAMMPS data file (DATAFILE)
         self.write_data()
 
-    def rm_Na(self, popkey) -> None:
+    def ppo_key(self, popkey) -> None:
         # checking for the Na+
         try:
             # removing Na+
@@ -543,6 +543,30 @@ class LMPDATA:
         print(f"\n")
 
 
+class LMPPARAM:
+    """
+    write out parameters about the system such as 
+    mass, coeffs, bonds, ...
+    """
+    def __init__(self, lmp) -> None:
+        self.lmp = lmp
+        del lmp
+
+    def mk_types(self) -> None:
+        self.get_types()
+
+    def get_types(self) -> None:
+        """
+        make clean set of the types, becuase NTYPES != NNAMES
+        """
+        # convert the the format of the types: int -> str
+        self.lmp.types = {k: str(v) for k, v in self.lmp.types.items()}
+        # swap keys, and values them tuples the new key
+        d  = {tuple(v): k for k, v in self.lmp.types.items()}
+        # swap the key and value again
+        self.lmp.types = {v: k[0] for k, v in d.items()}
+        del d
+
 
 if __name__== "__main__":
     TOPFILE = "test3.top"
@@ -558,4 +582,6 @@ if __name__== "__main__":
     pdb.read_pdb()
     lmpdata = LMPDATA(pdb, top)
     lmpdata.mk_lmp()
+    lmpparam = LMPPARAM(lmpdata)
+    lmpparam.mk_types()
 
