@@ -451,22 +451,28 @@ class LMPDATA:
         del pdb, top
 
     def mk_lmp(self) -> None:
-        self.types, self.charges = self.get_q_name_mass()
+        self.types, self.charges, self.masses = self.get_q_name_mass()
         # there are Na+ in files, remove them and update all the related attributs
         self.data = self.update_df()
-        self.rm_Na()
+        self.rm_Na('Na+')
         # get box
         self.get_box()
         # write LAMMPS data file (DATAFILE)
         self.write_data()
 
-    def rm_Na(self) -> None:
+    def rm_Na(self, popkey) -> None:
         # checking for the Na+
-        # removing Na+
-        self.lmp_df = self.lmp_df[self.lmp_df.symbol != 'Na+']
-        self.NATOM = len(self.lmp_df.id)
-        self.NTYPES = self.top.NTYPES - 1
-        self.NRES = self.lmp_df.chain.max()
+        try:
+            # removing Na+
+            self.lmp_df = self.lmp_df[self.lmp_df.symbol != popkey]
+            self.NATOM = len(self.lmp_df.id)
+            self.NTYPES = self.top.NTYPES - 1
+            self.NRES = self.lmp_df.chain.max()
+            # remove from masses, charges, and types
+            self.types.pop(popkey), self.charges.pop(popkey), self.masses.pop(popkey)
+        except: 
+            print(f"\tthere were no {popkey} to drop!!\n")
+
         
     
     def to_orgin(self) -> None:
@@ -495,9 +501,7 @@ class LMPDATA:
             types[name]=self.top.df.iloc[i]['ATOM_TYPE_INDEX']
             charges[name] = self.top.df.iloc[i]['CHARGE']
             masses[name] = self.top.df.iloc[i]['MASS']
-        print(masses, types)
-        return types, charges
-
+        return types, charges, masses
 
 
     def set_q_name_mass(self) -> list:
@@ -537,7 +541,6 @@ class LMPDATA:
         print(f"\t writting {self.NRES}\t reseidues (molecules)")
         print(f"\t writting {self.NTYPES}\t atom types")
         print(f"\n")
-
 
 
 
