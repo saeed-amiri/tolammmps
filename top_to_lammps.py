@@ -1,4 +1,5 @@
 import re
+import typing
 import numpy as np
 import pandas as pd
 
@@ -361,7 +362,7 @@ class GETTOP:
         return df
 
 
-    def print_info(self) -> None:
+    def print_info(self) -> typing.TextIO:
         print(f"\tseeing {self.NATOM}\t atoms")
         print(f"\tseeing {self.NRES}\t residues")
         print(f"\tseeing {len(set(self.ATOM_NAME))}\t atom names")
@@ -431,29 +432,33 @@ class PDB:
         del id, chain, name, q, x, y, z, nx, ny, nz, sharp, data_dict
         self.print_info()
     
-    def print_info(self) -> None:
+    def print_info(self) -> typing.TextIO:
         print(f"\t seeing {self.NATOM}\t atoms")
         print(f"\t seeing {self.NRES}\t reseidues (molecules)")
         print(f"\t seeing {self.NNAMES}\t atom names")
         print(f"\n")
 
 
-class LMP:
+class LMPDATA:
     """
-    Update DataFrame for LAMMPS input
+    Update DataFrame for LAMMPS input:
+    data file in full Atom style:
+    id mol type q x y z nx ny nz
     """
     def __init__(self, pdb, top) -> None:
         self.lmp_df = pdb.lmp_df
         self.top = top
-        del pdb
+        del pdb, top
 
     def mk_lmp(self) -> None:
-        self.types, self.charges = self.get_q_name()
+        self.types, self.charges = self.get_q_name_mass()
         # there are Na+ in files, remove them and update all the related attributs
         self.data = self.update_df()
         self.rm_Na()
         # get box
         self.get_box()
+        # write LAMMPS data file (DATAFILE)
+        self.write_data()
 
     def rm_Na(self) -> None:
         # checking for the Na+
@@ -479,20 +484,23 @@ class LMP:
         from DataFrame from TOP (self.top.df)
         """
         # replace the columns in lmp_df (pdb)
-        self.lmp_df['name'], self.lmp_df['q'] = self.set_q_name()
+        self.lmp_df['name'], self.lmp_df['q'] = self.set_q_name_mass()
 
-    def get_q_name(self) -> dict:
+    def get_q_name_mass(self) -> dict:
         types = dict()
         charges = dict()
+        masses = dict()
         # make a dict from types and names and charges
         for i, name in enumerate(self.top.df['ATOM_NAME']):
             types[name]=self.top.df.iloc[i]['ATOM_TYPE_INDEX']
             charges[name] = self.top.df.iloc[i]['CHARGE']
+            masses[name] = self.top.df.iloc[i]['MASS']
+        print(masses, types)
         return types, charges
 
 
 
-    def set_q_name(self) -> list:
+    def set_q_name_mass(self) -> list:
         # make a list with self.types then replace whole column at once
         typ_lst = []
         q_lst = []
@@ -503,13 +511,12 @@ class LMP:
     
     def get_box(self) -> None:
         # finding box limits
-        offset = 1
-        self.xlo = self.lmp_df['x'].min() - 1; self.xhi = self.lmp_df['x'].max() + 1
-        self.ylo = self.lmp_df['y'].min() - 1; self.yhi = self.lmp_df['y'].max() + 1
-        self.zlo = self.lmp_df['z'].min() - 1; self.zhi = self.lmp_df['z'].max() + 1
+        self.xlo = self.lmp_df['x'].min() - OFFSET; self.xhi = self.lmp_df['x'].max() + OFFSET
+        self.ylo = self.lmp_df['y'].min() - OFFSET; self.yhi = self.lmp_df['y'].max() + OFFSET
+        self.zlo = self.lmp_df['z'].min() - OFFSET; self.zhi = self.lmp_df['z'].max() + OFFSET
 
-    def write_data(self):
-        with open(LMPFILE, 'w') as f:
+    def write_data(self) -> typing.TextIO:
+        with open(DATAFILE, 'w') as f:
             f.write(f"# dtat from: {TOPFILE} and {PDBFILE}\n")
             f.write(f"\n")
             f.write(f"{self.NATOM} atoms\n")
@@ -524,25 +531,28 @@ class LMP:
             self.lmp_df.to_csv(f, sep='\t', index=False, header=None, float_format='%g')
             self.print_info()
 
-    def print_info(self) -> None:
-        print(f"Writing '{LMPFILE}' (LAMMPS data file) ... \n")
+    def print_info(self) -> typing.TextIO:
+        print(f"Writing '{DATAFILE}' (LAMMPS data file) ... \n")
         print(f"\t writting {self.NATOM}\t atoms")
         print(f"\t writting {self.NRES}\t reseidues (molecules)")
         print(f"\t writting {self.NTYPES}\t atom types")
         print(f"\n")
 
 
+
+
 if __name__== "__main__":
     TOPFILE = "test3.top"
     PDBFILE = "test.pdb"
-    LMPFILE = "slab.data"
+    DATAFILE = "slab.data"
+    PARAMFILE = 'parameters.lmp'
+    OFFSET = 0
     data = READTOP()
     data.get_data()
     top = GETTOP(data.FLAG)    
     top.get_top()
     pdb = PDB()
     pdb.read_pdb()
-    lmp = LMP(pdb, top)
-    lmp.mk_lmp()
-    lmp.write_data()
+    lmpdata = LMPDATA(pdb, top)
+    lmpdata.mk_lmp()
 
