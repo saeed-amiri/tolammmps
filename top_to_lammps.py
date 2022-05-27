@@ -453,7 +453,7 @@ class LMPDATA:
     def __init__(self, pdb, top, bonds) -> None:
         self.lmp_df = pdb.lmp_df
         self.top = top
-        self.bond_df = bonds
+        self.bonds = bonds
         del pdb, top, bonds
 
     def mk_lmp(self) -> None:
@@ -463,8 +463,6 @@ class LMPDATA:
         self.ppo_key('Na+')
         # get box
         self.get_box()
-        # get the Number of bonds, index from one
-        self.do_bonds()
         # write LAMMPS data file (DATAFILE)
         self.write_data()
 
@@ -525,11 +523,6 @@ class LMPDATA:
         self.ylo = self.lmp_df['y'].min() - OFFSET; self.yhi = self.lmp_df['y'].max() + OFFSET
         self.zlo = self.lmp_df['z'].min() - OFFSET; self.zhi = self.lmp_df['z'].max() + OFFSET
 
-    def do_bonds(self) -> None:
-        # set attributes for bonnds
-        self.NBONDS = len(self.bond_df)
-        self.NBTYPES = self.bond_df['type'].max()
-        self.bond_df.index += 1
 
     def write_data(self) -> typing.TextIO:
         with open(DATAFILE, 'w') as f:
@@ -537,8 +530,8 @@ class LMPDATA:
             f.write(f"\n")
             f.write(f"{self.NATOM} atoms\n")
             f.write(f"{self.NTYPES} atom types\n")
-            f.write(f"{self.NBONDS} bonds\n")
-            f.write(f"{self.NBTYPES} bond types\n")
+            f.write(f"{self.bonds.NBONDS} bonds\n")
+            f.write(f"{self.bonds.NBTYPES} bond types\n")
             f.write(f"\n")
             f.write(f"{self.xlo} {self.xhi} xlo xhi\n")
             f.write(f"{self.ylo} {self.yhi} ylo yhi\n")
@@ -550,7 +543,7 @@ class LMPDATA:
             f.write(f"\n")
             f.write(f"Bonds \n")
             f.write(f"\n")
-            self.bond_df.to_csv(f, sep='\t', index=True, header=None, columns=['type', 'ai', 'aj'],float_format='%g')
+            self.bonds.bond_df.to_csv(f, sep='\t', index=True, header=None, columns=['type', 'ai', 'aj'],float_format='%g')
             self.print_info()
 
     def print_info(self) -> typing.TextIO:
@@ -585,7 +578,8 @@ class LMPBOND:
         # print(f"BOND_EQUIL_VALUE: {self.top.top['BOND_EQUIL_VALUE']['data']}")
         # print(f"BONDS_WITHOUT_HYDROGEN: {self.top.top['BONDS_WITHOUT_HYDROGEN']['data']}")
         h_bonds = self.get_h_bond()
-        self.bonds = self.mk_hbond_df(h_bonds)
+        self.bond_df = self.mk_hbond_df(h_bonds)
+        self.set_attributes()
 
     def get_h_bond(self) -> list:
         """
@@ -612,21 +606,26 @@ class LMPBOND:
 
     def return_index(self, x) -> int: return int((x/3)+1)
 
-
-
     def mk_hbond_df(self, h_bonds) -> pd.DataFrame:
         """return datafram from h_bond list"""
         return pd.DataFrame(h_bonds, columns=['ai', 'aj', 'type'])
 
+    def set_attributes(self) -> None:
+        # set attributes for bonnds
+        self.NBONDS = len(self.bond_df)
+        self.NBTYPES = self.bond_df['type'].max()
+        self.bond_df.index += 1
 
 class LMPPARAM:
     """
     write out parameters about the system such as 
     mass, coeffs, bonds, ...
     """
-    def __init__(self, lmp) -> None:
+    def __init__(self, lmp, bond, data) -> None:
         self.lmp = lmp
-        del lmp
+        self.data = data
+        self.bond = bond
+        del lmp, data
 
     def mk_types(self) -> None:
         self.get_types()
@@ -662,6 +661,7 @@ class LMPPARAM:
             self.write_mass(f)
             self.write_q(f)
             self.write_group(f)
+            self.write_bond(f)
 
     def write_mass(self, f) -> typing.TextIO:
         f.write(f"# mass of each type\n")
@@ -682,6 +682,12 @@ class LMPPARAM:
         # define Hydrogen group
         f.write(f"# defined name of the group \n")
         f.write(f"group Hy_silica type {self.lmp.types['H']}\n")
+        f.write(f"\n")
+
+    def write_bond(self,f) -> typing.TextIO:
+        # writting bond coeffs
+        for i in range(self.bond.NBTYPES):
+            f.write(f"bond_coeff {i} {self.data['BOND_FORCE_CONSTANT']['data'][i]} {self.data['BOND_EQUIL_VALUE']['data'][i]}\n")
         f.write(f"\n")
 
     
@@ -707,9 +713,9 @@ if __name__== "__main__":
     pdb.read_pdb()
     lmpbond = LMPBOND(top)
     lmpbond.mk_bonds()
-    lmpdata = LMPDATA(pdb, top, lmpbond.bonds)
+    lmpdata = LMPDATA(pdb, top, lmpbond)
     lmpdata.mk_lmp()
-    lmpparam = LMPPARAM(lmpdata)
+    lmpparam = LMPPARAM(lmpdata, lmpbond, data.FLAG)
     lmpparam.mk_types()
     # pprint(data.FLAG['LENNARD_JONES_BCOEF']['data'])
     # print(len(data.FLAG['ATOM_TYPE_INDEX']['data']))
