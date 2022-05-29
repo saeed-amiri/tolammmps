@@ -545,6 +545,31 @@ class LMPPAIR:
         - NONBONDED PARM INDEX
         - EXCLUDED ATOMS LIST
     """
+    def __init__(self, lmp, top) -> None:
+        self.lmp = lmp
+        self.top = top
+        del top, lmp
+
+    def set_pairs(self) -> None:
+        self.get_index()
+        self.get_coeff()
+        self.mk_df()
+    
+    def get_index(self) -> None:
+        pass
+
+    
+    def get_coeff(self) -> None:
+        pass
+
+    
+    def mk_df(self) -> None:
+        pass
+
+    
+
+
+
 class LMPDATA:
     """
     Update DataFrame for LAMMPS input:
