@@ -1,3 +1,4 @@
+from email import header
 import re
 import typing
 import numpy as np
@@ -563,10 +564,10 @@ class LMPPAIR:
 
     def set_pairs(self) -> None:
         self.get_coeff()
-        self.get_index()
-        self.mk_df()
+        lst = self.get_index()
+        self.Pair_df = self.mk_df(lst)
     
-    def get_index(self) -> None:
+    def get_index(self) -> list:
         """
         Get indices for nonbonded interactions
         The index for two atoms i and j into the LENNARD JONES ACOEF and
@@ -581,25 +582,21 @@ class LMPPAIR:
         %FORMAT(10I8)
         There are NTYPES * NTYPES integers in this section.
         """
-        k = 1
+        lst = []
         for i in range(1, self.top.NTYPES+1):
             for j in range(1, self.top.NTYPES+1):
                 try:
                     inx = self.top.NTYPES * (i-1) + j
                     ind = self.top.NONBONDED_PARM_INDEX[inx-1]
-                    print(i, j, self.sigma[ind-1], self.epsilon[ind-1])
-                    k+=1
+                    # since Na+ is type 5, we drop the interaction here!
+                    if i == 5 or j==5: pass
+                    else: lst.append([i, j, self.sigma[ind-1], self.epsilon[ind-1]])
                 except:
-                    print('k ', k)
-                    print("i, type ", i, self.top.ATOM_TYPE_INDEX[i])
-                    print("j, type ", j, self.top.ATOM_TYPE_INDEX[j])
-                    print('inx ', inx)
-                    print('ind ', ind)
-                    print(' ')
+                    exit(f"\t WRONG interactions! between: {i} and {j}")
+        return lst
     
     def get_coeff(self) -> None:
         self.sigma, self.epsilon = self.convert_unit()
-        # print(self.sigma, self.epsilon)
 
     def convert_unit(self) -> list:
         """
@@ -613,13 +610,10 @@ class LMPPAIR:
             sigma.append( np.sqrt(a /b) )
             epsilon.append(b**4 / ( 4 * a**3 ))
         return sigma, epsilon
-
-
-
-
     
-    def mk_df(self) -> None:
-        pass
+    def mk_df(self, lst) -> pd.DataFrame:
+        df = pd.DataFrame(lst, columns=['ai', 'aj', 'sigma', 'epsilon'])
+        return df
 
     
 
