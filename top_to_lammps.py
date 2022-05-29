@@ -179,7 +179,7 @@ class GETTOP:
         self.get_residue_label()
         self.get_residue_pointer()
         self.get_LJ_coeff()
-
+        self.get_bond_coeff()
     def get_pointers(self) -> int:
         """
         This section contains the information about how many parameters are present
@@ -365,6 +365,36 @@ class GETTOP:
         df = df.groupby('ATOM_NAME', as_index=False).mean()
         df = df.astype({"ATOM_TYPE_INDEX":int})
         return df
+
+    def get_bond_coeff(self) -> None:
+        """
+        Bond's coeffs for the harmonic interactions
+        distance and K 
+        E_{bond} = 0.5 * K * (r - r_{eq})^2
+        """
+        self.get_bond_force()
+        self.get_bond_r_eq()
+
+    def get_bond_force(self) -> None:
+        """
+        Bond energies are calculated according to the equation for the harmonic interaction
+        This section lists all of the bond force constants (k in Eq. 2) in units
+        kcal mol^{-1}  ̊A^{-2} for each unique bond type. Each bond in BONDS INC HYDROGEN
+        and BONDS WITHOUT HYDROGEN (see below) contains an index into this array.
+        %FORMAT(5E16.8)
+        There are NUMBND floating point numbers in this section.
+        """
+        self.BOND_FORCE_CONSTANT= self.top['BOND_FORCE_CONSTANT']['data'] 
+    
+    def get_bond_r_eq(self) -> None:
+        """
+        This section lists all of the bond equilibrium distances (~req ) in
+        units of Angestrom for each unique bond type. This list is indexed the same way as
+        BOND FORCE CONSTANT.
+        %FORMAT(5E16.8)
+        There are NUMBND floating point numbers in this section
+        """
+        self.BOND_EQUIL_VALUE = self.top['BOND_EQUIL_VALUE']['data']
 
 
     def print_info(self) -> typing.TextIO:
@@ -621,11 +651,10 @@ class LMPPARAM:
     write out parameters about the system such as 
     mass, coeffs, bonds, ...
     """
-    def __init__(self, lmp, bond, data) -> None:
+    def __init__(self, lmp, bond) -> None:
         self.lmp = lmp
-        self.data = data
         self.bond = bond
-        del lmp, data
+        del lmp
 
     def mk_types(self) -> None:
         self.get_types()
@@ -686,8 +715,9 @@ class LMPPARAM:
 
     def write_bond(self,f) -> typing.TextIO:
         # writting bond coeffs
+        f.write(f"# bond coeff for the all the atom types \n")
         for i in range(self.bond.NBTYPES):
-            f.write(f"bond_coeff {i} {self.data['BOND_FORCE_CONSTANT']['data'][i]} {self.data['BOND_EQUIL_VALUE']['data'][i]}\n")
+            f.write(f"bond_coeff {i+1} {self.lmp.top.BOND_FORCE_CONSTANT[i]} {self.lmp.top.BOND_EQUIL_VALUE[i]}\n")
         f.write(f"\n")
 
     
@@ -715,7 +745,7 @@ if __name__== "__main__":
     lmpbond.mk_bonds()
     lmpdata = LMPDATA(pdb, top, lmpbond)
     lmpdata.mk_lmp()
-    lmpparam = LMPPARAM(lmpdata, lmpbond, data.FLAG)
+    lmpparam = LMPPARAM(lmpdata, lmpbond)
     lmpparam.mk_types()
     # pprint(data.FLAG['LENNARD_JONES_BCOEF']['data'])
     # print(len(data.FLAG['ATOM_TYPE_INDEX']['data']))
