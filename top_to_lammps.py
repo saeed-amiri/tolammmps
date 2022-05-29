@@ -473,6 +473,69 @@ class PDB:
         print(f"\t seeing {self.NNAMES}\t atom names")
         print(f"\n")
 
+class LMPBOND:
+    """
+    Extract the bonds in the system
+    related cards to work with:
+     * integer:
+        - NTYPES Number of distinct Lennard-Jones atom types
+        - NBONH Number of bonds containing Hydrogen
+        - MBONA Number of bonds not containing Hydrogen
+        - NBONA MBONA + number of constraint bond
+     * in cards:
+        - BOND_FORCE_CONSTANT
+        - BOND_EQUIL_VALUE
+        - BONDS_INC_HYDROGEN
+        - BONDS_WITHOUT_HYDROGEN
+    """
+
+    def __init__(self, top) -> None:
+        self.top = top
+        del top
+
+    def mk_bonds(self) -> None:
+        # print(f"BOND_FORCE_CONSTANT: {self.top.top['BOND_FORCE_CONSTANT']['data']}")
+        # print(f"BOND_EQUIL_VALUE: {self.top.top['BOND_EQUIL_VALUE']['data']}")
+        # print(f"BONDS_WITHOUT_HYDROGEN: {self.top.top['BONDS_WITHOUT_HYDROGEN']['data']}")
+        h_bonds = self.get_h_bond()
+        self.bond_df = self.mk_hbond_df(h_bonds)
+        self.set_attributes()
+
+    def get_h_bond(self) -> list:
+        """
+        BONDS INC HYDROGEN
+        This section contains a list of every bond in the system in which at least
+        one atom is Hydrogen. Each bond is identified by 3 integers—the two
+        atoms involved in the bond and the index into the BOND FORCE CONSTANT
+        and BOND EQUIL VALUE. For run-time efficiency, the atom indexes are actu-
+        ally indexes into a coordinate array, so the actual atom index A is calculated
+        from the coordinate array index N by A = N/3 + 1. (N is the value in the
+        topology file)
+        %FORMAT(10I8)
+        There are 3 * NBONH integers in this section.
+        """
+        h_bonds = self.top.top['BONDS_INC_HYDROGEN']['data']
+        h_bonds = [h_bonds[i:i+3] for i in range(0,len(h_bonds),3)]
+        h_bonds = [self.crct_index(lst) for lst in h_bonds]
+        return h_bonds
+    
+    def crct_index(self, lst) -> list:
+        for i in range(2):
+            lst[i] = self.return_index(lst[i])
+        return lst
+
+    def return_index(self, x) -> int: return int((x/3)+1)
+
+    def mk_hbond_df(self, h_bonds) -> pd.DataFrame:
+        """return datafram from h_bond list"""
+        return pd.DataFrame(h_bonds, columns=['ai', 'aj', 'type'])
+
+    def set_attributes(self) -> None:
+        # set attributes for bonnds
+        self.NBONDS = len(self.bond_df)
+        self.NBTYPES = self.bond_df['type'].max()
+        self.bond_df.index += 1
+
 
 class LMPDATA:
     """
@@ -583,68 +646,6 @@ class LMPDATA:
         print(f"\t writting {self.NTYPES}\t atom types")
         print(f"\n")
 
-class LMPBOND:
-    """
-    Extract the bonds in the system
-    related cards to work with:
-     * integer:
-        - NTYPES Number of distinct Lennard-Jones atom types
-        - NBONH Number of bonds containing Hydrogen
-        - MBONA Number of bonds not containing Hydrogen
-        - NBONA MBONA + number of constraint bond
-     * in cards:
-        - BOND_FORCE_CONSTANT
-        - BOND_EQUIL_VALUE
-        - BONDS_INC_HYDROGEN
-        - BONDS_WITHOUT_HYDROGEN
-    """
-
-    def __init__(self, top) -> None:
-        self.top = top
-        del top
-
-    def mk_bonds(self) -> None:
-        # print(f"BOND_FORCE_CONSTANT: {self.top.top['BOND_FORCE_CONSTANT']['data']}")
-        # print(f"BOND_EQUIL_VALUE: {self.top.top['BOND_EQUIL_VALUE']['data']}")
-        # print(f"BONDS_WITHOUT_HYDROGEN: {self.top.top['BONDS_WITHOUT_HYDROGEN']['data']}")
-        h_bonds = self.get_h_bond()
-        self.bond_df = self.mk_hbond_df(h_bonds)
-        self.set_attributes()
-
-    def get_h_bond(self) -> list:
-        """
-        BONDS INC HYDROGEN
-        This section contains a list of every bond in the system in which at least
-        one atom is Hydrogen. Each bond is identified by 3 integers—the two
-        atoms involved in the bond and the index into the BOND FORCE CONSTANT
-        and BOND EQUIL VALUE. For run-time efficiency, the atom indexes are actu-
-        ally indexes into a coordinate array, so the actual atom index A is calculated
-        from the coordinate array index N by A = N/3 + 1. (N is the value in the
-        topology file)
-        %FORMAT(10I8)
-        There are 3 * NBONH integers in this section.
-        """
-        h_bonds = self.top.top['BONDS_INC_HYDROGEN']['data']
-        h_bonds = [h_bonds[i:i+3] for i in range(0,len(h_bonds),3)]
-        h_bonds = [self.crct_index(lst) for lst in h_bonds]
-        return h_bonds
-    
-    def crct_index(self, lst) -> list:
-        for i in range(2):
-            lst[i] = self.return_index(lst[i])
-        return lst
-
-    def return_index(self, x) -> int: return int((x/3)+1)
-
-    def mk_hbond_df(self, h_bonds) -> pd.DataFrame:
-        """return datafram from h_bond list"""
-        return pd.DataFrame(h_bonds, columns=['ai', 'aj', 'type'])
-
-    def set_attributes(self) -> None:
-        # set attributes for bonnds
-        self.NBONDS = len(self.bond_df)
-        self.NBTYPES = self.bond_df['type'].max()
-        self.bond_df.index += 1
 
 class LMPPARAM:
     """
