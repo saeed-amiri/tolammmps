@@ -536,7 +536,15 @@ class LMPBOND:
         self.NBTYPES = self.bond_df['type'].max()
         self.bond_df.index += 1
 
-
+class LMPPAIR:
+    """
+    Extract pair interaction between types (None bonded interactions)
+    related cards to work with:
+        - LENNARD JONES ACOEF
+        - LENNARD JONES BCOEF
+        - NONBONDED PARM INDEX
+        - EXCLUDED ATOMS LIST
+    """
 class LMPDATA:
     """
     Update DataFrame for LAMMPS input:
@@ -644,6 +652,9 @@ class LMPDATA:
         print(f"\t writting {self.NATOM}\t atoms")
         print(f"\t writting {self.NRES}\t reseidues (molecules)")
         print(f"\t writting {self.NTYPES}\t atom types")
+        print(f"\t writting {self.bonds.NBONDS}\t bonds")
+        print(f"\t writting {self.bonds.NBTYPES}\t bond types")
+
         print(f"\n")
 
 
