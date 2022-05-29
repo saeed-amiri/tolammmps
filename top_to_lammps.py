@@ -180,6 +180,7 @@ class GETTOP:
         self.get_residue_pointer()
         self.get_LJ_coeff()
         self.get_bond_coeff()
+        self.get_pair_index()
     def get_pointers(self) -> int:
         """
         This section contains the information about how many parameters are present
@@ -295,6 +296,7 @@ class GETTOP:
         length = len(atom_type)
         if length != self.NATOM: exit(f"NATOM != N of ATOM_TYPE_INDEX: {length}")
         self.top['ATOM_TYPE_INDEX']['data'] = atom_type
+        self.ATOM_TYPE_INDEX = atom_type
         del atom_type
     
     def get_residue_label(self) -> list:
@@ -322,9 +324,8 @@ class GETTOP:
         
     def get_LJ_coeff(self) -> list:
         """
-        This section contains the LJ A and B-coefficients (ai,j, bi,j in Eq. LENNARD JONES) for all pairs of
-        distinct LJ types (see sections ATOM TYPE INDEX and NONBONDED PARM INDEX
-        above).
+        This section contains the LJ A and B-coefficients (a_{i,j}, b_{i,j} in Eq. LENNARD JONES) for all pairs of
+        distinct LJ types (see sections ATOM TYPE INDEX and NONBONDED PARM INDEX).
         E_{ij} = [a_{ij}/r^{12}] - [b_{ij}/r^{6}]
         %FORMAT(5E16.8)
         There are [NTYPES * (NTYPES + 1)] /2 floating point numbers in this section.
@@ -396,6 +397,16 @@ class GETTOP:
         """
         self.BOND_EQUIL_VALUE = self.top['BOND_EQUIL_VALUE']['data']
 
+    def get_pair_index(self) -> None:
+        """
+        This section contains the pointers for each pair of LJ atom types into the
+        LENNARD JONES ACOEF and LENNARD JONES BCOEF arrays (see below). The
+        pointer for an atom pair in this array is calculated from the LJ atom type
+        index of the two atoms (see ATOM TYPE INDEX above).
+        %FORMAT(10I8)
+        There are NTYPES * NTYPES integers in this section.
+        """
+        self.NONBONDED_PARM_INDEX = self.top['NONBONDED_PARM_INDEX']['data']
 
     def print_info(self) -> typing.TextIO:
         print(f"\tseeing {self.NATOM}\t atoms")
@@ -551,16 +562,60 @@ class LMPPAIR:
         del top, lmp
 
     def set_pairs(self) -> None:
-        self.get_index()
         self.get_coeff()
+        self.get_index()
         self.mk_df()
     
     def get_index(self) -> None:
-        pass
+        """
+        Get indices for nonbonded interactions
+        The index for two atoms i and j into the LENNARD JONES ACOEF and
+        LENNARD JONES BCOEF arrays is calculated as:
 
+        index = NONBONDED PARM INDEX [NTYPES * (ATOM TYPE INDEX(i) - 1) + ATOM TYPE INDEX(j)]
+
+        Note, each atom pair can interact with either the standard 12-6 LJ po-
+        tential or via a 12-10 hydrogen bond potential. If index in the equation is negative,
+        then it is an index into HBOND ACOEF and HBOND BCOEF instead 
+
+        %FORMAT(10I8)
+        There are NTYPES * NTYPES integers in this section.
+        """
+        k = 1
+        for i in range(1, self.top.NTYPES+1):
+            for j in range(1, self.top.NTYPES+1):
+                try:
+                    inx = self.top.NTYPES * (i-1) + j
+                    ind = self.top.NONBONDED_PARM_INDEX[inx-1]
+                    print(i, j, self.sigma[ind-1], self.epsilon[ind-1])
+                    k+=1
+                except:
+                    print('k ', k)
+                    print("i, type ", i, self.top.ATOM_TYPE_INDEX[i])
+                    print("j, type ", j, self.top.ATOM_TYPE_INDEX[j])
+                    print('inx ', inx)
+                    print('ind ', ind)
+                    print(' ')
     
     def get_coeff(self) -> None:
-        pass
+        self.sigma, self.epsilon = self.convert_unit()
+        # print(self.sigma, self.epsilon)
+
+    def convert_unit(self) -> list:
+        """
+        Converting A and B to epsilon and sigma
+        AMBER  : E_{ij} = [a_{ij}/r^{12}] - [b_{ij}/r^{6}]
+        LAMMPS : E_{ij} = 4 * epsilon [ (sigma/r)^{12} - (sigma/r)^{6} ]
+        """
+        epsilon = []
+        sigma = []
+        for a, b in zip(self.top.LJA, self.top.LJB):
+            sigma.append( np.sqrt(a /b) )
+            epsilon.append(b**4 / ( 4 * a**3 ))
+        return sigma, epsilon
+
+
+
 
     
     def mk_df(self) -> None:
@@ -770,12 +825,7 @@ if __name__== "__main__":
     data.get_data()
     top = GETTOP(data.FLAG)    
     top.get_top()
-    # k = 1
-    # for i in range(1, top.NTYPES+1):
-        # for j in range(1, top.NTYPES+1):
-            # ind = (top.NTYPES * (data.FLAG['ATOM_TYPE_INDEX']['data'][i]-1)) + data.FLAG['ATOM_TYPE_INDEX']['data'][j]
-            # print(k, i, j,data.FLAG['NONBONDED_PARM_INDEX']['data'][ind])
-            # k+=1
+
     pdb = PDB()
     pdb.read_pdb()
     lmpbond = LMPBOND(top)
@@ -784,6 +834,8 @@ if __name__== "__main__":
     lmpdata.mk_lmp()
     lmpparam = LMPPARAM(lmpdata, lmpbond)
     lmpparam.mk_types()
+    pair = LMPPAIR(lmpdata, top)
+    pair.set_pairs()
     # pprint(data.FLAG['LENNARD_JONES_BCOEF']['data'])
     # print(len(data.FLAG['ATOM_TYPE_INDEX']['data']))
     
