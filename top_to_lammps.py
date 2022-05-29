@@ -150,8 +150,6 @@ class READTOP(TOP):
         # fixing the float format of 5E16.8
         self.FLAG[key]['data'] = [float(x) for x in self.FLAG[key]['data']]
 
-    
-
 
 class GETTOP:
     """
@@ -559,14 +557,16 @@ class LMPPAIR:
         - NONBONDED PARM INDEX
         - EXCLUDED ATOMS LIST
     """
-    def __init__(self, top) -> None:
+    def __init__(self, top, lmp) -> None:
         self.top = top
-        del top
+        self.lmp = lmp
+        del top, lmp
 
     def set_pairs(self) -> None:
         self.get_coeff()
         lst = self.get_index()
         self.Pair_df = self.mk_df(lst)
+
     
     def get_index(self) -> list:
         """
@@ -584,6 +584,8 @@ class LMPPAIR:
         There are NTYPES * NTYPES integers in this section.
         """
         lst = []
+        # swap name and type in self.lmp.types 
+        type_name = {int(v):k for k, v in self.lmp.types.items()}
         pair_lst = [i for i in range(1, self.top.NTYPES+1)]
         for i, j in itertools.combinations_with_replacement(pair_lst, 2):
             try:
@@ -592,8 +594,12 @@ class LMPPAIR:
                 # since Na+ is type 5, we drop the interaction here!
                 # also append LAMMPS scripts for the pair interaction
                 if i == 5 or j==5: pass
-                else: lst.append([i, j, self.sigma[ind-1], self.epsilon[ind-1], 'pair_coeff', 'harmonic'])
+                else: 
+                    i_name = re.sub("\d", "", type_name[i])
+                    j_name = re.sub("\d", "", type_name[j])
+                    lst.append([i, j, self.sigma[ind-1], self.epsilon[ind-1], 'pair_coeff', 'harmonic', '#', i_name, j_name])
             except:
+                print(i, j)
                 exit(f"\t WRONG interactions! between: {i} and {j}")
         return lst
     
@@ -614,13 +620,10 @@ class LMPPAIR:
         return sigma, epsilon
     
     def mk_df(self, lst) -> pd.DataFrame:
-        df = pd.DataFrame(lst, columns=['ai', 'aj', 'sigma', 'epsilon', 'lmp_rule', 'style'])
+        df = pd.DataFrame(lst, columns=['ai', 'aj', 'sigma', 'epsilon', 'lmp_rule', 'style', '#', 'i_name', 'j_name'])
         return df
 
     
-
-
-
 class LMPDATA:
     """
     Update DataFrame for LAMMPS input:
@@ -805,9 +808,9 @@ class LMPPARAM:
 
     def write_pair(self, f) -> typing.TextIO:
         # write ij pair interactions
-        columns = ['lmp_rule', 'ai', 'aj', 'style', 'epsilon', 'sigma']
+        columns = ['lmp_rule', 'ai', 'aj', 'style', 'epsilon', 'sigma', '#', 'i_name', 'j_name']
         f.write(f"# define the interactions between particles\n")
-        f.write(f"# {columns}\n")
+        f.write(f"# {'   '.join(columns)}\n")
         self.pair.Pair_df.to_csv(f, sep='\t', columns=columns, header=None, index=False)        
         f.write(f"\n")
 
@@ -831,15 +834,14 @@ if __name__== "__main__":
     data.get_data()
     top = GETTOP(data.FLAG)    
     top.get_top()
-
     pdb = PDB()
     pdb.read_pdb()
     lmpbond = LMPBOND(top)
     lmpbond.mk_bonds()
-    lmppair = LMPPAIR(top)
-    lmppair.set_pairs()
     lmpdata = LMPDATA(pdb, top, lmpbond)
     lmpdata.mk_lmp()
+    lmppair = LMPPAIR(top, lmpdata)
+    lmppair.set_pairs()
     lmpparam = LMPPARAM(lmpdata, lmpbond, lmppair)
     lmpparam.mk_types()
     
