@@ -1,9 +1,14 @@
+from asyncore import write
 from email import header
+import itertools
 import re
+from textwrap import indent
 import typing
 import numpy as np
 import pandas as pd
 from pprint import pprint
+
+from sqlalchemy import column
 
 class DOC:
     """"
@@ -557,10 +562,9 @@ class LMPPAIR:
         - NONBONDED PARM INDEX
         - EXCLUDED ATOMS LIST
     """
-    def __init__(self, lmp, top) -> None:
-        self.lmp = lmp
+    def __init__(self, top) -> None:
         self.top = top
-        del top, lmp
+        del top
 
     def set_pairs(self) -> None:
         self.get_coeff()
@@ -583,16 +587,17 @@ class LMPPAIR:
         There are NTYPES * NTYPES integers in this section.
         """
         lst = []
-        for i in range(1, self.top.NTYPES+1):
-            for j in range(1, self.top.NTYPES+1):
-                try:
-                    inx = self.top.NTYPES * (i-1) + j
-                    ind = self.top.NONBONDED_PARM_INDEX[inx-1]
-                    # since Na+ is type 5, we drop the interaction here!
-                    if i == 5 or j==5: pass
-                    else: lst.append([i, j, self.sigma[ind-1], self.epsilon[ind-1]])
-                except:
-                    exit(f"\t WRONG interactions! between: {i} and {j}")
+        pair_lst = [i for i in range(1, self.top.NTYPES+1)]
+        for i, j in itertools.combinations_with_replacement(pair_lst, 2):
+            try:
+                inx = self.top.NTYPES * (i-1) + j
+                ind = self.top.NONBONDED_PARM_INDEX[inx-1]
+                # since Na+ is type 5, we drop the interaction here!
+                # also append LAMMPS scripts for the pair interaction
+                if i == 5 or j==5: pass
+                else: lst.append([i, j, self.sigma[ind-1], self.epsilon[ind-1], 'pair_coeff', 'harmonic'])
+            except:
+                exit(f"\t WRONG interactions! between: {i} and {j}")
         return lst
     
     def get_coeff(self) -> None:
@@ -612,7 +617,7 @@ class LMPPAIR:
         return sigma, epsilon
     
     def mk_df(self, lst) -> pd.DataFrame:
-        df = pd.DataFrame(lst, columns=['ai', 'aj', 'sigma', 'epsilon'])
+        df = pd.DataFrame(lst, columns=['ai', 'aj', 'sigma', 'epsilon', 'lmp_rule', 'style'])
         return df
 
     
@@ -737,10 +742,11 @@ class LMPPARAM:
     write out parameters about the system such as 
     mass, coeffs, bonds, ...
     """
-    def __init__(self, lmp, bond) -> None:
+    def __init__(self, lmp, bond, pair) -> None:
         self.lmp = lmp
         self.bond = bond
-        del lmp
+        self.pair = pair
+        del lmp, pair
 
     def mk_types(self) -> None:
         self.get_types()
@@ -776,6 +782,7 @@ class LMPPARAM:
             self.write_mass(f)
             self.write_q(f)
             self.write_group(f)
+            self.write_pair(f)
             self.write_bond(f)
 
     def write_mass(self, f) -> typing.TextIO:
@@ -795,8 +802,16 @@ class LMPPARAM:
 
     def write_group(self, f) -> typing.TextIO:
         # define Hydrogen group
-        f.write(f"# defined name of the group \n")
+        f.write(f"# define name of the group \n")
         f.write(f"group Hy_silica type {self.lmp.types['H']}\n")
+        f.write(f"\n")
+
+    def write_pair(self, f) -> typing.TextIO:
+        # write ij pair interactions
+        columns = ['lmp_rule', 'ai', 'aj', 'style', 'epsilon', 'sigma']
+        f.write(f"# define the interactions between particles\n")
+        f.write(f"# {columns}\n")
+        self.pair.Pair_df.to_csv(f, sep='\t', columns=columns, header=None, index=False)        
         f.write(f"\n")
 
     def write_bond(self,f) -> typing.TextIO:
@@ -824,12 +839,10 @@ if __name__== "__main__":
     pdb.read_pdb()
     lmpbond = LMPBOND(top)
     lmpbond.mk_bonds()
+    lmppair = LMPPAIR(top)
+    lmppair.set_pairs()
     lmpdata = LMPDATA(pdb, top, lmpbond)
     lmpdata.mk_lmp()
-    lmpparam = LMPPARAM(lmpdata, lmpbond)
+    lmpparam = LMPPARAM(lmpdata, lmpbond, lmppair)
     lmpparam.mk_types()
-    pair = LMPPAIR(lmpdata, top)
-    pair.set_pairs()
-    # pprint(data.FLAG['LENNARD_JONES_BCOEF']['data'])
-    # print(len(data.FLAG['ATOM_TYPE_INDEX']['data']))
     
