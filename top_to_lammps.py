@@ -474,6 +474,7 @@ class PDB:
         self.lmp_df = pd.DataFrame(data_dict)
         self.NATOM = len(id)
         self.NRES = np.max(chain)
+        self.ALL_NAME = name
         self.ATOM_NAMES= list(set(name))
         self.NNAMES = len(self.ATOM_NAMES)
         del id, chain, name, q, x, y, z, nx, ny, nz, sharp, data_dict
@@ -501,8 +502,9 @@ class LMPBOND:
         - BONDS_WITHOUT_HYDROGEN
     """
 
-    def __init__(self, top) -> None:
+    def __init__(self, top, pdb) -> None:
         self.top = top
+        self.pdb = pdb
         del top
 
     def mk_bonds(self) -> None:
@@ -529,6 +531,7 @@ class LMPBOND:
         h_bonds = self.top.top['BONDS_INC_HYDROGEN']['data']
         h_bonds = [h_bonds[i:i+3] for i in range(0,len(h_bonds),3)]
         h_bonds = [self.crct_index(lst) for lst in h_bonds]
+        h_bonds = [self.append_name(lst) for lst in h_bonds]
         return h_bonds
     
     def crct_index(self, lst) -> list:
@@ -540,13 +543,20 @@ class LMPBOND:
 
     def mk_hbond_df(self, h_bonds) -> pd.DataFrame:
         """return datafram from h_bond list"""
-        return pd.DataFrame(h_bonds, columns=['ai', 'aj', 'type'])
+        return pd.DataFrame(h_bonds, columns=['ai', 'aj', 'type','cmt', 'i_name', 'j_name'])
 
     def set_attributes(self) -> None:
         # set attributes for bonnds
         self.NBONDS = len(self.bond_df)
         self.NBTYPES = self.bond_df['type'].max()
         self.bond_df.index += 1
+    
+    def append_name(self, lst) -> list:
+        lst.append("#")
+        lst.append(self.pdb.ALL_NAME[lst[0]-1])
+        lst.append(self.pdb.ALL_NAME[lst[1]-1])
+        # print(lst)
+        return lst
 
 class LMPPAIR:
     """
@@ -670,7 +680,7 @@ class LMPDATA:
 
     def update_df(self) -> pd.DataFrame:
         """
-        Update DataFram from PDB (self.lmp_df) by substituting the type and charge with date
+        Update DataFram from PDB (self.lmp_df) by substituting the type and charge with data
         from DataFrame from TOP (self.top.df)
         """
         # replace the columns in lmp_df (pdb)
@@ -723,7 +733,7 @@ class LMPDATA:
             f.write(f"\n")
             f.write(f"Bonds \n")
             f.write(f"\n")
-            self.bonds.bond_df.to_csv(f, sep='\t', index=True, header=None, columns=['type', 'ai', 'aj'],float_format='%g')
+            self.bonds.bond_df.to_csv(f, sep='\t', index=True, header=None, columns=['type', 'ai', 'aj', 'cmt', 'i_name', 'j_name'],float_format='%g')
             self.print_info()
 
     def print_info(self) -> typing.TextIO:
@@ -840,7 +850,7 @@ if __name__== "__main__":
     top.get_top()
     pdb = PDB()
     pdb.read_pdb()
-    lmpbond = LMPBOND(top)
+    lmpbond = LMPBOND(top, pdb)
     lmpbond.mk_bonds()
     lmpdata = LMPDATA(pdb, top, lmpbond)
     lmpdata.mk_lmp()
@@ -848,4 +858,9 @@ if __name__== "__main__":
     lmppair.set_pairs()
     lmpparam = LMPPARAM(lmpdata, lmpbond, lmppair)
     lmpparam.mk_types()
-    
+    for i in range(top.NATOM):
+        try:
+            if top.ATOM_NAME[i] != pdb.ALL_NAME[i]:
+                print(i+1, top.ATOM_NAME[i], pdb.ALL_NAME[i])
+        except:
+            print(i,end=', ')
