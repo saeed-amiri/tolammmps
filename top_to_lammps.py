@@ -753,6 +753,7 @@ class LMPPARAM:
         self.get_masses()
         self.get_charges()
         self.write_parameters()
+        self.print_info()
 
     def get_types(self) -> None:
         """
@@ -820,6 +821,9 @@ class LMPPARAM:
         for i in range(self.bond.NBTYPES):
             f.write(f"bond_coeff {i+1} {self.lmp.top.BOND_FORCE_CONSTANT[i]} {self.lmp.top.BOND_EQUIL_VALUE[i]}\n")
         f.write(f"\n")
+
+    def print_info(self) -> typing.TextIO:
+        print(f"Writting parameters in '{PARAMFILE}' ...\n")
 
     
     def drop_digit(self, obj) -> str: return re.sub("\d", "", obj)
