@@ -807,14 +807,18 @@ class LMPPARAM:
         f.write(f"# charges are already set in data file ({DATAFILE}), here added as comments\n")
         f.write(f"CC\n")
         for key, value in self.lmp.charges.items():
-            f.write(f"set type {self.lmp.types[key]}\t{value:.3f}\t# {self.drop_digit(key)}\n")
+            f.write(f"set type {self.lmp.types[key]} charge {value:.3f}\t# {self.drop_digit(key)}\n")
         f.write(f"CC\n")
         f.write(f"\n")
 
     def write_group(self, f) -> typing.TextIO:
         # define Hydrogen group
         f.write(f"# define name of the group \n")
-        f.write(f"group Hy_silica type {self.lmp.types['H']}\n")
+        f.write(f"group Silicon type {self.lmp.types['Si']}\n")
+        f.write(f"group Hydrogen type {self.lmp.types['H']}\n")
+        f.write(f"group OH type {self.lmp.types['OH']}\n")
+        f.write(f"group OM type {self.lmp.types['OM3']}\n")
+        f.write(f"group Oxygen type {self.lmp.types['OH']} {self.lmp.types['OM3']}\n")
         f.write(f"\n")
 
     def write_pair(self, f) -> typing.TextIO:
@@ -858,9 +862,3 @@ if __name__== "__main__":
     lmppair.set_pairs()
     lmpparam = LMPPARAM(lmpdata, lmpbond, lmppair)
     lmpparam.mk_types()
-    for i in range(top.NATOM):
-        try:
-            if top.ATOM_NAME[i] != pdb.ALL_NAME[i]:
-                print(i+1, top.ATOM_NAME[i], pdb.ALL_NAME[i])
-        except:
-            print(i,end=', ')
