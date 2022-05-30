@@ -5,8 +5,6 @@ import numpy as np
 import pandas as pd
 from pprint import pprint
 
-from sqlalchemy import column
-
 class DOC:
     """"
     Reading the AMBER data file for SiO2 slab and converting to LAMMPS data file
@@ -169,7 +167,6 @@ class GETTOP:
         self.set_attributes()
         # get genral data about types: masses, charges, ...
         self.get_types()
-
 
     def set_attributes(self) -> None:
         self.get_pointers()
@@ -555,7 +552,6 @@ class LMPBOND:
         lst.append("#")
         lst.append(self.pdb.ALL_NAME[lst[0]-1])
         lst.append(self.pdb.ALL_NAME[lst[1]-1])
-        # print(lst)
         return lst
 
 class LMPPAIR:
@@ -607,9 +603,8 @@ class LMPPAIR:
                 else: 
                     i_name = re.sub("\d", "", type_name[i])
                     j_name = re.sub("\d", "", type_name[j])
-                    lst.append([i, j, self.sigma[ind-1], self.epsilon[ind-1], 'pair_coeff', 'harmonic', '#', i_name, j_name])
+                    lst.append([i, j, self.sigma[ind-1], self.epsilon[ind-1], 'pair_coeff', 'lj/cut', '#', i_name, j_name])
             except:
-                print(i, j)
                 exit(f"\t WRONG interactions! between: {i} and {j}")
         return lst
     
@@ -621,12 +616,14 @@ class LMPPAIR:
         Converting A and B to epsilon and sigma
         AMBER  : E_{ij} = [a_{ij}/r^{12}] - [b_{ij}/r^{6}]
         LAMMPS : E_{ij} = 4 * epsilon [ (sigma/r)^{12} - (sigma/r)^{6} ]
+        => sigma = (a / b)^(1 / 6)
+           epsilon = b^2 / 4a
         """
         epsilon = []
         sigma = []
         for a, b in zip(self.top.LJA, self.top.LJB):
-            sigma.append( np.sqrt(a /b) )
-            epsilon.append(b**4 / ( 4 * a**3 ))
+            sigma.append( (a/b)**(1/6) )
+            epsilon.append(b**2 / ( 4 * a ))
         return sigma, epsilon
     
     def mk_df(self, lst) -> pd.DataFrame:
@@ -791,10 +788,11 @@ class LMPPARAM:
             f.write(f"# Parameters for '{DATAFILE}' from '{TOPFILE}' and '{PDBFILE}'\n")
             f.write(f"\n")
             self.write_mass(f)
-            self.write_q(f)
+            # self.write_q(f)
             self.write_group(f)
             self.write_pair(f)
             self.write_bond(f)
+            self.write_constrains(f)
 
     def write_mass(self, f) -> typing.TextIO:
         f.write(f"# mass of each type\n")
@@ -814,11 +812,12 @@ class LMPPARAM:
     def write_group(self, f) -> typing.TextIO:
         # define Hydrogen group
         f.write(f"# define name of the group \n")
-        f.write(f"group Silicon type {self.lmp.types['Si']}\n")
         f.write(f"group Hydrogen type {self.lmp.types['H']}\n")
         f.write(f"group OH type {self.lmp.types['OH']}\n")
         f.write(f"group OM type {self.lmp.types['OM3']}\n")
+        f.write(f"group Silicon type {self.lmp.types['Si']}\n")
         f.write(f"group Oxygen type {self.lmp.types['OH']} {self.lmp.types['OM3']}\n")
+        f.write(f"group freeze type {self.lmp.types['OH']} {self.lmp.types['OM3']} {self.lmp.types['Si']}\n")
         f.write(f"\n")
 
     def write_pair(self, f) -> typing.TextIO:
@@ -833,8 +832,15 @@ class LMPPARAM:
         # writting bond coeffs
         f.write(f"# bond coeff for the all the atom types \n")
         for i in range(self.bond.NBTYPES):
-            f.write(f"bond_coeff {i+1} {self.lmp.top.BOND_FORCE_CONSTANT[i]} {self.lmp.top.BOND_EQUIL_VALUE[i]}\n")
+            f.write(f"bond_coeff {i+1} harmonic {self.lmp.top.BOND_FORCE_CONSTANT[i]} {self.lmp.top.BOND_EQUIL_VALUE[i]}\n")
         f.write(f"\n")
+
+    def write_constrains(self, f) -> typing.TextIO:
+        f.write(f"# set zero forces on the slab group beside hydrogen\n")
+        f.write(f"fix freeze freeze setforce 0.0 0.0 0.0\n")
+        f.write(f"\n")
+
+
 
     def print_info(self) -> typing.TextIO:
         print(f"Writting parameters in '{PARAMFILE}' ...\n")
@@ -847,7 +853,7 @@ if __name__== "__main__":
     PDBFILE = "test.pdb"
     DATAFILE = "slab.data"
     PARAMFILE = 'parameters.lmp'
-    OFFSET = 0
+    OFFSET = 1
     data = READTOP()
     data.get_data()
     top = GETTOP(data.FLAG)    
