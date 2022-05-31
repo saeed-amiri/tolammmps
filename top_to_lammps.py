@@ -5,6 +5,7 @@ import numpy as np
 import pandas as pd
 from pprint import pprint
 
+
 class DOC:
     """" Converting data:
     Reading the AMBER data file for SiO2 slab and converting to LAMMPS data
@@ -19,36 +20,39 @@ class DOC:
 
     """
 
-class TOP:
-    """
-    reading top file for getting the FLAGS and FORMATS and return a dictionary
-    out of them it has 40 FLAG (cards) with different formats in FORTAN style 
-    written in the next line for each flag:
 
-    %FLAG POINTERS                                                                  
-    %FORMAT(10I8)                                                                   
+class TOP:
+    """reading top file for getting the FLAGS and FORMATS and return a
+    dictionary out of them it has 40 FLAG (cards) with different formats
+    in FORTAN style written in the next line for each flag:
+    %FLAG POINTERS
+    %FORMAT(10I8)
     """
     def __init__(self) -> None:
         self.FLAG_list, self.FORMAT_list = [], []
 
     def read_file(self) -> None:
         """ read line by line and subtract the data from them """
-        with open (TOPFILE, 'r') as f:
+        with open(TOPFILE, 'r') as f:
             while True:
                 line = f.readline()
                 if line.startswith('%'):
                     line = line.split('%')[1]
-                    if line.startswith('version'): self.get_version(line)
-                    elif line.startswith('FLAG'): self.get_flag(line)
-                    elif line.startswith('FORMAT'): self.get_format(line)
-                if not line: break
+                    if line.startswith('version'):
+                        self.get_version(line)
+                    elif line.startswith('FLAG'):
+                        self.get_flag(line)
+                    elif line.startswith('FORMAT'):
+                        self.get_format(line)
+                if not line:
+                    break
         # making a list of dictionaries to save data of each flag
         # we do not know the numbers of flags yet
         free_dict = [dict() for _ in self.FORMAT_list]
         # set atribeuts for the for all the falgs
         self.FLAG = dict(zip(self.FLAG_list, free_dict))
         # append the format of each falg to the dictionary if esch one of them
-        for i, key in enumerate(self.FLAG): 
+        for i, key in enumerate(self.FLAG):
             self.FLAG[key]['format'] = self.FORMAT_list[i]
         # flush the memory
         del free_dict
@@ -66,25 +70,23 @@ class TOP:
         self.FLAG_list.append(flag)
         del line
 
-    def get_format(self, line:list) -> list:
+    def get_format(self, line: list) -> list:
         """getting the FORMATs and make list of it"""
         format = line.split('FORMAT')[1].strip()
-        format = re.findall('\((.*?)\)',format)[0]
+        format = re.findall('\((.*?)\)', format)[0]
         self.FORMAT_list.append(format)
         del line
 
-class READTOP(TOP):
-    """
-    Rendering data from TOP class. 
-    Any FALG needed later on should proceses through this class
 
-    %FLAG POINTERS                                                                  
-    %FORMAT(10I8)                                                                   
+class READTOP(TOP):
+    """Rendering data from TOP class.
+    Any FALG needed later on should proceses through this class
+    %FLAG POINTERS
+    %FORMAT(10I8)
     6702       7    5350       0       0       0       0       0       0       0
     8468    3062       0       0       0       3       0       0      10       1
        0       0       0       0       0       0       0       1       8       0
        0
-
     The cards are space-parsed in some cases, i.e. names of atoms, mols, residues
     """
     def __init__(self) -> None:
@@ -107,11 +109,13 @@ class READTOP(TOP):
 
     def set_flage(self) -> None:
         """set True and False flag to cards' name"""
-        for key in self.FLAG: self.FLAG[key]['flag'] = False
+        for key in self.FLAG:
+            self.FLAG[key]['flag'] = False
 
     def set_data_list(self) -> None:
         """giving data atribute to the dict"""
-        for key in self.FLAG.keys(): self.FLAG[key]['data']=[]
+        for key in self.FLAG.keys():
+            self.FLAG[key]['data']=[]
 
     def read_card(self) -> None:
         """reading data between two flags
@@ -238,13 +242,16 @@ class GETTOP:
         NUMANG  :    Number of unique angle types
         NPTRA   :    Number of unique torsion types
         NATYP   :    Number of SOLTY terms. Currently unused.
-        NPHB    :    Number of distinct 10-12 hydrogen bond pair types 2 IFPERT Set to 1 if topology contains residue perturbation information.
+        NPHB    :    Number of distinct 10-12 hydrogen bond pair types 2 IFPERT Set to 1 
+         if topology contains residue perturbation information.
         NBPER   :    Number of perturbed bonds
         NGPER   :    Number of perturbed angles
         NDPER   :    Number of perturbed torsions
         MBPER   :    Number of bonds in which both atoms are being perturbed
         MGPER   :    Number of angles in which all 3 atoms are being perturbed
-        MDPER   :    Number of torsions in which all 4 atoms are being perturbed 3 IFBOX Flag indicating whether a periodic box is present. Values can be 0 (no box), 1 (orthorhombic box) or 2 (truncated octahedro
+        MDPER   :    Number of torsions in which all 4 atoms are being perturbed 3 IFBOX Flag
+         indicating whether a periodic box is present. Values can be 0 (no box),
+        1 (orthorhombic box) or 2 (truncated octahedro
         NMXRS   :    Number of atoms in the largest residue IFCAP Set to 1 if a solvent CAP is being used
         NUMEXTRA:    Number of extra points in the topology file
         NCOPY   :    Number of PIMD slices or number of beads
@@ -485,17 +492,17 @@ class PDB:
         del id, chain, name, q, x, y, z, nx, ny, nz, sharp
     
     def mk_lmp_df(self, 
-                id: int, 
-                chain:int,
-                name: str,
-                q: float,
-                x: float,
-                y: float,
-                z: float,
-                nx: int,
-                ny: int,
-                nz: int,
-                sharp: str) -> dict:
+                  id: int, 
+                  chain:int,
+                  name: str,
+                  q: float,
+                  x: float,
+                  y: float,
+                  z: float,
+                  nx: int,
+                  ny: int,
+                  nz: int,
+                  sharp: str) -> dict:
         """
         making a DataFrame in LAMMPS 'full' atom style:
 
@@ -661,8 +668,8 @@ class LMPPAIR:
         epsilon = []
         sigma = []
         for a, b in zip(self.top.LJA, self.top.LJB):
-            sigma.append( (a/b)**(1/6) )
-            epsilon.append(b**2 / ( 4 * a ))
+            sigma.append((a/b)**(1/6))
+            epsilon.append(b**2 / (4*a))
         return sigma, epsilon
     
     def mk_df(self, lst) -> pd.DataFrame:
@@ -753,7 +760,6 @@ class LMPDATA:
         self.zlo = self.lmp_df['z'].min() - OFFSET
         self.zhi = self.lmp_df['z'].max() + OFFSET
 
-
     def write_data(self) -> typing.TextIO:
         with open(DATAFILE, 'w') as f:
             f.write(f"# dtat from: {TOPFILE} and {PDBFILE}\n")
@@ -773,8 +779,9 @@ class LMPDATA:
             f.write(f"\n")
             f.write(f"Bonds \n")
             f.write(f"\n")
-            self.bonds.bond_df.to_csv(f, sep='\t', index=True, header=None,
-                        columns=['type', 'ai', 'aj', 'cmt', 'i_name', 'j_name'],float_format='%g')
+            self.bonds.bond_df.to_csv(f, sep='\t', index=True, header=None
+                        , columns=['type', 'ai', 'aj', 'cmt', 'i_name', 'j_name']
+                        , float_format='%g')
             self.print_info()
 
     def print_info(self) -> typing.TextIO:
@@ -789,7 +796,7 @@ class LMPDATA:
 
 class LMPPARAM:
     """
-    write out parameters about the system such as 
+    write out parameters about the system such as
     mass, coeffs, bonds, ...
     """
     def __init__(self, lmp: dict, bond: dict, pair: dict) -> None:
@@ -813,23 +820,27 @@ class LMPPARAM:
         # convert the the format of the types: int -> str
         self.lmp.types = {k: str(v) for k, v in self.lmp.types.items()}
         # swap keys, and values them tuples the new key
-        d  = {tuple(v): k for k, v in self.lmp.types.items()}
+        d = {tuple(v): k for k, v in self.lmp.types.items()}
         # swap the key and value again
         self.lmp.types = {v: k[0] for k, v in d.items()}
         del d
 
     def get_masses(self) -> None:
         """ Update masses attribute based on the types """
-        self.lmp.masses = {k: v for k, v in self.lmp.masses.items() if k in self.lmp.types.keys()}
+        self.lmp.masses = {k: v for k, v in self.lmp.masses.items()
+                           if k in self.lmp.types.keys()}
 
     def get_charges(self) -> None:
-        """ Update charges (NOT needed, bu incase!) attribute based on the types """
-        self.lmp.charges = {k: v for k, v in self.lmp.charges.items() if k in self.lmp.types.keys()}
-
+        """ Update charges (NOT needed, bu incase!) attribute based
+        on the types
+        """
+        self.lmp.charges = {k: v for k, v in self.lmp.charges.items()
+                            if k in self.lmp.types.keys()}
 
     def write_parameters(self) -> typing.TextIO:
         with open(PARAMFILE, 'w') as f:
-            f.write(f"# Parameters for '{DATAFILE}' from '{TOPFILE}' and '{PDBFILE}'\n")
+            f.write(f"# Parameters for '{DATAFILE}' \
+                from '{TOPFILE}' and '{PDBFILE}'\n")
             f.write(f"\n")
             self.write_mass(f)
             self.write_q(f)
@@ -838,46 +849,54 @@ class LMPPARAM:
             self.write_bond(f)
             self.write_constrains(f)
 
-    def write_mass(self, f:typing.IO) -> typing.TextIO:
+    def write_mass(self, f: typing.IO) -> typing.TextIO:
         f.write(f"# mass of each type\n")
         for key, value in self.lmp.masses.items():
-            f.write(f"mass {self.lmp.types[key]}\t{value:.3f}\t# {self.drop_digit(key)}\n")
+            f.write(f"mass {self.lmp.types[key]}\t{value:.3f}\t#\
+                     {self.drop_digit(key)}\n")
         f.write("\n")
-    
-    def write_q(self, f:typing.IO) -> typing.TextIO:
+
+    def write_q(self, f: typing.IO) -> typing.TextIO:
         f.write(f"# charge of each type\n")
-        f.write(f"# charges are already set in data file ({DATAFILE}), here added as comments\n")
+        f.write(f"# charges are already set in data file ({DATAFILE}),\
+                 here added as comments\n")
         f.write(f"CC\n")
         for key, value in self.lmp.charges.items():
-            f.write(f"set type {self.lmp.types[key]} charge {value:.3f}\t# {self.drop_digit(key)}\n")
+            f.write(f"set type {self.lmp.types[key]} \
+                charge {value:.3f}\t# {self.drop_digit(key)}\n")
         f.write(f"CC\n")
         f.write(f"\n")
 
-    def write_group(self, f:typing.IO) -> typing.TextIO:
+    def write_group(self, f: typing.IO) -> typing.TextIO:
         # define Hydrogen group
         f.write(f"# define name of the group \n")
         f.write(f"group Hydrogen type {self.lmp.types['H']}\n")
         f.write(f"group OH type {self.lmp.types['OH']}\n")
         f.write(f"group OM type {self.lmp.types['OM3']}\n")
         f.write(f"group Silicon type {self.lmp.types['Si']}\n")
-        f.write(f"group Oxygen type {self.lmp.types['OH']} {self.lmp.types['OM3']}\n")
-        f.write(f"group freeze type {self.lmp.types['OH']} {self.lmp.types['OM3']} {self.lmp.types['Si']}\n")
+        f.write(f"group Oxygen type {self.lmp.types['OH']}\
+            {self.lmp.types['OM3']}\n")
+        f.write(f"group freeze type {self.lmp.types['OH']}\
+            {self.lmp.types['OM3']} {self.lmp.types['Si']}\n")
         f.write(f"\n")
 
-    def write_pair(self, f:typing.IO) -> typing.TextIO:
+    def write_pair(self, f: typing.IO) -> typing.TextIO:
         # write ij pair interactions
-        columns = ['lmp_rule', 'ai', 'aj', 'style', 'epsilon', 'sigma', '#', 'i_name', 'j_name']
+        columns = ['lmp_rule', 'ai', 'aj', 'style',
+                   'epsilon', 'sigma', '#', 'i_name', 'j_name']
         f.write(f"# define the interactions between particles\n")
         f.write(f"# {'   '.join(columns)}\n")
-        self.pair.Pair_df.to_csv(f, sep='\t', columns=columns, header=None, index=False)        
+        self.pair.Pair_df.to_csv(f, sep='\t', columns=columns,
+                                 header=None, index=False)
         f.write(f"\n")
 
-    def write_bond(self, f:typing.IO) -> typing.TextIO:
+    def write_bond(self, f: typing.IO) -> typing.TextIO:
         # writting bond coeffs
         f.write(f"# bond coeff for the all the atom types \n")
         for i in range(self.bond.NBTYPES):
-            f.write(f"bond_coeff {i+1} harmonic {self.lmp.top.BOND_FORCE_CONSTANT[i]} ,\
-                            {self.lmp.top.BOND_EQUIL_VALUE[i]}\n")
+            f.write(f"bond_coeff {i+1} harmonic \
+                {self.lmp.top.BOND_FORCE_CONSTANT[i]} \
+                {self.lmp.top.BOND_EQUIL_VALUE[i]}\n")
         f.write(f"\n")
 
     def write_constrains(self, f) -> typing.TextIO:
@@ -885,16 +904,13 @@ class LMPPARAM:
         f.write(f"fix freeze freeze setforce 0.0 0.0 0.0\n")
         f.write(f"\n")
 
-
-
     def print_info(self) -> typing.TextIO:
         print(f"Writting parameters in '{PARAMFILE}' ...\n")
 
-    
     def drop_digit(self, obj: str) -> str: return re.sub("\d", "", obj)
 
-print("HERE")
-if __name__== "__main__":
+
+if __name__ == "__main__":
     TOPFILE = "test3.top"
     PDBFILE = "test.pdb"
     DATAFILE = "slab.data"
@@ -902,7 +918,7 @@ if __name__== "__main__":
     OFFSET = 1
     data = READTOP()
     data.get_data()
-    top = GETTOP(data.FLAG)    
+    top = GETTOP(data.FLAG)
     top.get_top()
     pdb = PDB()
     pdb.read_pdb()
