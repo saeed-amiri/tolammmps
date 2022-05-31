@@ -261,19 +261,23 @@ class GETTOP:
         # setting the attributes:
         # set them to None
         nones = lambda n: [None for _ in range(n)]
-        self.NATOM, self.NTYPES, self.NBONH, self.MBONA, self.NTHETH, self.MTHETA,\
-        self.NPHIH, self.MPHIA, self.NHPARM, self.NPARM, self.NNB, self.NRES, self.NBONA,\
-        self.NTHETA, self.NPHIA, self.NUMBND, self.NUMANG, self.NPTRA, self.NATYP, self.NPHB,\
-        self.IFPERT, self.NBPER, self.NGPER, self.NDPER, self.MBPER, self.MGPER, self.MDPER,\
-        self.IFBOX, self.NMXRS, self.IFCAP, self.NUMEXTRA = nones(31)
+        self.NATOM, self.NTYPES, self.NBONH, self.MBONA, self.NTHETH,\
+            self.MTHETA,self.NPHIH, self.MPHIA, self.NHPARM, self.NPARM,\
+            self.NNB, self.NRES, self.NBONA, self.NTHETA, self.NPHIA, self.NUMBND,\
+            self.NUMANG, self.NPTRA, self.NATYP, self.NPHB, self.IFPERT, self.NBPER,\
+            self.NGPER, self.NDPER, self.MBPER, self.MGPER, self.MDPER,\
+            self.IFBOX, self.NMXRS, self.IFCAP, self.NUMEXTRA\
+                = nones(31)
         # NCOPY may not be present!
         self.NCOPY = nones(1)
         # setting all the data
-        self.NATOM, self.NTYPES, self.NBONH, self.MBONA, self.NTHETH, self.MTHETA,\
-        self.NPHIH, self.MPHIA, self.NHPARM, self.NPARM, self.NNB, self.NRES, self.NBONA,\
-        self.NTHETA, self.NPHIA, self.NUMBND, self.NUMANG, self.NPTRA, self.NATYP, self.NPHB,\
-        self.IFPERT, self.NBPER, self.NGPER, self.NDPER, self.MBPER, self.MGPER, self.MDPER,\
-        self.IFBOX, self.NMXRS, self.IFCAP, self.NUMEXTRA = self.top['POINTERS']['data'][0:31]
+        self.NATOM, self.NTYPES, self.NBONH, self.MBONA, self.NTHETH,\
+        self.MTHETA,self.NPHIH, self.MPHIA, self.NHPARM, self.NPARM,\
+            self.NNB, self.NRES, self.NBONA, self.NTHETA, self.NPHIA, self.NUMBND,\
+            self.NUMANG, self.NPTRA, self.NATYP, self.NPHB, self.IFPERT, self.NBPER,\
+            self.NGPER, self.NDPER, self.MBPER, self.MGPER, self.MDPER,\
+            self.IFBOX, self.NMXRS, self.IFCAP, self.NUMEXTRA\
+             = self.top['POINTERS']['data'][0:31]
         if length > 31: self.NCOPY = self.top['POINTERS']['data'][31]
 
     def get_atom_name(self) -> None:
