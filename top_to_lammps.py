@@ -8,6 +8,14 @@ from pprint import pprint
 class DOC:
     """"
     Reading the AMBER data file for SiO2 slab and converting to LAMMPS data file
+    The script read data for the Silica slab. in a pdb and top (AMBER) format.
+    The script extract data based on the these refrenceses:
+        - https://ambermd.org/FileFormats.php#topo.cntrl
+        - https://ambermd.org/prmtop.pdf
+
+    and write out the output based for the LAMMPS, based on the:
+        - https://ambermd.org/prmtop.pdf
+        
     """
 
 class TOP:
@@ -788,7 +796,7 @@ class LMPPARAM:
             f.write(f"# Parameters for '{DATAFILE}' from '{TOPFILE}' and '{PDBFILE}'\n")
             f.write(f"\n")
             self.write_mass(f)
-            # self.write_q(f)
+            self.write_q(f)
             self.write_group(f)
             self.write_pair(f)
             self.write_bond(f)
@@ -848,6 +856,7 @@ class LMPPARAM:
     
     def drop_digit(self, obj) -> str: return re.sub("\d", "", obj)
 
+print("HERE")
 if __name__== "__main__":
     TOPFILE = "test3.top"
     PDBFILE = "test.pdb"
