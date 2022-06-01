@@ -129,7 +129,7 @@ class READTOP(TOP):
             falg (variable): real True and False falg to indicate which data is reading
             'flag': using for save True and False state 
         """
-        with open (TOPFILE, 'r') as f:
+        with open(TOPFILE, 'r') as f:
             while True:
                 line = f.readline()
                 # setting flag = True for the flag we hitting
@@ -138,40 +138,51 @@ class READTOP(TOP):
                     if line:
                         line = line.strip()
                         if line.startswith("FLAG"):
-                            for key in self.FLAG.keys(): self.FLAG[key]['flag'] = False
+                            for key in self.FLAG.keys():
+                                self.FLAG[key]['flag'] = False
                             flag = line.split('FLAG')[1].strip()
-                            if flag in self.FLAG.keys(): self.FLAG[flag]['flag'] = True
-                        elif line.startswith("FORMAT"): pass
+                            if flag in self.FLAG.keys():
+                                self.FLAG[flag]['flag'] = True
+                        elif line.startswith("FORMAT"):
+                            pass
                 else:
                     # reading data for each card
                     for key in self.FLAG.keys():
                         # append the line to data file with trimming the trailing newline
-                        if self.FLAG[key]['flag']:self.FLAG[key]['data'].append(line.rstrip("\n"))
+                        if self.FLAG[key]['flag']:
+                            self.FLAG[key]['data'].append(line.rstrip("\n"))
                 if not line: break
     
     def crct_card(self) -> None:
         """correcting the data based on format and removing the blanks"""
         for key in self.FLAG.keys():
             self.FLAG[key]['data'] = ''.join(self.FLAG[key]['data'])
-            if self.FLAG[key]['format'] == '20a4': self.do_string(key, 4)
-            elif self.FLAG[key]['format'] == '10I8': self.do_string(key, 8)
-            elif self.FLAG[key]['format'] == '5E16.8': self.do_string(key, 16)
-            elif self.FLAG[key]['format'] == '1a80' :self.do_string(key, 80)
+            if self.FLAG[key]['format'] == '20a4':
+                self.do_string(key, 4)
+            elif self.FLAG[key]['format'] == '10I8':
+                self.do_string(key, 8)
+            elif self.FLAG[key]['format'] == '5E16.8':
+                self.do_string(key, 16)
+            elif self.FLAG[key]['format'] == '1a80':
+                self.do_string(key, 80)
             else: exit(f"\n\tUNDEFINED format in {self.FLAG[key]['format']}\n")
 
     def do_string(self, key: str, split: int) -> list:
         """ fixing the data lists with FORTRAN format: 20a4, 10I8, 5E16.8, 1a80 """
         data_list = self.FLAG[key]['data']
-        data_list = [ data_list[i:i+split].strip() for i in range(0, len(data_list)-split+1, split) ]
+        data_list = [data_list[i:i+split].strip() for i in range(0, len(data_list)-split+1, split)]
         self.FLAG[key]['data'] = data_list
         del data_list
     
     def mk_format(self) -> None:
         """correcting the data format """
         for key in self.FLAG.keys():
-            if self.FLAG[key]['format'] == '10I8': self.do_integer(key)
-            elif self.FLAG[key]['format'] == '5E16.8': self.do_float(key)
-            else: pass
+            if self.FLAG[key]['format'] == '10I8':
+                self.do_integer(key)
+            elif self.FLAG[key]['format'] == '5E16.8':
+                self.do_float(key)
+            else:
+                pass
 
     def do_integer(self, key: int) -> None:
         # fixing the integer format of 10I8
@@ -267,7 +278,7 @@ class GETTOP:
         # set them to None
         nones = lambda n: [None for _ in range(n)]
         self.NATOM, self.NTYPES, self.NBONH, self.MBONA, self.NTHETH,\
-            self.MTHETA,self.NPHIH, self.MPHIA, self.NHPARM, self.NPARM,\
+            self.MTHETA, self.NPHIH, self.MPHIA, self.NHPARM, self.NPARM,\
             self.NNB, self.NRES, self.NBONA, self.NTHETA, self.NPHIA, self.NUMBND,\
             self.NUMANG, self.NPTRA, self.NATYP, self.NPHB, self.IFPERT, self.NBPER,\
             self.NGPER, self.NDPER, self.MBPER, self.MGPER, self.MDPER,\
@@ -277,7 +288,7 @@ class GETTOP:
         self.NCOPY = nones(1)
         # setting all the data
         self.NATOM, self.NTYPES, self.NBONH, self.MBONA, self.NTHETH,\
-        self.MTHETA,self.NPHIH, self.MPHIA, self.NHPARM, self.NPARM,\
+            self.MTHETA, self.NPHIH, self.MPHIA, self.NHPARM, self.NPARM,\
             self.NNB, self.NRES, self.NBONA, self.NTHETA, self.NPHIA, self.NUMBND,\
             self.NUMANG, self.NPTRA, self.NATYP, self.NPHB, self.IFPERT, self.NBPER,\
             self.NGPER, self.NDPER, self.MBPER, self.MGPER, self.MDPER,\
@@ -335,21 +346,23 @@ class GETTOP:
         """
         atom_type = self.top['ATOM_TYPE_INDEX']['data']
         length = len(atom_type)
-        if length != self.NATOM: exit(f"NATOM != N of ATOM_TYPE_INDEX: {length}")
+        if length != self.NATOM:
+            exit(f"NATOM != N of ATOM_TYPE_INDEX: {length}")
         self.top['ATOM_TYPE_INDEX']['data'] = atom_type
         self.ATOM_TYPE_INDEX = atom_type
         del atom_type
     
     def get_residue_label(self) -> None:
         """
-        This section contains the residue name for every residue in the prmtop.
-        Residue names are limited to 4 letters, and might not be whitespace-delimited
-        if any residues have 4-letter names.
+        This section contains the residue name for every residue in
+        the prmtop. Residue names are limited to 4 letters, and might
+        not be whitespace-delimited if any residues have 4-letter names.
         %FORMAT(20a4)
         There are NRES 4-character strings in this section
         """
         length = len(self.top['RESIDUE_LABEL']['data'])
-        if length != self.NRES: exit(f"NRES != N of RESIDUE_LABEL: {length}")
+        if length != self.NRES:
+            exit(f"NRES != N of RESIDUE_LABEL: {length}")
 
     def get_residue_pointer(self) -> None:
         """
@@ -359,14 +372,16 @@ class GETTOP:
         """
         residue = self.top['RESIDUE_POINTER']['data']
         length = len(residue)
-        if length != self.NRES: exit(f"NRES != N of RESIDUE_POINTER: {length}")
+        if length != self.NRES:
+            exit(f"NRES != N of RESIDUE_POINTER: {length}")
         self.top['RESIDUE_POINTER']['data'] = residue
         del residue
-        
+
     def get_LJ_coeff(self) -> None:
         """
-        This section contains the LJ A and B-coefficients (a_{i,j}, b_{i,j} in Eq. LENNARD JONES) for all pairs of
-        distinct LJ types (see sections ATOM TYPE INDEX and NONBONDED PARM INDEX).
+        This section contains the LJ A and B-coefficients (a_{i,j}, 
+        b_{i,j} in Eq. LENNARD JONES) for all pairs of distinct LJ
+        types (see sections ATOM TYPE INDEX and NONBONDED PARM INDEX).
         E_{ij} = [a_{ij}/r^{12}] - [b_{ij}/r^{6}]
         %FORMAT(5E16.8)
         There are [NTYPES * (NTYPES + 1)] /2 floating point numbers in this section.
@@ -379,23 +394,25 @@ class GETTOP:
         alength = len(acoeffs)
         blength = len(acoeffs)
         len_lj = (self.NTYPES * (self.NTYPES + 1))/2
-        if len_lj != alength:exit("\n\tWRONG N of LJ A coeffs\n")
-        if len_lj != blength:exit("\n\tWRONG N of LJ B coeffs\n")
+        if len_lj != alength:
+            exit("\n\tWRONG N of LJ A coeffs\n")
+        if len_lj != blength:
+            exit("\n\tWRONG N of LJ B coeffs\n")
         self.LJA = acoeffs
         self.LJB = bcoeffs
         self.top['LENNARD_JONES_ACOEF']['data'] = acoeffs
         self.top['LENNARD_JONES_BCOEF']['data'] = bcoeffs
-        
-    
+
     def get_types(self) -> None:
         """
         making a DataFrame from the atoms' name, charges, residues
-        to extract the information about the number of types, with their symbols and properties
+        to extract the information about the number of types,
+        with their symbols and properties
         """
         data_dict = dict()
         for key in self.top.keys():
-            if len(self.top[key]['data'])==self.NATOM:
-                data_dict[key]=self.top[key]['data']
+            if len(self.top[key]['data']) == self.NATOM:
+                data_dict[key] = self.top[key]['data']
         # make a dataframe to extract infos
         self.df = self.mk_df(data_dict)
         del data_dict
@@ -405,7 +422,7 @@ class GETTOP:
         df = df.drop(['EXCLUDED_ATOMS_LIST'], axis=1)
         df.to_csv('df', sep='\t', index=False)
         df = df.groupby('ATOM_NAME', as_index=False).mean()
-        df = df.astype({"ATOM_TYPE_INDEX":int})
+        df = df.astype({"ATOM_TYPE_INDEX": int})
         return df
 
     def get_bond_coeff(self) -> None:
@@ -468,7 +485,7 @@ class PDB:
     def read_pdb(self) -> list:
         id, name, residue, chain, x, y, z = [], [], [], [], [], [], []
         lineCounter = 0
-        with open (PDBFILE, 'r') as f:
+        with open(PDBFILE, 'r') as f:
             while True:
                 line = f.readline()
                 lineCounter += 1
@@ -477,10 +494,15 @@ class PDB:
                     line = [item for item in line if item]
                     # ATOM      9 Si   Si      9      -6.272  -1.062  -5.117  1.00  0.00
                     _, i_id, i_name, i_residue, i_chain, i_x, i_y, i_z, _, _ = line
-                    id.append(i_id); name.append(i_name); 
-                    residue.append(i_residue); chain.append(i_chain)
-                    x.append(i_x); y.append(i_y); z.append(i_z) 
-                if not line: break
+                    id.append(i_id)
+                    name.append(i_name)
+                    residue.append(i_residue)
+                    chain.append(i_chain)
+                    x.append(i_x)
+                    y.append(i_y)
+                    z.append(i_z)
+                if not line:
+                    break
 
         # set the formats
         id = [int(i) for i in id]
@@ -499,10 +521,10 @@ class PDB:
         # making a DataFrame in LAMMPS format
         self.mk_lmp_df(id, chain, name, q, x, y, z, nx, ny, nz, sharp)
         del id, chain, name, q, x, y, z, nx, ny, nz, sharp
-    
-    def mk_lmp_df(self, 
-                  id: int, 
-                  chain:int,
+
+    def mk_lmp_df(self,
+                  id: int,
+                  chain: int,
                   name: str,
                   q: float,
                   x: float,
@@ -521,7 +543,18 @@ class PDB:
         Also, all q=0.0 will be set later the charges information will write into a different file.
         'chain' here is the same as molecule-tag in LAMMPS
         """
-        data_dict = {'id':id, 'chain':chain, 'name':name, 'q':q, 'x':x, 'y':y, 'z':z, 'nx':nx, 'ny':ny, 'nz':nz, 'sharp':sharp, 'symbol':name}
+        data_dict = {'id': id,
+                     'chain': chain,
+                     'name': name,
+                     'q': q,
+                     'x': x,
+                     'y': y,
+                     'z': z,
+                     'nx': nx,
+                     'ny': ny,
+                     'nz': nz,
+                     'sharp': sharp,
+                     'symbol': name}
         self.lmp_df = pd.DataFrame(data_dict)
         self.NATOM = len(id)
         self.NRES = np.max(chain)
@@ -530,12 +563,13 @@ class PDB:
         self.NNAMES = len(self.ATOM_NAMES)
         del id, chain, name, q, x, y, z, nx, ny, nz, sharp, data_dict
         self.print_info()
-    
+
     def print_info(self) -> typing.TextIO:
         print(f"\t seeing {self.NATOM}\t atoms")
         print(f"\t seeing {self.NRES}\t reseidues (molecules)")
         print(f"\t seeing {self.NNAMES}\t atom names")
         print(f"\n")
+
 
 class LMPBOND:
     """
@@ -580,11 +614,11 @@ class LMPBOND:
         There are 3 * NBONH integers in this section.
         """
         h_bonds = self.top.top['BONDS_INC_HYDROGEN']['data']
-        h_bonds = [h_bonds[i:i+3] for i in range(0,len(h_bonds),3)]
+        h_bonds = [h_bonds[i: i+3] for i in range(0, len(h_bonds), 3)]
         h_bonds = [self.crct_index(lst) for lst in h_bonds]
         h_bonds = [self.append_name(lst) for lst in h_bonds]
         return h_bonds
-    
+
     def crct_index(self, lst: list) -> list:
         for i in range(2):
             lst[i] = self.return_index(lst[i])
@@ -594,19 +628,21 @@ class LMPBOND:
 
     def mk_hbond_df(self, h_bonds: list) -> pd.DataFrame:
         """return datafram from h_bond list"""
-        return pd.DataFrame(h_bonds, columns=['ai', 'aj', 'type','cmt', 'i_name', 'j_name'])
+        columns = ['ai', 'aj', 'type', 'cmt', 'i_name', 'j_name']
+        return pd.DataFrame(h_bonds, columns=columns)
 
     def set_attributes(self) -> None:
         # set attributes for bonnds
         self.NBONDS = len(self.bond_df)
         self.NBTYPES = self.bond_df['type'].max()
         self.bond_df.index += 1
-    
+
     def append_name(self, lst: list) -> list:
         lst.append("#")
         lst.append(self.pdb.ALL_NAME[lst[0]-1])
         lst.append(self.pdb.ALL_NAME[lst[1]-1])
         return lst
+
 
 class LMPPAIR:
     """
@@ -626,7 +662,6 @@ class LMPPAIR:
         self.get_coeff()
         lst = self.get_index()
         self.Pair_df = self.mk_df(lst)
-
     
     def get_index(self) -> list:
         """
@@ -638,14 +673,14 @@ class LMPPAIR:
 
         Note, each atom pair can interact with either the standard 12-6 LJ po-
         tential or via a 12-10 hydrogen bond potential. If index in the equation is negative,
-        then it is an index into HBOND ACOEF and HBOND BCOEF instead 
+        then it is an index into HBOND ACOEF and HBOND BCOEF instead
 
         %FORMAT(10I8)
         There are NTYPES * NTYPES integers in this section.
         """
         lst = []
-        # swap name and type in self.lmp.types 
-        type_name = {int(v):k for k, v in self.lmp.types.items()}
+        # swap name and type in self.lmp.types
+        type_name = {int(v): k for k, v in self.lmp.types.items()}
         pair_lst = [i for i in range(1, self.top.NTYPES+1)]
         for i, j in itertools.combinations_with_replacement(pair_lst, 2):
             try:
@@ -653,8 +688,9 @@ class LMPPAIR:
                 ind = self.top.NONBONDED_PARM_INDEX[inx-1]
                 # since Na+ is type 5, we drop the interaction here!
                 # also append LAMMPS scripts for the pair interaction
-                if i == 5 or j==5: pass
-                else: 
+                if i == 5 or j==5: 
+                    pass
+                else:
                     i_name = re.sub("\d", "", type_name[i])
                     j_name = re.sub("\d", "", type_name[j])
                     lst.append([i, j, self.sigma[ind-1], self.epsilon[ind-1],
@@ -680,10 +716,10 @@ class LMPPAIR:
             sigma.append((a/b)**(1/6))
             epsilon.append(b**2 / (4*a))
         return sigma, epsilon
-    
+
     def mk_df(self, lst) -> pd.DataFrame:
-        df = pd.DataFrame(lst, 
-                columns=['ai', 'aj', 'sigma', 'epsilon', 'lmp_rule', 'style', '#', 'i_name', 'j_name'])
+        columns=['ai', 'aj', 'sigma', 'epsilon', 'lmp_rule', 'style', '#', 'i_name', 'j_name']
+        df = pd.DataFrame(lst, columns=columns)
         return df
 
     
@@ -718,10 +754,12 @@ class LMPDATA:
             self.NTYPES = self.top.NTYPES - 1
             self.NRES = self.lmp_df.chain.max()
             # remove from masses, charges, and types
-            self.types.pop(popkey), self.charges.pop(popkey), self.masses.pop(popkey)
-        except: 
+            self.types.pop(popkey)
+            self.charges.pop(popkey)
+            self.masses.pop(popkey)
+        except:
             print(f"\tthere were no {popkey} to drop!!\n")
-    
+
     def to_orgin(self) -> None:
         # put mins to origin (0,0,0)
         self.lmp_df.x = self.move_to_zero(self.lmp_df.x)
@@ -750,7 +788,6 @@ class LMPDATA:
             masses[name] = self.top.df.iloc[i]['MASS']
         return types, charges, masses
 
-
     def set_q_name_mass(self) -> list:
         # make a list with self.types then replace whole column at once
         typ_lst = []
@@ -759,7 +796,7 @@ class LMPDATA:
             typ_lst.append(self.types[name])
             q_lst.append(self.charges[name])
         return typ_lst, q_lst
-    
+
     def get_box(self) -> None:
         # finding box limits
         self.xlo = self.lmp_df['x'].min() - OFFSET
@@ -788,9 +825,9 @@ class LMPDATA:
             f.write(f"\n")
             f.write(f"Bonds \n")
             f.write(f"\n")
-            self.bonds.bond_df.to_csv(f, sep='\t', index=True, header=None
-                        , columns=['type', 'ai', 'aj', 'cmt', 'i_name', 'j_name']
-                        , float_format='%g')
+            columns = ['type', 'ai', 'aj', 'cmt', 'i_name', 'j_name']
+            self.bonds.bond_df.to_csv(f, sep='\t', index=True, header=None,
+                                      columns=columns, float_format='%g')
             self.print_info()
 
     def print_info(self) -> typing.TextIO:
@@ -903,7 +940,8 @@ class LMPPARAM:
         # writting bond coeffs
         f.write(f"# bond coeff for the all the atom types \n")
         for i in range(self.bond.NBTYPES):
-            f.write(f"bond_coeff {i+1} harmonic {self.lmp.top.BOND_FORCE_CONSTANT[i]} {self.lmp.top.BOND_EQUIL_VALUE[i]}\n")
+            f.write(f"bond_coeff {i+1} harmonic")
+            f.write(f"{self.lmp.top.BOND_FORCE_CONSTANT[i]} {self.lmp.top.BOND_EQUIL_VALUE[i]}\n")
         f.write(f"\n")
 
     def write_constrains(self, f) -> typing.TextIO:
