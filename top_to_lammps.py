@@ -138,10 +138,7 @@ class READTOP(TOP):
                     self.process_flag(line)
                 else:
                     # reading data for each card
-                    for key in self.FLAG.keys():
-                        # append the line to data file with trimming the trailing newline
-                        if self.FLAG[key]['flag']:
-                            self.FLAG[key]['data'].append(line.rstrip("\n"))
+                    self.grap_data(line)
                 if not line: break
     
     def process_flag(self, line: list) -> None:
@@ -155,6 +152,13 @@ class READTOP(TOP):
                     self.FLAG[flag]['flag'] = True
             elif line.startswith("FORMAT"):
                 pass
+    
+    def grap_data(self, line: list) -> None:
+        # append data for each FLAG:
+        for key in self.FLAG.keys():
+            # append the line to data file with trimming the trailing newline
+            if self.FLAG[key]['flag']:
+                self.FLAG[key]['data'].append(line.rstrip("\n"))
 
     def crct_card(self) -> None:
         """correcting the data based on format and removing the blanks"""
