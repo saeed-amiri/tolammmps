@@ -41,14 +41,14 @@ class TOP:
                     break
         # making a list of dictionaries to save data of each flag
         # we do not know the numbers of flags yet
-        free_dict = [dict() for _ in self.FORMAT_list]
+        empty_dict = [dict() for _ in self.FORMAT_list]
         # set atribeuts for the for all the falgs
-        self.FLAG = dict(zip(self.FLAG_list, free_dict))
+        self.FLAG = dict(zip(self.FLAG_list, empty_dict))
         # append the format of each falg to the dictionary if esch one of them
         for i, key in enumerate(self.FLAG):
             self.FLAG[key]['format'] = self.FORMAT_list[i]
         # flush the memory
-        del free_dict
+        del empty_dict
         del self.FLAG_list
         del self.FORMAT_list
 
