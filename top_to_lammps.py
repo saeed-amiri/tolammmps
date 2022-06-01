@@ -120,7 +120,7 @@ class READTOP(TOP):
     def set_data_list(self) -> None:
         """giving data atribute to the dict"""
         for key in self.FLAG.keys():
-            self.FLAG[key]['data']=[]
+            self.FLAG[key]['data'] = []
 
     def read_card(self) -> None:
         """reading data between two flags
@@ -135,16 +135,7 @@ class READTOP(TOP):
                 # setting flag = True for the flag we hitting
                 if line.startswith("%"):
                     line = line.split("%")[1]
-                    if line:
-                        line = line.strip()
-                        if line.startswith("FLAG"):
-                            for key in self.FLAG.keys():
-                                self.FLAG[key]['flag'] = False
-                            flag = line.split('FLAG')[1].strip()
-                            if flag in self.FLAG.keys():
-                                self.FLAG[flag]['flag'] = True
-                        elif line.startswith("FORMAT"):
-                            pass
+                    self.process_flag(line)
                 else:
                     # reading data for each card
                     for key in self.FLAG.keys():
@@ -153,6 +144,18 @@ class READTOP(TOP):
                             self.FLAG[key]['data'].append(line.rstrip("\n"))
                 if not line: break
     
+    def process_flag(self, line: list) -> None:
+        if line:
+            line = line.strip()
+            if line.startswith("FLAG"):
+                for key in self.FLAG.keys():
+                    self.FLAG[key]['flag'] = False
+                flag = line.split('FLAG')[1].strip()
+                if flag in self.FLAG.keys():
+                    self.FLAG[flag]['flag'] = True
+            elif line.startswith("FORMAT"):
+                pass
+
     def crct_card(self) -> None:
         """correcting the data based on format and removing the blanks"""
         for key in self.FLAG.keys():
@@ -283,7 +286,7 @@ class GETTOP:
             self.NUMANG, self.NPTRA, self.NATYP, self.NPHB, self.IFPERT, self.NBPER,\
             self.NGPER, self.NDPER, self.MBPER, self.MGPER, self.MDPER,\
             self.IFBOX, self.NMXRS, self.IFCAP, self.NUMEXTRA\
-                = nones(31)
+            = nones(31)
         # NCOPY may not be present!
         self.NCOPY = nones(1)
         # setting all the data
@@ -293,8 +296,9 @@ class GETTOP:
             self.NUMANG, self.NPTRA, self.NATYP, self.NPHB, self.IFPERT, self.NBPER,\
             self.NGPER, self.NDPER, self.MBPER, self.MGPER, self.MDPER,\
             self.IFBOX, self.NMXRS, self.IFCAP, self.NUMEXTRA\
-             = self.top['POINTERS']['data'][0:31]
-        if length > 31: self.NCOPY = self.top['POINTERS']['data'][31]
+            = self.top['POINTERS']['data'][0:31]
+        if length > 31:
+            self.NCOPY = self.top['POINTERS']['data'][31]
 
     def get_atom_name(self) -> None:
         """
