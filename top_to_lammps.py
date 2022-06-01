@@ -36,14 +36,7 @@ class TOP:
         with open(TOPFILE, 'r') as f:
             while True:
                 line = f.readline()
-                if line.startswith('%'):
-                    line = line.split('%')[1]
-                    if line.startswith('version'):
-                        self.get_version(line)
-                    elif line.startswith('FLAG'):
-                        self.get_flag(line)
-                    elif line.startswith('FORMAT'):
-                        self.get_format(line)
+                self.process_line(line)
                 if not line:
                     break
         # making a list of dictionaries to save data of each flag
@@ -58,6 +51,18 @@ class TOP:
         del free_dict
         del self.FLAG_list
         del self.FORMAT_list
+
+    def process_line(self, line) -> None:
+        # process line for appending the data to lists and dicts
+        if line.startswith('%'):
+            line = line.split('%')[1]
+            if line.startswith('version'):
+                self.get_version(line)
+            elif line.startswith('FLAG'):
+                self.get_flag(line)
+            elif line.startswith('FORMAT'):
+                self.get_format(line)
+        else: pass
 
     def get_version(self, line: list) -> str:
         """geting the version of the AMBER, written in top of the file"""
@@ -898,9 +903,7 @@ class LMPPARAM:
         # writting bond coeffs
         f.write(f"# bond coeff for the all the atom types \n")
         for i in range(self.bond.NBTYPES):
-            f.write(f"bond_coeff {i+1} harmonic \
-                {self.lmp.top.BOND_FORCE_CONSTANT[i]} \
-                {self.lmp.top.BOND_EQUIL_VALUE[i]}\n")
+            f.write(f"bond_coeff {i+1} harmonic {self.lmp.top.BOND_FORCE_CONSTANT[i]} {self.lmp.top.BOND_EQUIL_VALUE[i]}\n")
         f.write(f"\n")
 
     def write_constrains(self, f) -> typing.TextIO:
@@ -909,7 +912,7 @@ class LMPPARAM:
         f.write(f"\n")
 
     def print_info(self) -> typing.TextIO:
-        print(f"Writting parameters in '{PARAMFILE}' ...\n")
+        print(f"Writing parameters in '{PARAMFILE}' ...\n")
 
     def drop_digit(self, obj: str) -> str: return re.sub("\d", "", obj)
 
