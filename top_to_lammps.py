@@ -126,7 +126,8 @@ class READTOP(TOP):
         """reading data between two flags
         class names:
             FLAG: using for each FLAG header in data file
-            falg (variable): real True and False falg to indicate which data is reading
+            falg (variable): real True and False falg to indicate
+            which data is reading
             'flag': using for save True and False state 
         """
         with open(TOPFILE, 'r') as f:
@@ -139,7 +140,8 @@ class READTOP(TOP):
                 else:
                     # reading data for each card
                     self.grap_data(line)
-                if not line: break
+                if not line:
+                    break
     
     def process_flag(self, line: list) -> None:
         if line:
@@ -172,7 +174,8 @@ class READTOP(TOP):
                 self.do_string(key, 16)
             elif self.FLAG[key]['format'] == '1a80':
                 self.do_string(key, 80)
-            else: exit(f"\n\tUNDEFINED format in {self.FLAG[key]['format']}\n")
+            else:
+                exit(f"\n\tUNDEFINED format in {self.FLAG[key]['format']}\n")
 
     def do_string(self, key: str, split: int) -> list:
         """ fixing the data lists with FORTRAN format: 20a4, 10I8, 5E16.8, 1a80 """
@@ -311,7 +314,8 @@ class GETTOP:
         %FORMAT(20a4) There are NATOM 4-character strings in this section.
         """
         length = len(self.top['ATOM_NAME']['data'])
-        if length != self.NATOM: exit(f"NATOM != N of ATOM_NAME: {length}")
+        if length != self.NATOM:
+            exit(f"NATOM != N of ATOM_NAME: {length}")
         self.ATOM_NAME = self.top['ATOM_NAME']['data']
         
     def get_charges(self) -> None:
@@ -325,7 +329,8 @@ class GETTOP:
         kele = 18.2223
         charges = self.top['CHARGE']['data']
         length = len(charges)
-        if length != self.NATOM: exit(f"NATOM != N of CHARGE: {length}")
+        if length != self.NATOM:
+            exit(f"NATOM != N of CHARGE: {length}")
         # convert to [e] unit
         charges = [q/kele for q in charges]
         # correct the precision
@@ -341,7 +346,8 @@ class GETTOP:
         """
         masses = self.top['MASS']['data']
         length = len(masses)
-        if length != self.NATOM: exit(f"NATOM != N of MASS: {length}")
+        if length != self.NATOM:
+            exit(f"NATOM != N of MASS: {length}")
         self.top['MASS']['data'] = masses
         del masses
     
