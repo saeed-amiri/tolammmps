@@ -293,14 +293,14 @@ atoms = BODY()
 atoms.read_body()
 MAXI = atoms.Atoms_df['x'].max()/4
 MAXI = 25.7184*2
-print(MAXI)
-MAYI = atoms.Atoms_df['z'].max()/4
-MAYI = 22.5981
-print(MAYI)
+MAXI = 32.278
+MAYI = atoms.Atoms_df['z'].max()/2
+# MAYI = 22.5981
+MAYI = 34.358
 
 atoms_df0 = atoms.Atoms_df[atoms.Atoms_df['typ']<5 ]
-atoms_df = atoms_df0[atoms_df0['x']<MAXI]
-# atoms_df = atoms_df1[atoms_df1['y']<MAYI]
+atoms_df1 = atoms_df0[atoms_df0['x']<MAXI]
+atoms_df = atoms_df1[atoms_df1['y']<MAYI]
 bonds = []
 start = time.time()
 for i in range(ole.NBonds):
@@ -311,8 +311,8 @@ for i in range(ole.NBonds):
                 atoms.Bonds_df.iloc[i]['ai'], atoms.Bonds_df.iloc[i]['aj']])
 
 # move to mins to orgin
-# for i in ['x', 'y', 'z']:
-    # atoms_df[i] = atoms_df[i] - atoms_df[i].min()
+for i in ['x', 'y', 'z']:
+    atoms_df[i] = atoms_df[i] - atoms_df[i].min()
 # atoms_df['x'] = atoms_df['x'] - atoms_df['x'].min()
 print(atoms.Atoms_df.iloc[1]['mol'])
 # with concurrent.futures.ThreadPoolExecutor() as executer:
@@ -323,7 +323,7 @@ end = time.time()
 bonds_df = pd.DataFrame(bonds, columns=['typ', 'ai', 'aj'])
 bonds_df.index +=1
 
-with open('silica_ole.data', 'w') as f:
+with open('silica_ole_slic.data', 'w') as f:
     f.write(f"datafile for silica from '{INFILE}'\n")
     f.write(f"\n")
     f.write(f"{len(atoms_df)} atoms\n")
