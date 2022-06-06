@@ -1,4 +1,5 @@
 import pandas as pd
+import numpy as np
 from pprint import pprint
 import time
 import concurrent.futures
@@ -286,66 +287,93 @@ class BODY:
             i_ah = line[5]
             self.Dihedrals[dihedrals_id] = dict(
                 typ = i_typ, ai = i_ai, aj = i_aj, ak = i_ak, ah = i_ah)
-INFILE = 'merged.data'
 
+class GeteSlab:
+    """Get the infos for SiO2 slab only
+    Slice the salb based fraction of the main data
+    """
+
+    def __init__(self, header, atoms) -> None:
+        self.atoms = atoms
+        self.header = header
+        del atoms, header
+    
+    def get_slab(self) -> None:
+        # Get the atoms coords based on the type
+        self.get_atoms()
+        # Get the bonds between all the SiO2 atoms
+        self.get_bonds()
+        # Set min(x, y, z) -> (0, 0, 0), set the maximums
+        # self.move_to_center()
+        # self.atoms_df = self.slice_slab(xlim=None, ylim=None)
+
+    def get_atoms(self) -> None:
+        """extract eh SiO2 atoms and bonds from data file"""
+        # Since the SiO2 atoms are seted from 1 to 4:
+        self.atoms_df = self.atoms.Atoms_df[self.atoms.Atoms_df['typ'] < 5 ]
+
+    def get_bonds(self) -> None:
+        bonds = []
+        for i in range(self.header.NBonds):
+            if self.atoms.Bonds_df.iloc[i]['ai'] in self.atoms_df['atom_id']:
+                if self.atoms.Bonds_df.iloc[i]['aj'] in self.atoms_df['atom_id']:
+                    bonds.append([self.atoms.Bonds_df.iloc[i]['typ'],\
+                        atoms.Bonds_df.iloc[i]['ai'], atoms.Bonds_df.iloc[i]['aj']])
+        self.bonds_df = pd.DataFrame(bonds, columns=['typ', 'ai', 'aj'])
+        self.bonds_df.index +=1
+
+    def move_to_center(self) -> None:
+        # move to mins to orgin
+        for i in ['x', 'y', 'z']:
+            self.atoms_df[i] = self.atoms_df[i] - self.atoms_df[i].min()
+        self.XMAX = np.max(self.atoms_df['x'])
+        self.YMAX = np.max(self.atoms_df['y'])
+        self.ZMAX = np.max(self.atoms_df['z'])
+
+    def slice_slab(self, xlim, ylim) -> None:
+        if xlim:
+            df_x = self.atoms_df[self.atoms_df['x'] < xlim]
+        else:
+            df_x = self.atoms_df
+        if ylim:
+            self.atoms_df = df_x[df_x['y'] < ylim]
+        else:
+            self.atoms_df = df_x
+
+            
+
+INFILE = 'merged.data'
+OUTFILE = 'silica_ole_slic.data'
 ole = HEADER()
 atoms = BODY()
 atoms.read_body()
-MAXI = atoms.Atoms_df['x'].max()/4
-MAXI = 25.7184*2
-MAXI = 32.278
-MAYI = atoms.Atoms_df['z'].max()/2
-# MAYI = 22.5981
-MAYI = 34.358
-
-atoms_df0 = atoms.Atoms_df[atoms.Atoms_df['typ']<5 ]
-atoms_df1 = atoms_df0[atoms_df0['x']<MAXI]
-atoms_df = atoms_df1[atoms_df1['y']<MAYI]
-bonds = []
-start = time.time()
-for i in range(ole.NBonds):
-# def slice_df(i):
-    if atoms.Bonds_df.iloc[i]['ai'] in atoms_df['atom_id']:
-        if atoms.Bonds_df.iloc[i]['aj'] in atoms_df['atom_id']:
-            bonds.append([atoms.Bonds_df.iloc[i]['typ'],\
-                atoms.Bonds_df.iloc[i]['ai'], atoms.Bonds_df.iloc[i]['aj']])
-
-# move to mins to orgin
-for i in ['x', 'y', 'z']:
-    atoms_df[i] = atoms_df[i] - atoms_df[i].min()
-# atoms_df['x'] = atoms_df['x'] - atoms_df['x'].min()
-print(atoms.Atoms_df.iloc[1]['mol'])
-# with concurrent.futures.ThreadPoolExecutor() as executer:
-# print(atoms_df['x'].min())
-    # executer.map(slice_df, range(ole.NBonds))
+slab = GeteSlab(ole, atoms)
+slab.get_slab()
 end = time.time()
 
-bonds_df = pd.DataFrame(bonds, columns=['typ', 'ai', 'aj'])
-bonds_df.index +=1
-
-with open('silica_ole_slic.data', 'w') as f:
+with open(OUTFILE, 'w') as f:
     f.write(f"datafile for silica from '{INFILE}'\n")
     f.write(f"\n")
-    f.write(f"{len(atoms_df)} atoms\n")
-    f.write(f"{max(atoms_df['typ'])} atom types\n")
-    f.write(f"{len(bonds_df)} bonds\n")
-    f.write(f"{max(bonds_df['typ'])} bond types\n")
+    f.write(f"{len(slab.atoms_df)} atoms\n")
+    f.write(f"{max(slab.atoms_df['typ'])} atom types\n")
+    f.write(f"{len(slab.bonds_df)} bonds\n")
+    f.write(f"{max(slab.bonds_df['typ'])} bond types\n")
     f.write(f"\n")
-    f.write(f"{atoms_df['x'].min()} {atoms_df['x'].max()} xlo xhi\n")
+    f.write(f"{slab.atoms_df['x'].min()} {slab.atoms_df['x'].max()} xlo xhi\n")
     # f.write(f"{ole.Xlim[0]} {ole.Xlim[1]} xlo xhi\n")
-    f.write(f"{atoms_df['y'].min()} {atoms_df['y'].max()} ylo yhi\n")
+    f.write(f"{slab.atoms_df['y'].min()} {slab.atoms_df['y'].max()} ylo yhi\n")
     # f.write(f"{ole.Ylim[0]} {ole.Ylim[1]} ylo yhi\n")
-    f.write(f"{atoms_df['z'].min()} {atoms_df['z'].max()} zlo zhi\n")
+    f.write(f"{slab.atoms_df['z'].min()} {slab.atoms_df['z'].max()} zlo zhi\n")
     # f.write(f"{ole.Zlim[0]} {ole.Zlim[1]} zlo zhi\n")
     f.write(f"\n")
     f.write(f"\n")
     f.write(f"Atoms # full\n")
     f.write(f"\n")
-    atoms_df.to_csv(f, index=False, header=None, sep='\t')
+    slab.atoms_df.to_csv(f, index=False, header=None, sep='\t')
     f.write(f"\n")
     f.write(f"Bonds\n")
     f.write(f"\n")
-    bonds_df.to_csv(f, index=True, header=None, sep='\t')
+    slab.bonds_df.to_csv(f, index=True, header=None, sep='\t')
 
 
 print(end - start)
