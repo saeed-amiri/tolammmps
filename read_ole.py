@@ -70,7 +70,8 @@ class HEADER:
         """
         # Setting dictionaries to save data of each block in the header
         self.Masses, self.PairCoeff, self.BondCoeff, self.AngleCoeff,\
-            self.DihedralCoeff = dict(), dict(), dict(), dict(), dict()
+            self.DihedralCoeff, self.Names =\
+            dict(), dict(), dict(), dict(), dict(), dict()
         # Setting flags to save data correctly
         Masses, PairCoeff, BondCoeff, AngleCoeff, DihedralCoeff, Atoms\
             = False, False, False, False, False, False
@@ -146,9 +147,11 @@ class HEADER:
 
     def get_masses(self, line, check) -> dict:
         if check not in line:
-            typ = line.split(' ')[0]
+            typ = int(line.split(' ')[0])
             mass = float(line.split(' ')[1])
+            atom_name = line.split('#')[1]
             self.Masses[typ] = mass
+            self.Names[typ] = atom_name
         else:
             pass
 
@@ -187,8 +190,9 @@ class BODY:
     read the data for atoms,velocities, bonds, angles, dihedrals
     """
 
-    def __init__(self) -> None:
-        pass
+    def __init__(self, names) -> None:
+        self.Name = names
+        del names
     
     def read_body(self):
         self.Atoms, self.Velocities, self.Bonds, self.Angles, self.Dihedrals\
@@ -238,6 +242,7 @@ class BODY:
             i_mol=int(line[1])
             i_typ=int(line[2]); i_charg=float(line[3]) 
             i_x=float(line[4]);i_y=float(line[5]); i_z=float(line[6])
+            i_name = self.Name[i_typ]
             try:
                 i_nx=str(line[7]); i_ny=str(line[8]); i_nz=str(line[9])
             except:
@@ -245,7 +250,7 @@ class BODY:
                 pass
             self.Atoms[atom_id]=dict(
                 atom_id=atom_id ,mol=i_mol, typ=i_typ, charg=i_charg,\
-                x=i_x,y=i_y, z=i_z, nx=i_nx, ny=i_ny, nz=i_nz)
+                x=i_x,y=i_y, z=i_z, nx=i_nx, ny=i_ny, nz=i_nz, cmt='#', name=i_name)
         else: pass
 
     def get_velocities(self, line) -> dict:
@@ -303,6 +308,7 @@ class GeteSlab:
         self.get_atoms()
         # Get the bonds between all the SiO2 atoms
         self.get_bonds()
+        self.get_infos()
         # Set min(x, y, z) -> (0, 0, 0), set the maximums
         # self.move_to_center()
         # self.atoms_df = self.slice_slab(xlim=None, ylim=None)
@@ -339,18 +345,21 @@ class GeteSlab:
             self.atoms_df = df_x[df_x['y'] < ylim]
         else:
             self.atoms_df = df_x
-
+    
+    def get_infos(self) -> None:
+        # Get all the uniq names
+        print(self.atoms.Atoms_df)
             
 
 INFILE = 'merged.data'
 OUTFILE = 'silica_ole_slic.data'
 ole = HEADER()
-atoms = BODY()
+atoms = BODY(ole.Names)
 atoms.read_body()
 slab = GeteSlab(ole, atoms)
 slab.get_slab()
 end = time.time()
-
+print(ole.Names)
 with open(OUTFILE, 'w') as f:
     f.write(f"datafile for silica from '{INFILE}'\n")
     f.write(f"\n")
