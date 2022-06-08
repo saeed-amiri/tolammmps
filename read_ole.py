@@ -6,6 +6,8 @@ from pprint import pprint
 import time
 import concurrent.futures
 
+from sqlalchemy import column
+
 """
 Reading data file from Ole Nickel, received on Jun 01, 2022
 Data contains many atoms,
@@ -347,7 +349,8 @@ class GeteSlab:
     def get_atoms(self) -> None:
         """extract eh SiO2 atoms and bonds from data file"""
         # Since the SiO2 atoms are seted from 1 to 4:
-        self.atoms_df = self.atoms.Atoms_df[self.atoms.Atoms_df['typ'] < 5 ]
+        atoms_df = self.atoms.Atoms_df[self.atoms.Atoms_df['typ'] < 5 ]
+        self.atoms_df = self.crct_name(atoms_df)
 
     def get_bonds(self) -> None:
         bonds = []
@@ -393,6 +396,39 @@ class GeteSlab:
         for typ, name in self.Name.items():
             self.Count[typ] = self.atoms_df.groupby(['name']).count()['x'].loc[name]
             # self.Count[typ]['name'] = name
+    
+    def crct_name(self, df) -> pd.DataFrame:
+        atom_name = []
+        for i in range(len(df)):
+            typ = df.iloc[i]['typ']
+            q = df.iloc[i]['charge']
+            if typ == 1:
+                i_name = 'H'
+            elif typ == 2:
+                if q == -1.0:
+                    i_name = 'OD'
+                elif q == -0.9:
+                    i_name = 'OND'
+                elif q == -0.8:
+                    i_name = 'OH'
+                else: i_name = None
+            elif typ == 3:
+                if q == -0.9:
+                    i_name = 'OM'
+                elif q == -0.8:
+                    i_name = 'OB'
+                else:
+                    i_name = None
+            elif typ == 4:
+                if q == 1.5:
+                    i_name = 'SM'
+                elif q == 1.6:
+                    i_name = 'Si'
+            else:
+                i_name = None
+            atom_name.append(i_name)
+        df['atom_name'] = atom_name
+        return df
 
 
             
@@ -412,13 +448,22 @@ q_list = list(dd.index)
 def updata_index(df) -> pd.DataFrame:
     # update the index of atoms
     return df.assign(atom_id = pd.RangeIndex(start=1, stop=len(df)+1, step=1))
+
+def update_typ(df) -> pd.DataFrame:
+    # set the type of dataframe to one, since we seperated the types
+    # Drop that column
+    ones = [1 for _ in range(len(df))]
+    df.drop('typ', axis = 1, inplace = True)
+    df['typ'] = ones
+    return df
     
 def write_data(df, data_file) -> typing.TextIO:
+    print(data_file, len(df))
     with open(data_file, 'w') as f:
         f.write(f"datafile for silica from '{data_file}'\n")
         f.write(f"\n")
         f.write(f"{len(df)} atoms\n")
-        f.write(f"{max(df['typ'])} atom types\n")
+        f.write(f"{len(set(df['typ']))} atom types\n")
         f.write(f"\n")
         f.write(f"{slab.atoms_df['x'].min()} {slab.atoms_df['x'].max()} xlo xhi\n")
         # f.write(f"{ole.Xlim[0]} {ole.Xlim[1]} xlo xhi\n")
@@ -430,7 +475,9 @@ def write_data(df, data_file) -> typing.TextIO:
         f.write(f"\n")
         f.write(f"Atoms # full\n")
         f.write(f"\n")
-        df.to_csv(f, index=False, header=None, sep='\t')
+        columns = ['atom_id', 'mol', 'typ', 'charge',  'x',  'y', 'z', 'nx',
+         'ny', 'nz', 'cmt',  'name']
+        df.to_csv(f, index=False, header=None, columns=columns, sep='\t')
 
 
 for q in q_list:
@@ -444,22 +491,22 @@ for q in q_list:
         data_file += '_type_'
         data_file += str(df.groupby(['typ']).max().index[0])
         df = updata_index(df)
+        df = update_typ(df)
         write_data(df, data_file)
         del df
     else:
         typ_list = list(df.groupby(['typ']).max().index)
-        print(typ_list)
+        # print(typ_list)
         for i, t in enumerate(typ_list):
             data_file = df.groupby(['name']).max().index[i]
-            print(t, i, data_file)
             data_file = re.sub(" ", "_", data_file)
             data_file += '_q'
             data_file += str(q)
             data_file += '_type_'
             data_file += str(df.groupby(['typ']).max().index[i])
             df_i = df[df['typ']==t]
-            # print(df_i)
             df_i = updata_index(df_i)
+            df_i = update_typ(df_i)
             write_data(df_i, data_file)
             del df_i
 
@@ -481,7 +528,9 @@ with open(OUTFILE, 'w') as f:
     f.write(f"\n")
     f.write(f"Atoms # full\n")
     f.write(f"\n")
-    slab.atoms_df.to_csv(f, index=False, header=None, sep='\t')
+    columns = ['atom_id', 'mol', 'typ', 'charge',  'x',  'y', 'z', 'nx',
+         'ny', 'nz', 'cmt',  'atom_name']
+    slab.atoms_df.to_csv(f, index=False, header=None, columns=columns, sep='\t')
     f.write(f"\n")
     f.write(f"Bonds\n")
     f.write(f"\n")
