@@ -1,3 +1,5 @@
+import re
+import typing
 import pandas as pd
 import numpy as np
 from pprint import pprint
@@ -149,7 +151,7 @@ class HEADER:
         if check not in line:
             typ = int(line.split(' ')[0])
             mass = float(line.split(' ')[1])
-            atom_name = line.split('#')[1]
+            atom_name = line.split('#')[1].strip()
             self.Masses[typ] = mass
             self.Names[typ] = atom_name
         else:
@@ -239,18 +241,35 @@ class BODY:
             line = line.split(" ")
             line = [item for item in line if item]
             atom_id = int(line[0])
-            i_mol=int(line[1])
-            i_typ=int(line[2]); i_charg=float(line[3]) 
-            i_x=float(line[4]);i_y=float(line[5]); i_z=float(line[6])
+            i_mol = int(line[1])
+            i_typ = int(line[2])
+            i_charge = float(line[3]) 
+            i_x = float(line[4])
+            i_y = float(line[5])
+            i_z = float(line[6])
             i_name = self.Name[i_typ]
             try:
-                i_nx=str(line[7]); i_ny=str(line[8]); i_nz=str(line[9])
+                i_nx=str(line[7])
+                i_ny=str(line[8])
+                i_nz=str(line[9])
             except:
-                i_nx=0; i_ny=0; i_nz=0
-                pass
-            self.Atoms[atom_id]=dict(
-                atom_id=atom_id ,mol=i_mol, typ=i_typ, charg=i_charg,\
-                x=i_x,y=i_y, z=i_z, nx=i_nx, ny=i_ny, nz=i_nz, cmt='#', name=i_name)
+                i_nx=0
+                i_ny=0
+                i_nz=0
+            self.Atoms[atom_id] = dict(
+                                       atom_id = atom_id,
+                                       mol = i_mol,
+                                       typ = i_typ,
+                                       charge = i_charge,
+                                       x = i_x,
+                                       y = i_y,
+                                       z = i_z,
+                                       nx = i_nx,
+                                       ny = i_ny,
+                                       nz = i_nz,
+                                       cmt = '#',
+                                       name = i_name
+                                       )
         else: pass
 
     def get_velocities(self, line) -> dict:
@@ -258,7 +277,9 @@ class BODY:
             line = line.split(" ")
             line = [item for item in line if item]
             atom_id = int(line[0])
-            i_vx = float(line[1]); i_vy = float(line[2]); i_vz = float(line[3])
+            i_vx = float(line[1])
+            i_vy = float(line[2])
+            i_vz = float(line[3])
             self.Velocities[atom_id] = dict(vx = i_vx, vy = i_vy, vz = i_vz)
         else: pass
     
@@ -267,7 +288,9 @@ class BODY:
             line = line.split(" ")
             line = [int(item) for item in line if item]
             bond_id = line[0]
-            i_typ = line[1]; i_ai = line[2]; i_aj = line[3]
+            i_typ = line[1]
+            i_ai = line[2]
+            i_aj = line[3]
             self.Bonds[bond_id] = dict(typ = i_typ, ai = i_ai, aj = i_aj)
         else: pass
 
@@ -276,7 +299,10 @@ class BODY:
             line = line.split(" ")
             line = [int(item) for item in line if item]
             angle_id = line[0]
-            i_typ = line[1]; i_ai = line[2]; i_aj = line[3]; i_ak = line[4]
+            i_typ = line[1]
+            i_ai = line[2]
+            i_aj = line[3]
+            i_ak = line[4]
             self.Angles[angle_id] = dict(
                 typ = i_typ, ai = i_ai, aj = i_aj, ak = i_ak)
 
@@ -291,7 +317,12 @@ class BODY:
             i_ak = line[4]
             i_ah = line[5]
             self.Dihedrals[dihedrals_id] = dict(
-                typ = i_typ, ai = i_ai, aj = i_aj, ak = i_ak, ah = i_ah)
+                                                typ = i_typ,
+                                                ai = i_ai,
+                                                aj = i_aj,
+                                                ak = i_ak,
+                                                ah = i_ah
+                                                )
 
 class GeteSlab:
     """Get the infos for SiO2 slab only
@@ -347,8 +378,23 @@ class GeteSlab:
             self.atoms_df = df_x
     
     def get_infos(self) -> None:
-        # Get all the uniq names
-        print(self.atoms.Atoms_df)
+        self.get_name()
+        self.count_atom()
+    
+    def get_name(self) -> None:
+        # Get all the uniqe names
+        self.Name = dict()
+        for typ, name in self.atoms.Name.items():
+            if typ < 5:
+                self.Name[typ] = name
+
+    def count_atom(self) -> list:
+        self.Count = dict()
+        for typ, name in self.Name.items():
+            self.Count[typ] = self.atoms_df.groupby(['name']).count()['x'].loc[name]
+            # self.Count[typ]['name'] = name
+
+
             
 
 INFILE = 'merged.data'
@@ -359,7 +405,64 @@ atoms.read_body()
 slab = GeteSlab(ole, atoms)
 slab.get_slab()
 end = time.time()
-print(ole.Names)
+dd = slab.atoms_df.groupby(['charge']).count()
+q_list = list(dd.index)
+
+
+def updata_index(df) -> pd.DataFrame:
+    # update the index of atoms
+    return df.assign(atom_id = pd.RangeIndex(start=1, stop=len(df)+1, step=1))
+    
+def write_data(df, data_file) -> typing.TextIO:
+    with open(data_file, 'w') as f:
+        f.write(f"datafile for silica from '{data_file}'\n")
+        f.write(f"\n")
+        f.write(f"{len(df)} atoms\n")
+        f.write(f"{max(df['typ'])} atom types\n")
+        f.write(f"\n")
+        f.write(f"{slab.atoms_df['x'].min()} {slab.atoms_df['x'].max()} xlo xhi\n")
+        # f.write(f"{ole.Xlim[0]} {ole.Xlim[1]} xlo xhi\n")
+        f.write(f"{slab.atoms_df['y'].min()} {slab.atoms_df['y'].max()} ylo yhi\n")
+        # f.write(f"{ole.Ylim[0]} {ole.Ylim[1]} ylo yhi\n")
+        f.write(f"{slab.atoms_df['z'].min()} {slab.atoms_df['z'].max()} zlo zhi\n")
+        # f.write(f"{ole.Zlim[0]} {ole.Zlim[1]} zlo zhi\n")
+        f.write(f"\n")
+        f.write(f"\n")
+        f.write(f"Atoms # full\n")
+        f.write(f"\n")
+        df.to_csv(f, index=False, header=None, sep='\t')
+
+
+for q in q_list:
+    df = slab.atoms_df[slab.atoms_df['charge']==q]
+    n_types = len(df.groupby(['typ']).max())
+    if n_types == 1:
+        data_file = df.groupby(['name']).max().index[0]
+        data_file = re.sub(" ", "_", data_file)
+        data_file += '_q'
+        data_file += str(q)
+        data_file += '_type_'
+        data_file += str(df.groupby(['typ']).max().index[0])
+        df = updata_index(df)
+        write_data(df, data_file)
+        del df
+    else:
+        typ_list = list(df.groupby(['typ']).max().index)
+        print(typ_list)
+        for i, t in enumerate(typ_list):
+            data_file = df.groupby(['name']).max().index[i]
+            print(t, i, data_file)
+            data_file = re.sub(" ", "_", data_file)
+            data_file += '_q'
+            data_file += str(q)
+            data_file += '_type_'
+            data_file += str(df.groupby(['typ']).max().index[i])
+            df_i = df[df['typ']==t]
+            # print(df_i)
+            df_i = updata_index(df_i)
+            write_data(df_i, data_file)
+            del df_i
+
 with open(OUTFILE, 'w') as f:
     f.write(f"datafile for silica from '{INFILE}'\n")
     f.write(f"\n")
