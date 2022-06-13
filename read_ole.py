@@ -392,7 +392,6 @@ class GeteSlab:
         self.get_infos()
         # Set min(x, y, z) -> (0, 0, 0), set the maximums
         self.move_to_center()
-        self.slice_slab(xlim=50, ylim=50)
 
     def get_atoms(self) -> None:
         """extract eh SiO2 atoms and bonds from data file"""
@@ -418,16 +417,6 @@ class GeteSlab:
         self.YMAX = np.max(self.atoms_df['y'])
         self.ZMAX = np.max(self.atoms_df['z'])
 
-    def slice_slab(self, xlim, ylim) -> None:
-        if xlim:
-            df_x = self.atoms_df[self.atoms_df['x'] < xlim]
-        else:
-            df_x = self.atoms_df
-        if ylim:
-            self.atoms_df = df_x[df_x['y'] < ylim]
-        else:
-            self.atoms_df = df_x
-    
     def get_infos(self) -> None:
         self.get_name()
         self.count_atom()
@@ -478,8 +467,79 @@ class GeteSlab:
         df['atom_name'] = atom_name
         return df
 
+class CutSlab:
+    """Cutting the slab 
+    The data from Ole is for 4*4 cell
+    I need only one, here I ahve to cut the slab for it...
+    A few things has to be consider:
+        - Total charges of sliced sample
+        - Ratio of particles compare to the orgiinal file
 
-            
+    !! The indicces hould be updated also the index for in the bonds
+    also need to be updated !!
+    """
+
+    def __init__(self, atoms, bonds) -> None:
+        self.atoms = atoms
+        self.bonds = bonds
+        self.x_cut_ratio = 0
+        self.y_cut_ratio = 0
+        del atoms, bonds
+
+    def cut_slab(self) -> None:
+        self.slice_slab(5,5)
+        self.set_new_index()
+        self.set_index_dict()
+        print(self.atoms)
+        # print(self.index_trace)
+        self.update_bond_index()
+
+    def slice_slab(self, xlim, ylim) -> None:
+        if xlim:
+            df_x = self.atoms[self.atoms['x'] < xlim]
+        else:
+            df_x = self.atoms
+        if ylim:
+            self.atoms = df_x[df_x['y'] < ylim]
+        else:
+            self.atoms = df_x
+
+    def set_new_index(self) -> None:
+        # update the index of atoms
+        self.atoms = self.atoms.assign(index = pd.RangeIndex(start=1,
+                                    stop=len(self.atoms)+1, step=1))
+        self.atoms = self.atoms.set_index('index')                                    
+
+    def set_index_dict(self) -> None:
+        """seting a dictionary to track the indexs and aupdate the
+        bonds for atoms index
+        """
+        self.index_trace = {k: v for k, v in zip(self.atoms.atom_id,\
+            self.atoms.index)}
+
+    def update_bond_index(self) -> None:
+        """Updating the indices in the bond
+        and assign new index for them based on the self.index_trace"""
+        updated_bonds = []
+        new_bond_i = 0
+        for i, (ai, aj) in enumerate(zip(self.bonds.ai, self.bonds.aj)):
+            if aj in self.index_trace:
+                if ai in self.index_trace:
+                    try:
+                        i_ai = self.index_trace[self.bonds.iloc[i]['ai']]
+                        i_aj = self.index_trace[self.bonds.iloc[i]['aj']]
+                        new_bond_i += 1
+                        updated_bonds.append(
+                            [new_bond_i, self.bonds.iloc[i]['typ'], i_aj,i_ai])
+                    except KeyError: 
+                        print(i, aj, 'KeyError')
+                    except IndexError: 
+                        print(i, aj, 'IndexError')
+        pprint(updated_bonds)
+
+
+    
+
 
 INFILE = 'merged.data'
 OUTFILE = 'silica_ole_slic.data'
@@ -488,111 +548,6 @@ atoms = BODY(ole.Names)
 atoms.read_body()
 slab = GeteSlab(ole, atoms)
 slab.get_slab()
-print(slab.atoms_df)
-end = time.time()
-dd = slab.atoms_df.groupby(['charge']).count()
-q_list = list(dd.index)
+my_slice = CutSlab(slab.atoms_df, slab.bonds_df)
+my_slice.cut_slab()
 
-def updata_index(df) -> pd.DataFrame:
-    # update the index of atoms
-    return df.assign(atom_id = pd.RangeIndex(start=1, stop=len(df)+1, step=1))
-
-def update_typ(df) -> pd.DataFrame:
-    # set the type of dataframe to one, since we seperated the types
-    # Drop that column
-    ones = [1 for _ in range(len(df))]
-    df.drop('typ', axis = 1, inplace = True)
-    df['typ'] = ones
-    return df
-    
-def write_data(df, data_file) -> typing.TextIO:
-    # print(data_file, len(df))
-    with open(data_file, 'w') as f:
-        f.write(f"datafile for silica from '{data_file}'\n")
-        f.write(f"\n")
-        f.write(f"{len(df)} atoms\n")
-        f.write(f"{len(set(df['typ']))} atom types\n")
-        f.write(f"\n")
-        f.write(f"{slab.atoms_df['x'].min()} {slab.atoms_df['x'].max()} xlo xhi\n")
-        # f.write(f"{ole.Xlim[0]} {ole.Xlim[1]} xlo xhi\n")
-        f.write(f"{slab.atoms_df['y'].min()} {slab.atoms_df['y'].max()} ylo yhi\n")
-        # f.write(f"{ole.Ylim[0]} {ole.Ylim[1]} ylo yhi\n")
-        f.write(f"{slab.atoms_df['z'].min()} {slab.atoms_df['z'].max()} zlo zhi\n")
-        # f.write(f"{ole.Zlim[0]} {ole.Zlim[1]} zlo zhi\n")
-        f.write(f"\n")
-        f.write(f"\n")
-        f.write(f"Atoms # full\n")
-        f.write(f"\n")
-        columns = ['atom_id', 'mol', 'typ', 'charge',  'x',  'y', 'z', 'nx',
-         'ny', 'nz', 'cmt',  'name']
-        df.to_csv(f, index=False, header=None, columns=columns, sep='\t')
-
-
-for q in q_list:
-    df = slab.atoms_df[slab.atoms_df['charge']==q]
-    n_types = len(df.groupby(['typ']).max())
-    if n_types == 1:
-        data_file = df.groupby(['name']).max().index[0]
-        data_file = re.sub(" ", "_", data_file)
-        data_file += '_q'
-        data_file += str(q)
-        data_file += '_type_'
-        data_file += str(df.groupby(['typ']).max().index[0])
-        df = updata_index(df)
-        df = update_typ(df)
-        write_data(df, data_file)
-        del df
-    else:
-        typ_list = list(df.groupby(['typ']).max().index)
-        for i, t in enumerate(typ_list):
-            data_file = df.groupby(['name']).max().index[i]
-            data_file = re.sub(" ", "_", data_file)
-            data_file += '_q'
-            data_file += str(q)
-            data_file += '_type_'
-            data_file += str(df.groupby(['typ']).max().index[i])
-            df_i = df[df['typ']==t]
-            df_i = updata_index(df_i)
-            df_i = update_typ(df_i)
-            write_data(df_i, data_file)
-            del df_i
-
-with open(OUTFILE, 'w') as f:
-    f.write(f"datafile for silica from '{INFILE}'\n")
-    f.write(f"\n")
-    f.write(f"{len(slab.atoms_df)} atoms\n")
-    f.write(f"{max(slab.atoms_df['typ'])} atom types\n")
-    f.write(f"{len(slab.bonds_df)} bonds\n")
-    f.write(f"{max(slab.bonds_df['typ'])} bond types\n")
-    f.write(f"\n")
-    f.write(f"{slab.atoms_df['x'].min()} {slab.atoms_df['x'].max()} xlo xhi\n")
-    # f.write(f"{ole.Xlim[0]} {ole.Xlim[1]} xlo xhi\n")
-    f.write(f"{slab.atoms_df['y'].min()} {slab.atoms_df['y'].max()} ylo yhi\n")
-    # f.write(f"{ole.Ylim[0]} {ole.Ylim[1]} ylo yhi\n")
-    f.write(f"{slab.atoms_df['z'].min()} {slab.atoms_df['z'].max()} zlo zhi\n")
-    # f.write(f"{ole.Zlim[0]} {ole.Zlim[1]} zlo zhi\n")
-    f.write(f"\n")
-    f.write(f"\n")
-    f.write(f"Masses\n")
-    f.write(f"\n")
-    for k, v in ole.Masses.items():
-        if k < 5:
-            f.write(f"{k} {v}\n")
-    f.write(f"\n")
-    f.write(f"\n")
-    f.write(f"Atoms # full\n")
-    f.write(f"\n")
-    columns = ['atom_id', 'mol', 'typ', 'charge',  'x',  'y', 'z', 'nx',
-         'ny', 'nz', 'cmt',  'atom_name']
-    slab.atoms_df.to_csv(f, index=False, header=None, columns=columns, sep='\t')
-    f.write(f"\n")
-    f.write(f"Bonds\n")
-    f.write(f"\n")
-    slab.bonds_df.to_csv(f, index=True, header=None, sep='\t')
-
-
-# print(end - start)
-print(f"Total charge= {slab.atoms_df['charge'].sum()}")
-print(f"xmin= {slab.atoms_df.x.min()}")
-print(f"xmax= {slab.atoms_df.x.max()}")
-print(f"{len(slab.atoms_df)} atoms\n")
