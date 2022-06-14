@@ -487,12 +487,15 @@ class CutSlab:
         del atoms, bonds
 
     def cut_slab(self) -> None:
-        self.slice_slab(5,5)
+        self.slice_slab(15,15)
         self.set_new_index()
         self.set_index_dict()
         print(self.atoms)
         # print(self.index_trace)
-        self.update_bond_index()
+        bonds = self.update_bond_index()
+        self.bonds_df = self.mk_bonds_df(bonds)
+        pprint(self.bonds_df)
+
 
     def slice_slab(self, xlim, ylim) -> None:
         if xlim:
@@ -517,7 +520,7 @@ class CutSlab:
         self.index_trace = {k: v for k, v in zip(self.atoms.atom_id,\
             self.atoms.index)}
 
-    def update_bond_index(self) -> None:
+    def update_bond_index(self) -> list:
         """Updating the indices in the bond
         and assign new index for them based on the self.index_trace"""
         updated_bonds = []
@@ -532,13 +535,39 @@ class CutSlab:
                         updated_bonds.append(
                             [new_bond_i, self.bonds.iloc[i]['typ'], i_aj,i_ai])
                     except KeyError: 
-                        print(i, aj, 'KeyError')
+                        print(i, ai, aj, 'KeyError')
                     except IndexError: 
-                        print(i, aj, 'IndexError')
-        pprint(updated_bonds)
+                        print(i, ai, aj, 'IndexError')
+        return updated_bonds
 
+    def mk_bonds_df(self, bonds: list) -> pd.DataFrame:
+        columns = ['id', 'typ', 'ai', 'aj']
+        return pd.DataFrame(bonds, columns=columns)
 
     
+class WriteData:
+    """Write put LAMMPS data file
+    write slab (whole or sliced) in LAMMPS version
+    Masses section must be included
+    INPUT:
+        atoms and bonds from GetSlab class
+    OUTPUT:
+        LAMMPS data file
+    """
+    def __init__(self, atoms, bonds) -> None:
+        self.atoms = atoms
+        self.bonds = bonds
+        del atoms, bonds
+
+    def write_lmp(self) -> None:
+        """calling function to write data into a file"""
+        # find box sizes
+        # get number of atoms, types, bonds
+        # write file
+
+    def set_box(self) -> None:
+        """find Max and min of the data"""
+        
 
 
 INFILE = 'merged.data'
@@ -550,4 +579,5 @@ slab = GeteSlab(ole, atoms)
 slab.get_slab()
 my_slice = CutSlab(slab.atoms_df, slab.bonds_df)
 my_slice.cut_slab()
+
 
