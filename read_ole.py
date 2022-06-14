@@ -5,6 +5,11 @@ from pprint import pprint
 
 """
 Reading data file from Ole Nickel, received on Jun 01, 2022
+[ checking PEP8
+    ~/.local/bin/pycodestyle lmp_to_pdb.py
+and typing"
+    ~/.local/bin/mypy lmp_to_pdb.py
+]
 Data contains many atoms,
 The atoms with types 1 to 4 are the ones that belong to the SiO2
 input:
@@ -46,7 +51,7 @@ class HEADER:
 
     def __init__(self) -> None:
         self.atomsLine: int = 0
-        self.atomsLine: list[str] = self.check_file()
+        self.atomsLine = self.check_file()
         print(f'number of header lines: {self.atomsLine}\n')
         self.read_header()
 
@@ -80,9 +85,7 @@ class HEADER:
         Read header now and get the data
         """
         # Setting dictionaries to save data of each block in the header
-        self.Masses, self.PairCoeff, self.BondCoeff, self.AngleCoeff,\
-            self.DihedralCoeff, self.Names =\
-            dict(), dict(), dict(), dict(), dict(), dict()
+        self.set_attrs()
         # Setting flags to save data correctly
         Masses, PairCoeff, BondCoeff, AngleCoeff, DihedralCoeff, Atoms\
             = False, False, False, False, False, False
@@ -93,7 +96,7 @@ class HEADER:
                 linecount += 1
                 if linecount > self.atomsLine:
                     break
-                line: list[str] = f.readline()
+                line: str = f.readline()
                 if line.strip().endswith("atoms"):
                     self.NATOMS = int(line.strip().split(' ')[0])
                 elif line.strip().endswith("atom types"):
@@ -151,6 +154,14 @@ class HEADER:
                 if not line:
                     break
 
+    def set_attrs(self) -> None:
+        self.Names: dict[int, str] = dict()
+        self.Masses: dict[int, float] = dict()
+        self.PairCoeff: dict[int, typing.Any] = dict()
+        self.BondCoeff: dict[int, typing.Any] = dict()
+        self.AngleCoeff: dict[int, typing.Any] = dict()
+        self.DihedralCoeff: dict[int, typing.Any] = dict()
+
     def get_axis_lim(self, lim) -> list:
         lim = lim.split(' ')
         lim = [float(item) for item in lim if item]
@@ -168,10 +179,10 @@ class HEADER:
     def get_pair_coeff(self, line, check) -> None:
         # stting the nth row of the dictionary
         if check not in line:
-            line: list[str] = line.split(' ')
-            typ: int = int(line[0])
-            i_style: str = line[1]
-            i_coeff: list[float] = line[2:]
+            line = line.split(' ')
+            typ = int(line[0])
+            i_style = line[1]
+            i_coeff = line[2:]
             self.PairCoeff[typ] = dict(
                                         style=i_style,
                                         coeff=i_coeff
@@ -180,10 +191,10 @@ class HEADER:
     def get_bond_coeff(self, line, check) -> None:
         # stting the nth row of the dictionary
         if check not in line:
-            line: list[str] = line.split(' ')
-            typ: int = int(line[0])
-            i_style: int = line[1]
-            i_coeff: list[float] = line[2:]
+            line = line.split(' ')
+            typ = int(line[0])
+            i_style = line[1]
+            i_coeff = line[2:]
             self.BondCoeff[typ] = dict(
                                         style=i_style,
                                         coeff=i_coeff
@@ -192,10 +203,10 @@ class HEADER:
     def get_angle_coeff(self, line, check) -> None:
         # stting the nth row of the dictionary
         if check not in line:
-            line: list[str] = line.split(' ')
-            typ: int = int(line[0])
-            i_style: int = line[1]
-            i_coeff: list[float] = line[2:]
+            line = line.split(' ')
+            typ = int(line[0])
+            i_style = line[1]
+            i_coeff = line[2:]
             self.AngleCoeff[typ] = dict(
                                         style=i_style,
                                         coeff=i_coeff
@@ -204,10 +215,10 @@ class HEADER:
     def get_dihedral_coeff(self, line, check) -> None:
         # stting the nth row of the dictionary
         if check not in line:
-            line: list[str] = line.split(' ')
-            typ: int = int(line[0])
-            i_style: int = line[1]
-            i_coeff: list[float] = line[2:]
+            line = line.split(' ')
+            typ = int(line[0])
+            i_style = line[1]
+            i_coeff = line[2:]
             self.DihedralCoeff[typ] = dict(
                                             style=i_style,
                                             coeff=i_coeff
@@ -368,7 +379,6 @@ class BODY:
                                                 )
 
 
-
 class GeteSlab:
     """Get the infos for SiO2 slab only
     Slice the salb based fraction of the main data
@@ -378,7 +388,7 @@ class GeteSlab:
         self.atoms = atoms
         self.header = header
         del atoms, header
-    
+
     def get_slab(self) -> None:
         # Get the atoms coords based on the type
         self.get_atoms()
@@ -391,18 +401,20 @@ class GeteSlab:
     def get_atoms(self) -> None:
         """extract eh SiO2 atoms and bonds from data file"""
         # Since the SiO2 atoms are seted from 1 to 4:
-        atoms_df = self.atoms.Atoms_df[self.atoms.Atoms_df['typ'] < 5 ]
+        atoms_df = self.atoms.Atoms_df[self.atoms.Atoms_df['typ'] < 5]
         self.atoms_df = self.crct_name(atoms_df)
 
     def get_bonds(self) -> None:
         bonds = []
         for i in range(self.header.NBonds):
             if self.atoms.Bonds_df.iloc[i]['ai'] in self.atoms_df['atom_id']:
-                if self.atoms.Bonds_df.iloc[i]['aj'] in self.atoms_df['atom_id']:
-                    bonds.append([self.atoms.Bonds_df.iloc[i]['typ'],\
-                        atoms.Bonds_df.iloc[i]['ai'], atoms.Bonds_df.iloc[i]['aj']])
+                if self.atoms.Bonds_df.iloc[i][
+                                        'aj'] in self.atoms_df['atom_id']:
+                    bonds.append([self.atoms.Bonds_df.iloc[i]['typ'],
+                                  atoms.Bonds_df.iloc[i]['ai'],
+                                  atoms.Bonds_df.iloc[i]['aj']])
         self.bonds_df = pd.DataFrame(bonds, columns=['typ', 'ai', 'aj'])
-        self.bonds_df.index +=1
+        self.bonds_df.index += 1
 
     def move_to_center(self) -> None:
         # move to mins to orgin
@@ -415,7 +427,7 @@ class GeteSlab:
     def get_infos(self) -> None:
         self.get_name()
         self.count_atom()
-    
+
     def get_name(self) -> None:
         # Get all the uniqe names
         self.Name = dict()
@@ -427,8 +439,9 @@ class GeteSlab:
         # set the dictionary
         self.Count = dict()
         for typ, name in self.Name.items():
-            self.Count[typ] = self.atoms_df.groupby(['name']).count()['x'].loc[name]
-    
+            self.Count[typ] = self.atoms_df.groupby(
+                                ['name']).count()['x'].loc[name]
+
     def crct_name(self, df) -> pd.DataFrame:
         atom_name = []
         for i in range(len(df)):
@@ -443,7 +456,8 @@ class GeteSlab:
                     i_name = 'OND'
                 elif q == -0.8:
                     i_name = 'OH'
-                else: i_name = None
+                else:
+                    i_name = None
             elif typ == 3:
                 if q == -0.9:
                     i_name = 'OM'
@@ -462,8 +476,9 @@ class GeteSlab:
         df['atom_name'] = atom_name
         return df
 
+
 class CutSlab:
-    """Cutting the slab 
+    """Cutting the slab
     The data from Ole is for 4*4 cell
     I need only one, here I ahve to cut the slab for it...
     A few things has to be consider:
@@ -482,7 +497,7 @@ class CutSlab:
         del atoms, bonds
 
     def cut_slab(self) -> None:
-        self.slice_slab(30.1,30.42)
+        self.slice_slab(30.1, 30.42)
         self.set_new_index()
         self.set_index_dict()
         bonds = self.update_bond_index()
@@ -500,16 +515,16 @@ class CutSlab:
 
     def set_new_index(self) -> None:
         # update the index of atoms
-        self.atoms = self.atoms.assign(index = pd.RangeIndex(start=1,
-                                    stop=len(self.atoms)+1, step=1))
-        self.atoms = self.atoms.set_index('index')                                    
+        self.atoms = self.atoms.assign(index=pd.RangeIndex(start=1,
+                                       stop=len(self.atoms)+1, step=1))
+        self.atoms = self.atoms.set_index('index')
 
     def set_index_dict(self) -> None:
         """seting a dictionary to track the indexs and aupdate the
         bonds for atoms index
         """
-        self.index_trace = {k: v for k, v in zip(self.atoms.atom_id,\
-            self.atoms.index)}
+        self.index_trace = {k: v for k, v in zip(self.atoms.atom_id,
+                            self.atoms.index)}
 
     def update_bond_index(self) -> list:
         """Updating the indices in the bond
@@ -524,10 +539,11 @@ class CutSlab:
                         i_aj = self.index_trace[self.bonds.iloc[i]['aj']]
                         new_bond_i += 1
                         updated_bonds.append(
-                            [new_bond_i, self.bonds.iloc[i]['typ'], i_aj,i_ai])
-                    except KeyError: 
+                            [new_bond_i, self.bonds.iloc[i]['typ'], i_aj,
+                             i_ai])
+                    except KeyError:
                         print(i, ai, aj, 'KeyError')
-                    except IndexError: 
+                    except IndexError:
                         print(i, ai, aj, 'IndexError')
         return updated_bonds
 
@@ -535,7 +551,7 @@ class CutSlab:
         columns = ['id', 'typ', 'ai', 'aj']
         return pd.DataFrame(bonds, columns=columns)
 
-    
+
 class WriteData:
     """Write put LAMMPS data file
     write slab (whole or sliced) in LAMMPS version
@@ -566,25 +582,29 @@ class WriteData:
         self.xlim = (self.atoms.x.min(), self.atoms.x.max())
         self.ylim = (self.atoms.y.min(), self.atoms.y.max())
         self.zlim = (self.atoms.z.min(), self.atoms.z.max())
-    
+
     def set_numbers(self) -> None:
         """set the numbers of atoms, type, bonds"""
         self.Natoms = len(self.atoms)
         self.Nbonds = len(self.bonds)
         self.Natoms_type = np.max(self.atoms.typ)
         self.Nbonds_type = np.max(self.bonds.typ)
-    
+
+    def set_totals(self) -> None:
+        """set the total numbers of charges, ..."""
+        self.Tcharge = self.atoms['charge'].sum()
+
     def write_data(self) -> None:
         """write LAMMPS data file"""
         with open(OUTFILE, 'w') as f:
             f.write(f"Data file from Ole Nikle for silica slab\n")
             f.write(f"\n")
             self.write_numbers(f)
-            self.write_box(f)        
-            self.write_masses(f)    
+            self.write_box(f)
+            self.write_masses(f)
             self.write_atoms(f)
             self.write_bonds(f)
-    
+
     def write_numbers(self, f: typing.TextIO) -> None:
         f.write(f"{self.Natoms} atoms\n")
         f.write(f"{self.Natoms_type} atom types\n")
@@ -605,15 +625,15 @@ class WriteData:
             if k < 5:
                 f.write(f"{k} {v:.5f}\n")
         f.write(f"\n")
-    
+
     def write_atoms(self, f: typing.TextIO) -> None:
         """Write atoms section inot file"""
         f.write(f"Atoms # full\n")
         f.write(f"\n")
-        columns = ['mol', 'typ', 'charge', 'x', 'y', 'z', 'nx', 'ny', 'nz',\
-            'cmt', 'atom_name']
-        self.atoms.to_csv(f, sep=' ', index=True, columns=columns,\
-            header=None)
+        columns = ['mol', 'typ', 'charge', 'x', 'y', 'z', 'nx', 'ny', 'nz',
+                   'cmt', 'atom_name']
+        self.atoms.to_csv(f, sep=' ', index=True, columns=columns,
+                          header=None)
         f.write(f"\n")
         f.write(f"\n")
 
@@ -621,8 +641,8 @@ class WriteData:
         f.write(f"Bonds\n")
         f.write(f"\n")
         columns = ['id', 'typ', 'ai', 'aj']
-        self.bonds.to_csv(f, sep=' ', index=False, columns=columns,\
-            header=None)
+        self.bonds.to_csv(f, sep=' ', index=False, columns=columns,
+                          header=None)
 
 
 INFILE = 'merged.data'
@@ -635,5 +655,4 @@ slab.get_slab()
 my_slice = CutSlab(slab.atoms_df, slab.bonds_df)
 my_slice.cut_slab()
 data = WriteData(my_slice.atoms, my_slice.bonds, ole.Masses)
-
 data.write_lmp()
