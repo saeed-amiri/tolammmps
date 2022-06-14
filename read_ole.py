@@ -44,8 +44,8 @@ class HEADER:
     """
 
     def __init__(self) -> None:
-        self.atomsLine = 0
-        self.atomsLine = self.check_file()
+        self.atomsLine: int = 0
+        self.atomsLine: list[str] = self.check_file()
         print(f'number of header lines: {self.atomsLine}\n')
         self.read_header()
 
@@ -57,9 +57,9 @@ class HEADER:
             - number of header lines
         """
         # An integer to prevent over-reading in case of header bugs
-        MAXHEADER = 1000
+        MAXHEADER: int = 1000
         # track the number of lines in the hedaer
-        linecount = 0
+        linecount: int = 0
         with open(INFILE, 'r') as f:
             while True:
                 linecount += 1
@@ -74,7 +74,7 @@ class HEADER:
                     exit("wrong data file\n")
         return atomsLine
 
-    def read_header(self):
+    def read_header(self) -> None:
         """read header to get all the available info
         Read header now and get the data
         """
@@ -86,13 +86,13 @@ class HEADER:
         Masses, PairCoeff, BondCoeff, AngleCoeff, DihedralCoeff, Atoms\
             = False, False, False, False, False, False
         # Track the number of lines
-        linecount = 0
+        linecount: int = 0
         with open(INFILE, 'r') as f:
             while True:
                 linecount += 1
                 if linecount > self.atomsLine:
                     break
-                line = f.readline()
+                line: list[str] = f.readline()
                 if line.strip().endswith("atoms"):
                     self.NATOMS = int(line.strip().split(' ')[0])
                 elif line.strip().endswith("atom types"):
@@ -167,10 +167,10 @@ class HEADER:
     def get_pair_coeff(self, line, check) -> None:
         # stting the nth row of the dictionary
         if check not in line:
-            line = line.split(' ')
-            typ = int(line[0])
-            i_style = line[1]
-            i_coeff = line[2:]
+            line: list[str] = line.split(' ')
+            typ: int = int(line[0])
+            i_style: str = line[1]
+            i_coeff: list[float] = line[2:]
             self.PairCoeff[typ] = dict(
                                         style=i_style,
                                         coeff=i_coeff
@@ -179,10 +179,10 @@ class HEADER:
     def get_bond_coeff(self, line, check) -> None:
         # stting the nth row of the dictionary
         if check not in line:
-            line = line.split(' ')
-            typ = int(line[0])
-            i_style = line[1]
-            i_coeff = line[2:]
+            line: list[str] = line.split(' ')
+            typ: int = int(line[0])
+            i_style: int = line[1]
+            i_coeff: list[float] = line[2:]
             self.BondCoeff[typ] = dict(
                                         style=i_style,
                                         coeff=i_coeff
@@ -191,10 +191,10 @@ class HEADER:
     def get_angle_coeff(self, line, check) -> None:
         # stting the nth row of the dictionary
         if check not in line:
-            line = line.split(' ')
-            typ = int(line[0])
-            i_style = line[1]
-            i_coeff = line[2:]
+            line: list[str] = line.split(' ')
+            typ: int = int(line[0])
+            i_style: int = line[1]
+            i_coeff: list[float] = line[2:]
             self.AngleCoeff[typ] = dict(
                                         style=i_style,
                                         coeff=i_coeff
@@ -203,10 +203,10 @@ class HEADER:
     def get_dihedral_coeff(self, line, check) -> None:
         # stting the nth row of the dictionary
         if check not in line:
-            line = line.split(' ')
-            typ = int(line[0])
-            i_style = line[1]
-            i_coeff = line[2:]
+            line: list[str] = line.split(' ')
+            typ: int = int(line[0])
+            i_style: int = line[1]
+            i_coeff: list[float] = line[2:]
             self.DihedralCoeff[typ] = dict(
                                             style=i_style,
                                             coeff=i_coeff
@@ -591,11 +591,12 @@ class WriteData:
             f.write(f"\n")
             for k, v in self.Masses.items():
                 if k < 5:
-                    f.write(f"{k} {v:0.5f}\n")
+                    f.write(f"{k} {v:.5f}\n")
             f.write(f"\n")
             f.write(f"Atoms # full\n")
             f.write(f"\n")
-            columns = [ 'mol', 'typ', 'charge', 'x', 'y', 'z', 'nx', 'ny', 'nz', 'cmt', 'atom_name']
+            columns = ['mol', 'typ', 'charge', 'x', 'y', 'z', 'nx', 'ny', 'nz',\
+                'cmt', 'atom_name']
             self.atoms.to_csv(f, sep=' ', index=True, columns=columns,\
                 header=None)
             f.write(f"\n")
