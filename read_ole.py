@@ -1,3 +1,4 @@
+import typing
 import pandas as pd
 import numpy as np
 from pprint import pprint
@@ -578,36 +579,50 @@ class WriteData:
         with open(OUTFILE, 'w') as f:
             f.write(f"Data file from Ole Nikle for silica slab\n")
             f.write(f"\n")
-            f.write(f"{self.Natoms} atoms\n")
-            f.write(f"{self.Natoms_type} atom types\n")
-            f.write(f"{self.Nbonds} bonds\n")
-            f.write(f"{self.Nbonds_type} bond types\n")
-            f.write(f"\n")
-            f.write(f"{self.xlim[0]:.3f} {self.xlim[1]:.3f} xlo xhi\n")
-            f.write(f"{self.ylim[0]:.3f} {self.ylim[1]:.3f} ylo yhi\n")
-            f.write(f"{self.zlim[0]:.3f} {self.zlim[1]:.3f} zlo zhi\n")
-            f.write(f"\n")
-            f.write(f"Masses\n")
-            f.write(f"\n")
-            for k, v in self.Masses.items():
-                if k < 5:
-                    f.write(f"{k} {v:.5f}\n")
-            f.write(f"\n")
-            f.write(f"Atoms # full\n")
-            f.write(f"\n")
-            columns = ['mol', 'typ', 'charge', 'x', 'y', 'z', 'nx', 'ny', 'nz',\
-                'cmt', 'atom_name']
-            self.atoms.to_csv(f, sep=' ', index=True, columns=columns,\
-                header=None)
-            f.write(f"\n")
-            f.write(f"\n")
-            f.write(f"Bonds\n")
-            f.write(f"\n")
-            columns = ['id', 'typ', 'ai', 'aj']
-            self.bonds.to_csv(f, sep=' ', index=False, columns=columns,\
-                header=None)
+            self.write_numbers(f)
+            self.write_box(f)        
+            self.write_masses(f)    
+            self.write_atoms(f)
+            self.write_bonds(f)
+    
+    def write_numbers(self, f: typing.TextIO) -> None:
+        f.write(f"{self.Natoms} atoms\n")
+        f.write(f"{self.Natoms_type} atom types\n")
+        f.write(f"{self.Nbonds} bonds\n")
+        f.write(f"{self.Nbonds_type} bond types\n")
+        f.write(f"\n")
 
+    def write_box(self, f: typing.TextIO) -> None:
+        f.write(f"{self.xlim[0]:.3f} {self.xlim[1]:.3f} xlo xhi\n")
+        f.write(f"{self.ylim[0]:.3f} {self.ylim[1]:.3f} ylo yhi\n")
+        f.write(f"{self.zlim[0]:.3f} {self.zlim[1]:.3f} zlo zhi\n")
+        f.write(f"\n")
 
+    def write_masses(self, f: typing.TextIO) -> None:
+        f.write(f"Masses\n")
+        f.write(f"\n")
+        for k, v in self.Masses.items():
+            if k < 5:
+                f.write(f"{k} {v:.5f}\n")
+        f.write(f"\n")
+    
+    def write_atoms(self, f: typing.TextIO) -> None:
+        """Write atoms section inot file"""
+        f.write(f"Atoms # full\n")
+        f.write(f"\n")
+        columns = ['mol', 'typ', 'charge', 'x', 'y', 'z', 'nx', 'ny', 'nz',\
+            'cmt', 'atom_name']
+        self.atoms.to_csv(f, sep=' ', index=True, columns=columns,\
+            header=None)
+        f.write(f"\n")
+        f.write(f"\n")
+
+    def write_bonds(self, f: typing.TextIO) -> None:
+        f.write(f"Bonds\n")
+        f.write(f"\n")
+        columns = ['id', 'typ', 'ai', 'aj']
+        self.bonds.to_csv(f, sep=' ', index=False, columns=columns,\
+            header=None)
 
 
 INFILE = 'merged.data'
