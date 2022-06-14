@@ -1,12 +1,6 @@
-import re
-import typing
 import pandas as pd
 import numpy as np
 from pprint import pprint
-import time
-import concurrent.futures
-
-from sqlalchemy import column
 
 """
 Reading data file from Ole Nickel, received on Jun 01, 2022
@@ -487,7 +481,7 @@ class CutSlab:
         del atoms, bonds
 
     def cut_slab(self) -> None:
-        self.slice_slab(15,15)
+        self.slice_slab(30.1,30.42)
         self.set_new_index()
         self.set_index_dict()
         bonds = self.update_bond_index()
@@ -550,10 +544,11 @@ class WriteData:
     OUTPUT:
         LAMMPS data file
     """
-    def __init__(self, atoms, bonds) -> None:
+    def __init__(self, atoms, bonds, Masses) -> None:
         self.atoms = atoms
         self.bonds = bonds
-        del atoms, bonds
+        self.Masses = Masses
+        del atoms, bonds, Masses
 
     def write_lmp(self) -> None:
         """calling function to write data into a file"""
@@ -563,6 +558,7 @@ class WriteData:
         self.set_numbers()
         # write file
         self.write_data()
+        print(self.atoms['charge'].sum())
 
     def set_box(self) -> None:
         """find Max and min of the data"""
@@ -579,7 +575,38 @@ class WriteData:
     
     def write_data(self) -> None:
         """write LAMMPS data file"""
-        
+        with open(OUTFILE, 'w') as f:
+            f.write(f"Data file from Ole Nikle for silica slab\n")
+            f.write(f"\n")
+            f.write(f"{self.Natoms} atoms\n")
+            f.write(f"{self.Natoms_type} atom types\n")
+            f.write(f"{self.Nbonds} bonds\n")
+            f.write(f"{self.Nbonds_type} bond types\n")
+            f.write(f"\n")
+            f.write(f"{self.xlim[0]:.3f} {self.xlim[1]:.3f} xlo xhi\n")
+            f.write(f"{self.ylim[0]:.3f} {self.ylim[1]:.3f} ylo yhi\n")
+            f.write(f"{self.zlim[0]:.3f} {self.zlim[1]:.3f} zlo zhi\n")
+            f.write(f"\n")
+            f.write(f"Masses\n")
+            f.write(f"\n")
+            for k, v in self.Masses.items():
+                if k < 5:
+                    f.write(f"{k} {v:0.5f}\n")
+            f.write(f"\n")
+            f.write(f"Atoms # full\n")
+            f.write(f"\n")
+            columns = [ 'mol', 'typ', 'charge', 'x', 'y', 'z', 'nx', 'ny', 'nz', 'cmt', 'atom_name']
+            self.atoms.to_csv(f, sep=' ', index=True, columns=columns,\
+                header=None)
+            f.write(f"\n")
+            f.write(f"\n")
+            f.write(f"Bonds\n")
+            f.write(f"\n")
+            columns = ['id', 'typ', 'ai', 'aj']
+            self.bonds.to_csv(f, sep=' ', index=False, columns=columns,\
+                header=None)
+
+
 
 
 INFILE = 'merged.data'
@@ -591,6 +618,6 @@ slab = GeteSlab(ole, atoms)
 slab.get_slab()
 my_slice = CutSlab(slab.atoms_df, slab.bonds_df)
 my_slice.cut_slab()
-data = WriteData(my_slice.atoms, my_slice.bonds)
+data = WriteData(my_slice.atoms, my_slice.bonds, ole.Masses)
 
 data.write_lmp()
