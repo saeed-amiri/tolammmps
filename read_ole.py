@@ -490,12 +490,8 @@ class CutSlab:
         self.slice_slab(15,15)
         self.set_new_index()
         self.set_index_dict()
-        print(self.atoms)
-        # print(self.index_trace)
         bonds = self.update_bond_index()
-        self.bonds_df = self.mk_bonds_df(bonds)
-        pprint(self.bonds_df)
-
+        self.bonds = self.mk_bonds_df(bonds)
 
     def slice_slab(self, xlim, ylim) -> None:
         if xlim:
@@ -562,11 +558,27 @@ class WriteData:
     def write_lmp(self) -> None:
         """calling function to write data into a file"""
         # find box sizes
+        self.set_box()
         # get number of atoms, types, bonds
+        self.set_numbers()
         # write file
+        self.write_data()
 
     def set_box(self) -> None:
         """find Max and min of the data"""
+        self.xlim = (self.atoms.x.min(), self.atoms.x.max())
+        self.ylim = (self.atoms.y.min(), self.atoms.y.max())
+        self.zlim = (self.atoms.z.min(), self.atoms.z.max())
+    
+    def set_numbers(self) -> None:
+        """set the numbers of atoms, type, bonds"""
+        self.Natoms = len(self.atoms)
+        self.Nbonds = len(self.bonds)
+        self.Natoms_type = np.max(self.atoms.typ)
+        self.Nbonds_type = np.max(self.bonds.typ)
+    
+    def write_data(self) -> None:
+        """write LAMMPS data file"""
         
 
 
@@ -579,5 +591,6 @@ slab = GeteSlab(ole, atoms)
 slab.get_slab()
 my_slice = CutSlab(slab.atoms_df, slab.bonds_df)
 my_slice.cut_slab()
+data = WriteData(my_slice.atoms, my_slice.bonds)
 
-
+data.write_lmp()
