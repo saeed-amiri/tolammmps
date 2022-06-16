@@ -109,17 +109,17 @@ class Pdb:
         atom_name: str = line[13:16].strip()
         residue_name: str = line[17:20].strip()
         residue_number: str = line[22:27].strip()
-        atom_x: float = float(line[30:39].strip())
-        atom_y: float = float(line[39:47].strip())
-        atom_z: float = float(line[47:55].strip())
+        x: float = float(line[30:39].strip())
+        y: float = float(line[39:47].strip())
+        z: float = float(line[47:55].strip())
         atom_symbool: str = line[76:78].strip()
         return [atom_id,
                 atom_name,
                 residue_name,
                 residue_number,
-                atom_x,
-                atom_y,
-                atom_z,
+                x,
+                y,
+                z,
                 atom_symbool]
 
     def mk_df(self, data: list[list]) -> pd.DataFrame:
@@ -128,9 +128,9 @@ class Pdb:
                               'atom_name',
                               'residue_name',
                               'residue_number',
-                              'atom_x',
-                              'atom_y',
-                              'atom_z',
+                              'x',
+                              'y',
+                              'z',
                               'atom_symbool']
         df = pd.DataFrame(data, columns=columns)
         return df
@@ -173,10 +173,134 @@ class Psf:
     field to a molecular system.
     The PSF file contains six main sections of interest:
         atoms, bonds, angles, dihedrals, impropers and cross-terms.
-
+    Each section starts with the number of data in that section and
+    name of the section which begins with: !.
     This file contains information about bonds, angles, dihedrals, ...
-
     """
+
+    def __init__(self) -> None:
+        pass
+
+    def get_data(self) -> None:
+        """Since the number of sections is fixed, here, the class
+        explicitly read the data instead of figuring out where and how
+        much info there is."""
+        self.set_titles()
+        self.read_data()
+
+    def set_titles(self) -> None:
+        """Since the name of the sections are fixed, I set a flag and
+        dictionaty to them"""
+        reserved_titles: list[str] = []
+
+    def read_data(self) -> None:
+        """Reading the NATOM"""
+        with open(PSFFILE, 'r') as f:
+            while True:
+                line = f.readline()
+                self.process_line(line.strip())
+                if not line:
+                    break
+
+    def process_line(self, line: str) -> None:
+        """Read the lines of the file and send each section to the
+        proper function"""
+        if "!" in line:
+            line = line.split(" ")
+            line = [item for item in line if item]
+            print(line)
+
+
+class WriteLmp:
+    """Write the data in a full atoms style for LAMMPS
+    Input:
+        atoms_df (DataFrame from PDBFILE: Pdb class)
+        bonds_df, angles_df, dihedrals, impropers_df (DataFrame from
+        PSFFILEL Psf class)
+    Output:
+        A LAMMPS data file
+    """
+
+    def __init__(self, atoms: pd.DataFrame) -> None:
+        self.atoms = atoms
+        del atoms
+
+    def mk_lmp(self) -> None:
+        """calling function to write data into a file"""
+        # find box sizes
+        self.set_box()
+        # get number of atoms, types, bonds
+        # self.set_numbers()
+        # write file
+        # self.write_data()
+        # print(self.atoms['charge'].sum())
+
+    def set_box(self) -> None:
+        """find Max and min of the data"""
+        self.xlim = (self.atoms.x.min(), self.atoms.x.max())
+        self.ylim = (self.atoms.y.min(), self.atoms.y.max())
+        self.zlim = (self.atoms.z.min(), self.atoms.z.max())
+
+    def set_numbers(self) -> None:
+        """set the numbers of atoms, type, bonds"""
+        self.Natoms = len(self.atoms)
+        self.Nbonds = len(self.bonds)
+        self.Natoms_type = np.max(self.atoms.typ)
+        self.Nbonds_type = np.max(self.bonds.typ)
+
+    def set_totals(self) -> None:
+        """set the total numbers of charges, ..."""
+        self.Tcharge = self.atoms['charge'].sum()
+
+    def write_data(self) -> None:
+        """write LAMMPS data file"""
+        with open(LMPFILE, 'w') as f:
+            f.write(f"Data file from Ole Nikle for silica slab\n")
+            f.write(f"\n")
+            self.write_numbers(f)
+            self.write_box(f)
+            self.write_masses(f)
+            self.write_atoms(f)
+            self.write_bonds(f)
+
+    def write_numbers(self, f: typing.TextIO) -> None:
+        f.write(f"{self.Natoms} atoms\n")
+        f.write(f"{self.Natoms_type} atom types\n")
+        f.write(f"{self.Nbonds} bonds\n")
+        f.write(f"{self.Nbonds_type} bond types\n")
+        f.write(f"\n")
+
+    def write_box(self, f: typing.TextIO) -> None:
+        f.write(f"{self.xlim[0]:.3f} {self.xlim[1]:.3f} xlo xhi\n")
+        f.write(f"{self.ylim[0]:.3f} {self.ylim[1]:.3f} ylo yhi\n")
+        f.write(f"{self.zlim[0]:.3f} {self.zlim[1]:.3f} zlo zhi\n")
+        f.write(f"\n")
+
+    def write_masses(self, f: typing.TextIO) -> None:
+        f.write(f"Masses\n")
+        f.write(f"\n")
+        for k, v in self.Masses.items():
+            if k < 5:
+                f.write(f"{k} {v:.5f}\n")
+        f.write(f"\n")
+
+    def write_atoms(self, f: typing.TextIO) -> None:
+        """Write atoms section inot file"""
+        f.write(f"Atoms # full\n")
+        f.write(f"\n")
+        columns = ['mol', 'typ', 'charge', 'x', 'y', 'z', 'nx', 'ny', 'nz',
+                   'cmt', 'atom_name']
+        self.atoms.to_csv(f, sep=' ', index=True, columns=columns,
+                          header=None)
+        f.write(f"\n")
+        f.write(f"\n")
+
+    def write_bonds(self, f: typing.TextIO) -> None:
+        f.write(f"Bonds\n")
+        f.write(f"\n")
+        columns = ['id', 'typ', 'ai', 'aj']
+        self.bonds.to_csv(f, sep=' ', index=False, columns=columns,
+                          header=None)
 
 
 if len(sys.argv) < 2:
@@ -191,3 +315,7 @@ LMPFILE = sys.argv[1].__add__('.data')
 if __name__ == '__main__':
     pdb = Pdb()
     pdb.get_data()
+    psf = Psf()
+    psf.get_data()
+    lmp = WriteLmp(pdb.atoms_df)
+    lmp.mk_lmp()
