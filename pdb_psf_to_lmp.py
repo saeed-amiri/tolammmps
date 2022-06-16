@@ -5,7 +5,7 @@ import numpy as np
 
 
 class Doc:
-    """ Convert PDB  and PSF file to LAMMPS data file
+    """Convert PDB  and PSF file to LAMMPS data file
     Input:
         Name of the file without extension (sys.argv[1])
         Both PDB and PSF should have the same name
@@ -22,7 +22,7 @@ class Doc:
     """
 
 
-class PDB:
+class Pdb:
     """
     Reading the PDB file and returning the coordinates.
     The PDB file consider is in standard PDB format.
@@ -81,42 +81,96 @@ class PDB:
 
     def get_data(self) -> None:
         """Read and get the atomic strcuture in lammps`"""
-        self.read_pdb()
+        # Read PDB file and return a list of list
+        data = self.read_pdb()
+        # Convert the list to DataFrame
+        df = self.mk_df(data)
+        # Check the residue number order
+        self.check_residue_number(df)
 
-    def read_pdb(self) -> None:
+    def read_pdb(self) -> list:
         """Reading line by line of the pdb file"""
+        data_list: list[typing.Any] = []
         with open(PDBFILE, 'r') as f:
             while True:
                 line = f.readline()
                 if line.strip().startswith("ATOM"):
-                    self.process_line(line)
+                    data_list.append(self.process_line(line))
                 if not line:
                     break
+        return data_list
 
-    def process_line(self, line) -> None:
-        """ Process the line on based on the PDB file"""
+    def process_line(self, line: str) -> list:
+        """Process the line on based on the PDB file"""
         # first check the length of the line MUST be equal to 79
         if len(line) != 79:
             exit(f"ERROR! wrong line length: {len(line)} != 79")
-        atom_id: int = int(line[6:11])
-        atom_name: str = line[13:16]
-        residue_name: str = line[17:20]
-        residue_number: str = line[22:27]
-        atom_x: float = float(line[30:39])
-        atom_y: float = float(line[39:47])
-        atom_z: float = float(line[47:55])
-        atom_symbool: str = line[76:78]
+        atom_id: int = int(line[6:11].strip())
+        atom_name: str = line[13:16].strip()
+        residue_name: str = line[17:20].strip()
+        residue_number: str = line[22:27].strip()
+        atom_x: float = float(line[30:39].strip())
+        atom_y: float = float(line[39:47].strip())
+        atom_z: float = float(line[47:55].strip())
+        atom_symbool: str = line[76:78].strip()
+        return [atom_id,
+                atom_name,
+                residue_name,
+                residue_number,
+                atom_x,
+                atom_y,
+                atom_z,
+                atom_symbool]
 
+    def mk_df(self, data: list[list]) -> pd.DataFrame:
+        """Making DataFrame from PDB file"""
+        columns: list[str] = ['atom_id',
+                              'atom_name',
+                              'residue_name',
+                              'residue_number',
+                              'atom_x',
+                              'atom_y',
+                              'atom_z',
+                              'atom_symbool']
+        df = pd.DataFrame(data, columns=columns)
+        return df
+
+    def check_residue_number(self, df: pd.DataFrame) -> pd.DataFrame:
+        """The residue number in the PDB file created by VMD usually
+        does not have the correct order, and the numbering is almost
+        random.
+        Here we check that and if needed will be replaced with correct
+        one.
+        """
+        # Make sure the residue type is integer
+        df = df.astype({'residue_number': int})
+        # Get the uniqe numbers of residues
+        df_reduced: pd.DataFrame = df.groupby(df.residue_number).mean()
+        # add a new index from 1
+        df_reduced = df_reduced.reset_index()
+        df_reduced.index += 1
+        # make a dict from the new index and the residue
+        residue_dict: dict[int, int] = {
+            k: v for k, v in zip(df_reduced.residue_number, df_reduced.index)
+            }
+        # Make a list of new residue number for the main DataFrame\
+        # we called 'mol'
+        mol: list[int] = []
+        for _, row in df.iterrows():
+            mol.append(residue_dict[row['residue_number']])
+        # Add the new mol numbers to the DataFrame
+        df['mol'] = mol
+        return df
 
 
 # Constant values
 if len(sys.argv) < 2:
     doc = Doc()
     exit(doc.__doc__)
-    
+
 PDBFILE = sys.argv[1].__add__('.pdb')
 PSFFILE = sys.argv[1].__add__('.psf')
 LMPFILE = sys.argv[1].__add__('.data')
 
-pdb = PDB()
+pdb = Pdb()
 pdb.get_data()
