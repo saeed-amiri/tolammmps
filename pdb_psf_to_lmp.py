@@ -86,7 +86,7 @@ class Pdb:
         # Convert the list to DataFrame
         df = self.mk_df(data)
         # Check the residue number order
-        self.check_residue_number(df)
+        self.atoms_df = self.check_residue_number(df)
 
     def read_pdb(self) -> list:
         """Reading line by line of the pdb file"""
@@ -154,23 +154,40 @@ class Pdb:
             k: v for k, v in zip(df_reduced.residue_number, df_reduced.index)
             }
         # Make a list of new residue number for the main DataFrame\
-        # we called 'mol'
+        # I call it 'mol'
         mol: list[int] = []
         for _, row in df.iterrows():
             mol.append(residue_dict[row['residue_number']])
         # Add the new mol numbers to the DataFrame
         df['mol'] = mol
+        del df_reduced
+        del residue_dict
         return df
 
 
-# Constant values
+class Psf:
+    """Read PSF file
+    www.ks.uiuc.edu/Training/Tutorials/namd/namd-tutorial-unix-html/node23.html
+    A PSF file, also called a protein structure file, contains all of
+    the molecule-specific information needed to apply a particular force
+    field to a molecular system.
+    The PSF file contains six main sections of interest:
+        atoms, bonds, angles, dihedrals, impropers and cross-terms.
+
+    This file contains information about bonds, angles, dihedrals, ...
+
+    """
+
+
 if len(sys.argv) < 2:
     doc = Doc()
     exit(doc.__doc__)
 
+# Constant values
 PDBFILE = sys.argv[1].__add__('.pdb')
 PSFFILE = sys.argv[1].__add__('.psf')
 LMPFILE = sys.argv[1].__add__('.data')
 
-pdb = Pdb()
-pdb.get_data()
+if __name__ == '__main__':
+    pdb = Pdb()
+    pdb.get_data()
