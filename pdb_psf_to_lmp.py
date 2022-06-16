@@ -1,3 +1,5 @@
+from pprint import pprint
+import re
 import sys
 import typing
 import pandas as pd
@@ -95,12 +97,12 @@ class Pdb:
             while True:
                 line = f.readline()
                 if line.strip().startswith("ATOM"):
-                    data_list.append(self.process_line(line))
+                    data_list.append(self.__process_line(line))
                 if not line:
                     break
         return data_list
 
-    def process_line(self, line: str) -> list:
+    def __process_line(self, line: str) -> list:
         """Process the line on based on the PDB file"""
         # first check the length of the line MUST be equal to 79
         if len(line) != 79:
@@ -185,30 +187,98 @@ class Psf:
         """Since the number of sections is fixed, here, the class
         explicitly read the data instead of figuring out where and how
         much info there is."""
-        self.set_titles()
-        self.read_data()
+        attr_list = self.get_sections()
+        self.read_data(attr_list)
 
-    def set_titles(self) -> None:
-        """Since the name of the sections are fixed, I set a flag and
-        dictionaty to them"""
-        reserved_titles: list[str] = []
-
-    def read_data(self) -> None:
-        """Reading the NATOM"""
+    def get_sections(self) -> list[str]:
+        """Since the name of the sections are fixed, set the attributs
+        for number of data in each section
+        """
+        attr_list: list[str] = []
         with open(PSFFILE, 'r') as f:
             while True:
                 line = f.readline()
-                self.process_line(line.strip())
+                attr = self.set_section_attrs(line.strip())
+                if attr is not None:
+                    attr_list.append(attr)
                 if not line:
                     break
+        return attr_list
 
-    def process_line(self, line: str) -> None:
+    def set_section_attrs(self, line: str) -> str:
+        if "!" in line:
+            line: list[str] = line.split(" ")
+            line = [item for item in line if item]
+            # Get the number of the each section
+            if line[1].startswith("!"):
+                # Keep the letters only get the name
+                attr: str = re.sub('[^a-zA-Z]+', '', line[1])
+                # Get the value
+                value: int = int(line[0])
+                # Set the attribute
+                setattr(self, attr, value)
+            else:
+                attr = None
+            return attr
+
+    def read_data(self, attr_list: list[str]) -> None:
+        """Reading the data"""
+        with open(PSFFILE, 'r') as f:
+            while True:
+                line = f.readline()
+                self.__process_line(line.strip())
+                if not line:
+                    break
+        print(attr_list)
+
+    def __process_line(self, line: str) -> None:
         """Read the lines of the file and send each section to the
         proper function"""
+        flages: dict[str: bool] = {
+                                   'F_TITLE': False,
+                                   'F_ATOM': False,
+                                   'F_BOND': False,
+                                   'F_THETA': False,
+                                   'F_PHI': False,
+                                   'F_IMPHI': False,
+                                   'F_DON': False,
+                                   'F_ACC': False,
+                                   'F_NB': False
+                                   }
         if "!" in line:
-            line = line.split(" ")
+            line = line.split(' ')
             line = [item for item in line if item]
-            print(line)
+            attr: str = re.sub('[^a-zA-Z]+', '', line[1])
+            if attr == 'NTITLE':
+                flages = {k: False for k in flages}
+                flages[attr] = True
+            if attr == 'NATOM':
+                flages = {k: False for k in flages}
+                flages[attr] = True
+            if attr == 'NBOND':
+                flages = {k: False for k in flages}
+                flages[attr] = True
+            if attr == 'NTHETA':
+                flages = {k: False for k in flages}
+                flages[attr] = True
+            if attr == 'NPHI':
+                flages = {k: False for k in flages}
+                flages[attr] = True
+            if attr == 'NIMPHI':
+                flages = {k: False for k in flages}
+                flages[attr] = True
+            if attr == 'NDON':
+                flages = {k: False for k in flages}
+                flages[attr] = True
+            if attr == 'NACC':
+                flages = {k: False for k in flages}
+                flages[attr] = True
+            if attr == 'NNB':
+                flages = {k: False for k in flages}
+                flages[attr] = True
+
+    def mk_flag(self, attr: str) -> None:
+        """Check the string and set the related flag"""
 
 
 class WriteLmp:
@@ -216,7 +286,7 @@ class WriteLmp:
     Input:
         atoms_df (DataFrame from PDBFILE: Pdb class)
         bonds_df, angles_df, dihedrals, impropers_df (DataFrame from
-        PSFFILEL Psf class)
+        PSFFILE Psf class)
     Output:
         A LAMMPS data file
     """
@@ -317,5 +387,6 @@ if __name__ == '__main__':
     pdb.get_data()
     psf = Psf()
     psf.get_data()
+    print(psf.NATOM)
     lmp = WriteLmp(pdb.atoms_df)
     lmp.mk_lmp()
