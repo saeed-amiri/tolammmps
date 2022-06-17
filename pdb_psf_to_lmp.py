@@ -181,7 +181,7 @@ class Psf:
     """
 
     def __init__(self) -> None:
-        pass
+        self.get_data()
 
     def get_data(self) -> None:
         """Since the number of sections is fixed, here, the class
@@ -189,6 +189,8 @@ class Psf:
         much info there is."""
         attr_list = self.get_sections()
         self.read_data(attr_list)
+        # For sake of simplicty I do this here!:
+        self.attr_list = attr_list
 
     def get_sections(self) -> list[str]:
         """Since the name of the sections are fixed, set the attributs
@@ -254,12 +256,29 @@ class Psf:
             flages[attr] = True
         else:
             for k in flages:
-                if k and flages[k]:
+                # check if key is not empty str, flage is True, and
+                # line is not epmty
+                if k and flages[k] and line.split():
                     self.data[k].append(line.split())
         return flages
 
+
+class PsfToDf(Psf):
+    """make DataFrame from data read by Psf
+    Input:
+        Dictionary of data from Psf
+    Output:
+        DataFrame from section for using in LAMMPS data file
+    """
+
+    def __init__(self) -> None:
+        super().__init__()
+
     def mk_dataframe(self) -> None:
-        pass
+        for k in self.attr_list:
+            # call the correspond function by name of the key
+            func = getattr(self, self.mk_func_name(k))
+            func(self.data[k])
 
     def mk_func_name(self, key: str) -> str:
         # Make a string to call the correspond function
@@ -269,39 +288,39 @@ class Psf:
         func_name = ''.join(['get_', func_name])
         return func_name
 
-    def get_title(self, line: str, key: str) -> None:
-        self.data[key].append(line)
-        print(self.data[key], end=',')
+    def get_title(self, data: list[str]) -> None:
+        df = pd.DataFrame(data)
+        print(df)
 
-    def get_atom(self, line: str, key: str) -> None:
+    def get_atom(self, data: list[str]) -> None:
+        df = pd.DataFrame(data)
+        print(df)
+
+    def get_bond(self, data: list[str]) -> None:
         pass
         # print(key, end=',')
 
-    def get_bond(self, line: str, key: str) -> None:
+    def get_theta(self, data: list[str]) -> None:
         pass
         # print(key, end=',')
 
-    def get_theta(self, line: str, key: str) -> None:
+    def get_phi(self, data: list[str]) -> None:
         pass
         # print(key, end=',')
 
-    def get_phi(self, line: str, key: str) -> None:
+    def get_imphi(self, data: list[str]) -> None:
         pass
         # print(key, end=',')
 
-    def get_imphi(self, line: str, key: str) -> None:
+    def get_don(self, data: list[str]) -> None:
         pass
         # print(key, end=',')
 
-    def get_don(self, line: str, key: str) -> None:
+    def get_acc(self, data: list[str]) -> None:
         pass
         # print(key, end=',')
 
-    def get_acc(self, line: str, key: str) -> None:
-        pass
-        # print(key, end=',')
-
-    def get_nb(self, line: str, key: str) -> None:
+    def get_nb(self, data: list[str]) -> None:
         pass
         # print(key, end=',')
 
@@ -410,8 +429,8 @@ LMPFILE = sys.argv[1].__add__('.data')
 if __name__ == '__main__':
     pdb = Pdb()
     pdb.get_data()
-    psf = Psf()
-    psf.get_data()
+    psf = PsfToDf()
+    psf.mk_dataframe()
     print(psf.NATOM)
     lmp = WriteLmp(pdb.atoms_df)
     lmp.mk_lmp()
