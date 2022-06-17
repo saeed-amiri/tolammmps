@@ -207,14 +207,14 @@ class Psf:
 
     def set_section_attrs(self, line: str) -> str:
         if "!" in line:
-            line: list[str] = line.split(" ")
-            line = [item for item in line if item]
+            l_line: list[str] = line.split(" ")
+            l_line = [item for item in l_line if item]
             # Get the number of the each section
-            if line[1].startswith("!"):
+            if l_line[1].startswith("!"):
                 # Keep the letters only get the name
-                attr: str = re.sub('[^a-zA-Z]+', '', line[1])
+                attr: str = re.sub('[^a-zA-Z]+', '', l_line[1])
                 # Get the value
-                value: int = int(line[0])
+                value: int = int(l_line[0])
                 # Set the attribute
                 setattr(self, attr, value)
             else:
@@ -223,63 +223,41 @@ class Psf:
 
     def read_data(self, attr_list: list[str]) -> None:
         """Reading the data"""
+        # Making a dictionary of flages for the name of each section
+        flages: dict[str: bool] = {k: False for k in attr_list}
         with open(PSFFILE, 'r') as f:
             while True:
                 line = f.readline()
-                self.__process_line(line.strip())
+                flages = self.__process_line(line.strip(), flages)
                 if not line:
                     break
-        print(attr_list)
 
-    def __process_line(self, line: str) -> None:
+    def __process_line(self,
+                       line: str,
+                       flages: dict[str: bool]) -> None:
         """Read the lines of the file and send each section to the
         proper function"""
-        flages: dict[str: bool] = {
-                                   'F_TITLE': False,
-                                   'F_ATOM': False,
-                                   'F_BOND': False,
-                                   'F_THETA': False,
-                                   'F_PHI': False,
-                                   'F_IMPHI': False,
-                                   'F_DON': False,
-                                   'F_ACC': False,
-                                   'F_NB': False
-                                   }
         if "!" in line:
-            line = line.split(' ')
-            line = [item for item in line if item]
-            attr: str = re.sub('[^a-zA-Z]+', '', line[1])
-            if attr == 'NTITLE':
-                flages = {k: False for k in flages}
-                flages[attr] = True
-            if attr == 'NATOM':
-                flages = {k: False for k in flages}
-                flages[attr] = True
-            if attr == 'NBOND':
-                flages = {k: False for k in flages}
-                flages[attr] = True
-            if attr == 'NTHETA':
-                flages = {k: False for k in flages}
-                flages[attr] = True
-            if attr == 'NPHI':
-                flages = {k: False for k in flages}
-                flages[attr] = True
-            if attr == 'NIMPHI':
-                flages = {k: False for k in flages}
-                flages[attr] = True
-            if attr == 'NDON':
-                flages = {k: False for k in flages}
-                flages[attr] = True
-            if attr == 'NACC':
-                flages = {k: False for k in flages}
-                flages[attr] = True
-            if attr == 'NNB':
-                flages = {k: False for k in flages}
-                flages[attr] = True
+            l_line = line.split(' ')
+            l_line = [item for item in l_line if item]
+            attr: str = re.sub('[^a-zA-Z]+', '', l_line[1].strip())
+            # Set all the flages to False and check for empty strings
+            flages = {k: False for k in flages if k}
+            # Set the correspond flag to True
+            flages[attr] = True
+        else:
+            for k in flages:
+                if k and flages[k]:
+                    # Make a string to call the correspond function
+                    # Drop the initit N
+                    func_name = k[1:]
+                    func_name = func_name.lower()
+                    func_name = ''.join(['get_', func_name])
+                    print(func_name, end=',')
+        return flages
 
-    def mk_flag(self, attr: str) -> None:
-        """Check the string and set the related flag"""
-
+    def get_atom(self, line: str) -> None:
+        pass
 
 class WriteLmp:
     """Write the data in a full atoms style for LAMMPS
