@@ -273,6 +273,8 @@ class PsfToDf(Psf):
 
     def __init__(self) -> None:
         super().__init__()
+        self.mk_dataframe()
+        del self.data
 
     def mk_dataframe(self) -> None:
         for k in self.attr_list:
@@ -301,15 +303,16 @@ class PsfToDf(Psf):
         Format of each line:
         int, str, int, str, str, str, float, float, int
         """
-        dtype: dict[str, str] = {'atom_id': int,
-                                'segment_name': str,
-                                'residue_number': int,
-                                'residue_name': str,
-                                'atom_name': str,
-                                'atom_type': str,
-                                'charge': float,
-                                'mass': float,
-                                'unused': int}
+        dtype: dict[str, typing.Type[typing.Any]] =\
+            {'atom_id': int,
+             'segment_name': str,
+             'residue_number': int,
+             'residue_name': str,
+             'atom_name': str,
+             'atom_type': str,
+             'charge': float,
+             'mass': float,
+             'unused': int}
         columns: list[str] = list(dtype.keys())
         df = pd.DataFrame(data, columns=columns)
         df = df.astype(dtype=dtype)
@@ -345,7 +348,7 @@ class PsfToDf(Psf):
         del df_reduced
         del residue_dict
         return df
-    
+
     def get_bond(self, data: list[str]) -> None:
         """The covalent bond section lists four pairs of atoms per line"""
         # first flatten the list
@@ -354,7 +357,7 @@ class PsfToDf(Psf):
         bonds: list[list[str]] = []
         # There are NBOND bonds in the cards, which are pairs, so we
         # need to multiply it by 2 to get every individual atom id
-        for i in range(0,2*self.NBOND-1,2):
+        for i in range(0, 2*self.NBOND-1, 2):
             bonds.append([bond_list[i], bond_list[i+1]])
         columns = ['ai', 'aj']
         self.bonds = pd.DataFrame(bonds, columns=columns)
@@ -368,11 +371,10 @@ class PsfToDf(Psf):
         angles: list[list[str]] = []
         # There are NBOND bonds in the cards, which are pairs, so we
         # need to multiply it by 3 to get every individual atom id
-        for i in range(0,3*self.NTHETA-1,3):
+        for i in range(0, 3*self.NTHETA-1, 3):
             angles.append([angle_list[i], angle_list[i+1], angle_list[i+2]])
         columns = ['ai', 'aj', 'ak']
         self.angles = pd.DataFrame(angles, columns=columns)
-        print(self.angles)
         del angles
 
     def get_phi(self, data: list[str]) -> None:
@@ -390,6 +392,20 @@ class PsfToDf(Psf):
     def get_nb(self, data: list[str]) -> None:
         pass
 
+class PsfToLmp(PsfToDf):
+    """update all the data fram in the LAMMPS version
+    Parent class:
+        PsfToDf: contains all the DataFrame from PSF file
+    Input:
+        Atoms coordinate DataFrame from PDB
+    Output:
+        DataFrame to write data into LAMMPS file
+    """
+
+    def __init__(self, atoms: pd.DataFrame) -> None:
+        super().__init__()
+        self.atoms = atoms
+        del atoms
 
 class WriteLmp:
     """Write the data in a full atoms style for LAMMPS
@@ -496,6 +512,5 @@ if __name__ == '__main__':
     pdb = Pdb()
     pdb.get_data()
     psf = PsfToDf()
-    psf.mk_dataframe()
     lmp = WriteLmp(pdb.atoms_df)
     lmp.mk_lmp()
