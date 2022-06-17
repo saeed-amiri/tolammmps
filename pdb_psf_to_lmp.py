@@ -223,18 +223,25 @@ class Psf:
 
     def read_data(self, attr_list: list[str]) -> None:
         """Reading the data"""
-        # Making a dictionary of flages for the name of each section
-        flages: dict[str: bool] = {k: False for k in attr_list}
+        # Initiat a dictionary of flages for the name of each section
+        flages: dict[str, bool] = {k: False for k in attr_list if k}
+        # Initiat a dictionary of list to get data of each section
+        self.data: dict[str, list[typing.Any]] =\
+            {k: [] for k in attr_list if k}
+        # Read PSFFILE line by line
         with open(PSFFILE, 'r') as f:
             while True:
                 line = f.readline()
-                flages = self.__process_line(line.strip(), flages)
+                if line.strip().startswith("REMARKS"):
+                    pass
+                else:
+                    flages = self.__process_line(line.strip(), flages)
                 if not line:
                     break
 
     def __process_line(self,
                        line: str,
-                       flages: dict[str: bool]) -> None:
+                       flages: dict[str, bool]) -> dict[str, bool]:
         """Read the lines of the file and send each section to the
         proper function"""
         if "!" in line:
@@ -248,16 +255,56 @@ class Psf:
         else:
             for k in flages:
                 if k and flages[k]:
-                    # Make a string to call the correspond function
-                    # Drop the initit N
-                    func_name = k[1:]
-                    func_name = func_name.lower()
-                    func_name = ''.join(['get_', func_name])
-                    print(func_name, end=',')
+                    self.data[k].append(line.split())
         return flages
 
-    def get_atom(self, line: str) -> None:
+    def mk_dataframe(self) -> None:
         pass
+
+    def mk_func_name(self, key: str) -> str:
+        # Make a string to call the correspond function
+        # Drop the initiate N
+        func_name = key[1:]
+        func_name = func_name.lower()
+        func_name = ''.join(['get_', func_name])
+        return func_name
+
+    def get_title(self, line: str, key: str) -> None:
+        self.data[key].append(line)
+        print(self.data[key], end=',')
+
+    def get_atom(self, line: str, key: str) -> None:
+        pass
+        # print(key, end=',')
+
+    def get_bond(self, line: str, key: str) -> None:
+        pass
+        # print(key, end=',')
+
+    def get_theta(self, line: str, key: str) -> None:
+        pass
+        # print(key, end=',')
+
+    def get_phi(self, line: str, key: str) -> None:
+        pass
+        # print(key, end=',')
+
+    def get_imphi(self, line: str, key: str) -> None:
+        pass
+        # print(key, end=',')
+
+    def get_don(self, line: str, key: str) -> None:
+        pass
+        # print(key, end=',')
+
+    def get_acc(self, line: str, key: str) -> None:
+        pass
+        # print(key, end=',')
+
+    def get_nb(self, line: str, key: str) -> None:
+        pass
+        # print(key, end=',')
+
 
 class WriteLmp:
     """Write the data in a full atoms style for LAMMPS
