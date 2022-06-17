@@ -114,7 +114,7 @@ class Pdb:
         x: float = float(line[30:39].strip())
         y: float = float(line[39:47].strip())
         z: float = float(line[47:55].strip())
-        atom_symbool: str = line[76:78].strip()
+        atom_symbol: str = line[76:78].strip()
         return [atom_id,
                 atom_name,
                 residue_name,
@@ -122,7 +122,7 @@ class Pdb:
                 x,
                 y,
                 z,
-                atom_symbool]
+                atom_symbol]
 
     def mk_df(self, data: list[list]) -> pd.DataFrame:
         """Making DataFrame from PDB file"""
@@ -133,7 +133,7 @@ class Pdb:
                               'x',
                               'y',
                               'z',
-                              'atom_symbool']
+                              'atom_symbol']
         df = pd.DataFrame(data, columns=columns)
         return df
 
@@ -392,6 +392,7 @@ class PsfToDf(Psf):
     def get_nb(self, data: list[str]) -> None:
         pass
 
+
 class PsfToLmp(PsfToDf):
     """update all the data fram in the LAMMPS version
     Parent class:
@@ -406,6 +407,84 @@ class PsfToLmp(PsfToDf):
         super().__init__()
         self.atoms = atoms
         del atoms
+
+    def set_attrs(self) -> None:
+        self.typ: pd.DataFrame = self.set_type()  # Include mass & q
+        self.lmp_atoms: pd.DataFrame = self.mk_lmp_atoms()
+        self.lmp_bonds: pd.DataFrame = self.mk_lmp_bonds()
+        self.lmp_angles: pd.DataFrame = self.mk_lmp_angles()
+
+    def set_type(self) -> pd.DataFrame:
+        """set the mass for each type"""
+        columns: list[str] = ['charge', 'mass']
+        df_sub: pd.DataFrame = self.atoms_info[columns].copy()
+        df_sub['atom_symbol'] = self.atoms['atom_symbol']
+        df_sub = df_sub.groupby(by=['atom_symbol']).min()
+        df_sub = df_sub.reset_index()
+        df_sub.index += 1
+        df_sub['typ'] = df_sub.index
+        df_sub = df_sub.set_index('atom_symbol')
+        return df_sub
+
+    def mk_lmp_atoms(self) -> pd.DataFrame:
+        """make atoms DataFrame in LAMMPS format"""
+        # Columns to copy from PDB data for lammps
+        columns = ['atom_id', 'residue_number',
+                   'x', 'y', 'z', 'atom_symbol']
+        # Initiat the DataFrame
+        df: pd.DataFrame = self.atoms[columns].copy()
+        # Get the charges for each atom
+        l_charge: list[float] = [
+            self.typ.loc[item]['charge'] for item in self.atoms['atom_symbol']
+        ]
+        # Get the type for each atom
+        l_typ: list[int] = [
+            self.typ.loc[item]['typ'] for item in self.atoms['atom_symbol']
+        ]
+        # Add # for comment information in the data file
+        l_typ = [int(typ) for typ in l_typ]
+        df['charge'] = l_charge
+        df['typ'] = l_typ
+        df['cmt'] = ['#' for _ in l_typ]
+        return df
+
+    def mk_lmp_bonds(self) -> pd.DataFrame:
+        """make DataFrame for LAMMPS Bonds section"""
+        df: pd.DataFrame = self.bonds
+        df = df.astype({'ai': int, 'aj': int})
+        # Create the bonds for the atoms ai and aj
+        l_ai: list[str] = [
+            self.lmp_atoms['atom_symbol'][item-1] for item in df['ai']
+        ]
+        l_aj: list[str] = [
+            self.lmp_atoms['atom_symbol'][item-1] for item in df['aj']
+        ]
+        bond: list[str] = [f"{i}-{j}" for i, j in zip(l_ai, l_aj)]
+        df['cmt'] = ['#' for _ in bond]
+        df['bond'] = bond
+        return df
+
+    def mk_lmp_angles(self) -> pd.DataFrame:
+        """make DataFrame for LAMMPS Angels section"""
+        df: pd.DataFrame = self.angles
+        df = df.astype({'ai': int, 'aj': int, 'ak': int})
+        # Create the angles for the atoms ai and aj
+        l_ai: list[str] = [
+            self.lmp_atoms['atom_symbol'][item-1] for item in df['ai']
+        ]
+        l_aj: list[str] = [
+            self.lmp_atoms['atom_symbol'][item-1] for item in df['aj']
+        ]
+        l_ak: list[str] = [
+            self.lmp_atoms['atom_symbol'][item-1] for item in df['ak']
+        ]
+        angle: list[str] = [
+            f"{i}-{j}-{k}" for i, j, k in zip(l_ai, l_aj, l_ak)
+        ]
+        df['cmt'] = ['#' for _ in angle]
+        df['angle'] = angle
+        return df
+
 
 class WriteLmp:
     """Write the data in a full atoms style for LAMMPS
@@ -511,6 +590,7 @@ LMPFILE = sys.argv[1].__add__('.data')
 if __name__ == '__main__':
     pdb = Pdb()
     pdb.get_data()
-    psf = PsfToDf()
+    psf = PsfToLmp(pdb.atoms_df)
+    psf.set_attrs()
     lmp = WriteLmp(pdb.atoms_df)
     lmp.mk_lmp()
