@@ -361,28 +361,34 @@ class PsfToDf(Psf):
         del bonds
 
     def get_theta(self, data: list[str]) -> None:
-        pass
-        # print(key, end=',')
+        """The angle section lists three triples of atoms per line"""
+        # first flatten the list
+        angle_list: list[str] = [i for j in data for i in j]
+        # An empty list for appending the lists in it
+        angles: list[list[str]] = []
+        # There are NBOND bonds in the cards, which are pairs, so we
+        # need to multiply it by 3 to get every individual atom id
+        for i in range(0,3*self.NTHETA-1,3):
+            angles.append([angle_list[i], angle_list[i+1], angle_list[i+2]])
+        columns = ['ai', 'aj', 'ak']
+        self.angles = pd.DataFrame(angles, columns=columns)
+        print(self.angles)
+        del angles
 
     def get_phi(self, data: list[str]) -> None:
         pass
-        # print(key, end=',')
 
     def get_imphi(self, data: list[str]) -> None:
         pass
-        # print(key, end=',')
 
     def get_don(self, data: list[str]) -> None:
         pass
-        # print(key, end=',')
 
     def get_acc(self, data: list[str]) -> None:
         pass
-        # print(key, end=',')
 
     def get_nb(self, data: list[str]) -> None:
         pass
-        # print(key, end=',')
 
 
 class WriteLmp:
