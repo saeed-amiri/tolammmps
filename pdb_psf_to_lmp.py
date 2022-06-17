@@ -301,15 +301,6 @@ class PsfToDf(Psf):
         Format of each line:
         int, str, int, str, str, str, float, float, int
         """
-        columns: list[str] = ['atom_id',
-                              'segment_name',
-                              'residue_number',
-                              'residue_name',
-                              'atom_name',
-                              'atom_type',
-                              'charge',
-                              'mass',
-                              'unused']
         dtype: dict[str, str] = {'atom_id': int,
                                 'segment_name': str,
                                 'residue_number': int,
@@ -319,6 +310,7 @@ class PsfToDf(Psf):
                                 'charge': float,
                                 'mass': float,
                                 'unused': int}
+        columns: list[str] = list(dtype.keys())
         df = pd.DataFrame(data, columns=columns)
         df = df.astype(dtype=dtype)
         df = self.check_residue_number(df)
