@@ -322,9 +322,8 @@ class PsfToDf(Psf):
         df = pd.DataFrame(data, columns=columns)
         df = df.astype(dtype=dtype)
         df = self.check_residue_number(df)
-        if not df.empty:
-            self.atoms_info = df
-            del df
+        self.atoms_info = df
+        del df
 
     def check_residue_number(self, df: pd.DataFrame) -> pd.DataFrame:
         """The residue number in the PDB file created by VMD usually
@@ -356,8 +355,18 @@ class PsfToDf(Psf):
         return df
     
     def get_bond(self, data: list[str]) -> None:
-        pass
-        # print(key, end=',')
+        """The covalent bond section lists four pairs of atoms per line"""
+        # first flatten the list
+        bond_list: list[str] = [i for j in data for i in j]
+        # An empty list for appending the lists in it
+        bonds: list[list[str]] = []
+        # There are NBOND bonds in the cards, which are pairs, so we
+        # need to multiply it by 2 to get every individual atom id
+        for i in range(0,2*self.NBOND-1,2):
+            bonds.append([bond_list[i], bond_list[i+1]])
+        columns = ['ai', 'aj']
+        self.bonds = pd.DataFrame(bonds, columns=columns)
+        del bonds
 
     def get_theta(self, data: list[str]) -> None:
         pass
@@ -490,6 +499,5 @@ if __name__ == '__main__':
     pdb.get_data()
     psf = PsfToDf()
     psf.mk_dataframe()
-    print(psf.NATOM)
     lmp = WriteLmp(pdb.atoms_df)
     lmp.mk_lmp()
