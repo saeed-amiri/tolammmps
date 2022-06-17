@@ -161,7 +161,7 @@ class Pdb:
         for _, row in df.iterrows():
             mol.append(residue_dict[row['residue_number']])
         # Add the new mol numbers to the DataFrame
-        df['mol'] = mol
+        df['residue_number'] = mol
         del df_reduced
         del residue_dict
         return df
@@ -290,12 +290,71 @@ class PsfToDf(Psf):
 
     def get_title(self, data: list[str]) -> None:
         df = pd.DataFrame(data)
-        print(df)
+        if not df.empty:
+            self.title = df
 
     def get_atom(self, data: list[str]) -> None:
-        df = pd.DataFrame(data)
-        print(df)
+        """The fields in the atom section are atom ID, segment name,
+        residue ID, residue name, atom name, atom type, charge, mass,
+        and an unused 0.
 
+        Format of each line:
+        int, str, int, str, str, str, float, float, int
+        """
+        columns: list[str] = ['atom_id',
+                              'segment_name',
+                              'residue_number',
+                              'residue_name',
+                              'atom_name',
+                              'atom_type',
+                              'charge',
+                              'mass',
+                              'unused']
+        dtype: dict[str, str] = {'atom_id': int,
+                                'segment_name': str,
+                                'residue_number': int,
+                                'residue_name': str,
+                                'atom_name': str,
+                                'atom_type': str,
+                                'charge': float,
+                                'mass': float,
+                                'unused': int}
+        df = pd.DataFrame(data, columns=columns)
+        df = df.astype(dtype=dtype)
+        df = self.check_residue_number(df)
+        if not df.empty:
+            self.atoms_info = df
+            del df
+
+    def check_residue_number(self, df: pd.DataFrame) -> pd.DataFrame:
+        """The residue number in the PDB file created by VMD usually
+        does not have the correct order, and the numbering is almost
+        random.
+        Here we check that and if needed will be replaced with correct
+        one.
+        """
+        # Make sure the residue type is integer
+        df = df.astype({'residue_number': int})
+        # Get the uniqe numbers of residues
+        df_reduced: pd.DataFrame = df.groupby(df.residue_number).mean()
+        # add a new index from 1
+        df_reduced = df_reduced.reset_index()
+        df_reduced.index += 1
+        # make a dict from the new index and the residue
+        residue_dict: dict[int, int] = {
+            k: v for k, v in zip(df_reduced.residue_number, df_reduced.index)
+            }
+        # Make a list of new residue number for the main DataFrame\
+        # I call it 'mol'
+        mol: list[int] = []
+        for _, row in df.iterrows():
+            mol.append(residue_dict[row['residue_number']])
+        # Add the new mol numbers to the DataFrame
+        df['residue_number'] = mol
+        del df_reduced
+        del residue_dict
+        return df
+    
     def get_bond(self, data: list[str]) -> None:
         pass
         # print(key, end=',')
