@@ -486,7 +486,7 @@ class PsfToLmp(PsfToDf):
         # Add type column
         df = self.get_bond_typ(df)
         return df
-    
+
     def get_bond_typ(self, df: pd.DataFrame) -> pd.DataFrame:
         """Find how many differnt bonds are in the system"""
         columns: list[str] = ['bond']
@@ -498,7 +498,6 @@ class PsfToLmp(PsfToDf):
         df_sub = df_sub.set_index('bond')
         df['typ'] = [df_sub.loc[item]['typ'] for item in df['bond']]
         return df
-
 
     def mk_lmp_angles(self) -> pd.DataFrame:
         """make DataFrame for LAMMPS Angels section"""
