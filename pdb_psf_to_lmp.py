@@ -411,14 +411,19 @@ class PsfToLmp(PsfToDf):
 
     def set_attrs(self) -> None:
         self.typ: pd.DataFrame = self.set_type()  # Include mass & q
+        # Set the number of atom types
+        self.Natom_type: int = len(self.typ)
         self.lmp_atoms: pd.DataFrame = self.mk_lmp_atoms()
         self.lmp_bonds: pd.DataFrame = self.mk_lmp_bonds()
+        # Set the number of types
+        self.Nbonds_type: int = self.lmp_bonds['typ'].max()
         self.lmp_angles: pd.DataFrame = self.mk_lmp_angles()
 
     def set_type(self) -> pd.DataFrame:
         """set the mass for each type"""
         columns: list[str] = ['charge', 'mass']
         df_sub: pd.DataFrame = self.atoms_info[columns].copy()
+        # Copy the symbol of each atom to get a uniq column
         df_sub['atom_symbol'] = self.atoms['atom_symbol']
         df_sub = df_sub.groupby(by=['atom_symbol']).min()
         df_sub = df_sub.reset_index()
@@ -515,9 +520,9 @@ class WriteLmp:
         self.bonds = lmp.lmp_bonds
         self.angles = lmp.lmp_angles
         self.Natoms = lmp.NATOM
-        # self.Natoms_type = lmp.
+        self.Natoms_type = lmp.Natom_type
         self.Nbonds = lmp.NBOND
-        # self.Nbonds_type
+        self.Nbonds_type = lmp.Nbonds_type
         print(dir(lmp))
 
     def mk_lmp(self) -> None:
@@ -560,9 +565,9 @@ class WriteLmp:
 
     def write_numbers(self, f: typing.TextIO) -> None:
         f.write(f"{self.Natoms} atoms\n")
-        # f.write(f"{self.Natoms_type} atom types\n")
+        f.write(f"{self.Natoms_type} atom types\n")
         f.write(f"{self.Nbonds} bonds\n")
-        # f.write(f"{self.Nbonds_type} bond types\n")
+        f.write(f"{self.Nbonds_type} bond types\n")
         f.write(f"\n")
 
     def write_box(self, f: typing.TextIO) -> None:
