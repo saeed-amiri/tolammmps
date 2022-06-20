@@ -255,6 +255,8 @@ class Body:
             self.Atoms_df = pd.DataFrame.from_dict(
                             self.Atoms, orient='columns').T
             self.Bonds_df = pd.DataFrame.from_dict(self.Bonds).T
+            self.Angles_df = pd.DataFrame.from_dict(self.Angles).T
+            self.Dihedrals_df = pd.DataFrame.from_dict(self.Dihedrals).T
 
     def get_atoms(self, line) -> None:
         # stting the nth row of the dictionary
