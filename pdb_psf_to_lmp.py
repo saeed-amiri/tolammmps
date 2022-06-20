@@ -597,7 +597,8 @@ class WriteLmp:
         f.write(f"Masses\n")
         f.write(f"\n")
         for item in self.typ.iterrows():
-            f.write(f"{int(item[1]['typ']): 3} {item[1]['mass']:.5f}\n")
+            f.write(f"{int(item[1]['typ']): 3} {item[1]['mass']:.5f}\
+                # {item[0]}\n")
         f.write(f"\n")
 
     def write_atoms(self, f: typing.TextIO) -> None:
