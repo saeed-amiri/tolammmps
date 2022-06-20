@@ -440,8 +440,8 @@ class PsfToLmp(PsfToDf):
     def mk_lmp_atoms(self) -> pd.DataFrame:
         """make atoms DataFrame in LAMMPS format"""
         # Columns to copy from PDB data for lammps
-        columns = ['atom_id', 'mol',
-                   'x', 'y', 'z', 'atom_symbol']
+        columns: list[str] = ['atom_id', 'mol',
+                              'x', 'y', 'z', 'atom_symbol']
         # Initiat the DataFrame
         df: pd.DataFrame = self.atoms[columns].copy()
         # Get the charges for each atom
@@ -452,7 +452,6 @@ class PsfToLmp(PsfToDf):
         l_typ: list[int] = [
             self.typ.loc[item]['typ'] for item in self.atoms['atom_symbol']
         ]
-        # Add # for comment information in the data file
         l_typ = [int(typ) for typ in l_typ]
         df['charge'] = l_charge
         df['typ'] = l_typ
@@ -460,6 +459,7 @@ class PsfToLmp(PsfToDf):
         df['nx'] = [0 for _ in l_typ]
         df['ny'] = [0 for _ in l_typ]
         df['nz'] = [0 for _ in l_typ]
+        # Add # for comment information in the data file
         df['cmt'] = ['#' for _ in l_typ]
         # correct the index
         df.index += 1
