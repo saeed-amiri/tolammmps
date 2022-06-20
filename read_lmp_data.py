@@ -1,7 +1,7 @@
 import typing
 import pandas as pd
 
-class Filerror:
+class FileErr:
     """
     there is problem in the header of the INFILE,
     maybe a long header!\n
@@ -28,7 +28,7 @@ class Header:
     """
 
     def __init__(self, infile) -> None:
-        self.infile: typing.IO = infile
+        self.infile = infile
         self.atomsLine: int = 0
         self.atomsLine = self.check_file()
         print(f'number of header lines: {self.atomsLine}\n')
@@ -53,7 +53,7 @@ class Header:
                     atomsLine = linecount
                     break
                 if linecount > MAXHEADER:
-                    err = FILEERROR()
+                    err = FileErr()
                     exit(err.__doc__)
                 if not line:
                     exit("wrong data file\n")
@@ -257,6 +257,7 @@ class Body:
             self.Bonds_df = pd.DataFrame.from_dict(self.Bonds).T
             self.Angles_df = pd.DataFrame.from_dict(self.Angles).T
             self.Dihedrals_df = pd.DataFrame.from_dict(self.Dihedrals).T
+            del self.Atoms, self.Bonds, self.Angles, self.Dihedrals
 
     def get_atoms(self, line) -> None:
         # stting the nth row of the dictionary
