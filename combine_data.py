@@ -1,7 +1,9 @@
 import os
 import sys
+import typing
 import pandas as pd
 import numpy as np
+import read_lmp_data as mlmp  # My lammps
 
 class Doc:
     """combining LAMMPS data file to prepare interface
@@ -18,3 +20,11 @@ class Doc:
         combine_data.py data1 data2 data3 ...
     
     """
+
+
+INFILE = 'system.data'
+OUTFILE = 'silica_ole_slic.data'
+o = mlmp.Header(INFILE)
+atoms = mlmp.Body(o.Names, INFILE)
+print(o.Names)
+atoms.read_body()
