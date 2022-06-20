@@ -1,4 +1,3 @@
-from pprint import pprint
 import re
 import sys
 import typing
@@ -181,7 +180,7 @@ class Psf:
     """
 
     def __init__(self) -> None:
-        print(f"Reading {PSFFILE}...")
+        print(f"Reading '{PSFFILE}' ...")
         self.get_data()
 
     def get_data(self) -> None:
@@ -407,6 +406,7 @@ class PsfToLmp(PsfToDf):
     def __init__(self, atoms: pd.DataFrame) -> None:
         super().__init__()
         self.atoms = atoms
+        print(f"Converting to LAMMPS ...")
         del atoms
 
     def set_attrs(self) -> None:
@@ -478,9 +478,8 @@ class PsfToLmp(PsfToDf):
         # Add id column
         df.index += 1
         df['id'] = df.index
-        # Add type column 
+        # Add type column
         df['typ'] = [1 for _ in bond]
-        print(df)
         return df
 
     def mk_lmp_angles(self) -> pd.DataFrame:
@@ -523,7 +522,7 @@ class WriteLmp:
         self.Natoms_type = lmp.Natom_type
         self.Nbonds = lmp.NBOND
         self.Nbonds_type = lmp.Nbonds_type
-        print(dir(lmp))
+        print(f"Writting '{LMPFILE}' ...")
 
     def mk_lmp(self) -> None:
         """calling function to write data into a file"""
