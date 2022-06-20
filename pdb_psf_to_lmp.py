@@ -17,6 +17,11 @@ class Doc:
         and typing"
         ~/.local/bin/mypy pdb_psf_to_lmp.py
     ]
+    It gets data implicitly, it reads the file and then based the data
+    format it set the informations.
+    For example the constants like : "NBOND", "NTHETA", "NATOM", "NBOND",
+    and "Masses" it not get directly.
+    It is just an experience :))
 
     USAGE example: pdb_psf_to_lmp.py solavte
 
@@ -479,8 +484,21 @@ class PsfToLmp(PsfToDf):
         df.index += 1
         df['id'] = df.index
         # Add type column
-        df['typ'] = [1 for _ in bond]
+        df = self.get_bond_typ(df)
         return df
+    
+    def get_bond_typ(self, df: pd.DataFrame) -> pd.DataFrame:
+        """Find how many differnt bonds are in the system"""
+        columns: list[str] = ['bond']
+        df_sub: pd.DataFrame = df[columns].copy()
+        df_sub = df_sub.groupby(by=['bond']).min()
+        df_sub = df_sub.reset_index()
+        df_sub.index += 1
+        df_sub['typ'] = df_sub.index
+        df_sub = df_sub.set_index('bond')
+        df['typ'] = [df_sub.loc[item]['typ'] for item in df['bond']]
+        return df
+
 
     def mk_lmp_angles(self) -> pd.DataFrame:
         """make DataFrame for LAMMPS Angels section"""
