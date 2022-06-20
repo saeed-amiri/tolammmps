@@ -539,6 +539,7 @@ class WriteLmp:
         self.Natoms_type = lmp.Natom_type
         self.Nbonds = lmp.NBOND
         self.Nbonds_type = lmp.Nbonds_type
+        self.typ = lmp.typ
         print(f"Writting '{LMPFILE}' ...")
 
     def mk_lmp(self) -> None:
@@ -575,7 +576,7 @@ class WriteLmp:
             f.write(f"\n")
             self.write_numbers(f)
             self.write_box(f)
-            # self.write_masses(f)
+            self.write_masses(f)
             self.write_atoms(f)
             self.write_bonds(f)
 
@@ -595,9 +596,8 @@ class WriteLmp:
     def write_masses(self, f: typing.TextIO) -> None:
         f.write(f"Masses\n")
         f.write(f"\n")
-        for k, v in self.Masses.items():
-            if k < 5:
-                f.write(f"{k} {v:.5f}\n")
+        for item in self.typ.iterrows():
+            f.write(f"{int(item[1]['typ']): 3} {item[1]['mass']:.5f}\n")
         f.write(f"\n")
 
     def write_atoms(self, f: typing.TextIO) -> None:
