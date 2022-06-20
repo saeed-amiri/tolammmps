@@ -154,14 +154,14 @@ class Pdb:
         # make a dict from the new index and the residue
         residue_dict: dict[int, int] = {
             k: v for k, v in zip(df_reduced.residue_number, df_reduced.index)
-            }
+        }
         # Make a list of new residue number for the main DataFrame\
         # I call it 'mol'
         mol: list[int] = []
         for _, row in df.iterrows():
             mol.append(residue_dict[row['residue_number']])
         # Add the new mol numbers to the DataFrame
-        df['residue_number'] = mol
+        df['mol'] = mol
         del df_reduced
         del residue_dict
         return df
@@ -181,6 +181,7 @@ class Psf:
     """
 
     def __init__(self) -> None:
+        print(f"Reading {PSFFILE}...")
         self.get_data()
 
     def get_data(self) -> None:
@@ -337,14 +338,14 @@ class PsfToDf(Psf):
         # make a dict from the new index and the residue
         residue_dict: dict[int, int] = {
             k: v for k, v in zip(df_reduced.residue_number, df_reduced.index)
-            }
+        }
         # Make a list of new residue number for the main DataFrame\
         # I call it 'mol'
         mol: list[int] = []
         for _, row in df.iterrows():
             mol.append(residue_dict[row['residue_number']])
         # Add the new mol numbers to the DataFrame
-        df['residue_number'] = mol
+        df['mol'] = mol
         del df_reduced
         del residue_dict
         return df
@@ -429,7 +430,7 @@ class PsfToLmp(PsfToDf):
     def mk_lmp_atoms(self) -> pd.DataFrame:
         """make atoms DataFrame in LAMMPS format"""
         # Columns to copy from PDB data for lammps
-        columns = ['atom_id', 'residue_number',
+        columns = ['atom_id', 'mol',
                    'x', 'y', 'z', 'atom_symbol']
         # Initiat the DataFrame
         df: pd.DataFrame = self.atoms[columns].copy()
@@ -445,7 +446,13 @@ class PsfToLmp(PsfToDf):
         l_typ = [int(typ) for typ in l_typ]
         df['charge'] = l_charge
         df['typ'] = l_typ
+        # Add box flages
+        df['nx'] = [0 for _ in l_typ]
+        df['ny'] = [0 for _ in l_typ]
+        df['nz'] = [0 for _ in l_typ]
         df['cmt'] = ['#' for _ in l_typ]
+        # correct the index
+        df.index += 1
         return df
 
     def mk_lmp_bonds(self) -> pd.DataFrame:
@@ -453,15 +460,22 @@ class PsfToLmp(PsfToDf):
         df: pd.DataFrame = self.bonds
         df = df.astype({'ai': int, 'aj': int})
         # Create the bonds for the atoms ai and aj
+        # The index of lmp_atoms starts from 1 !!
         l_ai: list[str] = [
-            self.lmp_atoms['atom_symbol'][item-1] for item in df['ai']
+            self.lmp_atoms['atom_symbol'][item] for item in df['ai']
         ]
         l_aj: list[str] = [
-            self.lmp_atoms['atom_symbol'][item-1] for item in df['aj']
+            self.lmp_atoms['atom_symbol'][item] for item in df['aj']
         ]
         bond: list[str] = [f"{i}-{j}" for i, j in zip(l_ai, l_aj)]
         df['cmt'] = ['#' for _ in bond]
         df['bond'] = bond
+        # Add id column
+        df.index += 1
+        df['id'] = df.index
+        # Add type column 
+        df['typ'] = [1 for _ in bond]
+        print(df)
         return df
 
     def mk_lmp_angles(self) -> pd.DataFrame:
@@ -470,13 +484,13 @@ class PsfToLmp(PsfToDf):
         df = df.astype({'ai': int, 'aj': int, 'ak': int})
         # Create the angles for the atoms ai and aj
         l_ai: list[str] = [
-            self.lmp_atoms['atom_symbol'][item-1] for item in df['ai']
+            self.lmp_atoms['atom_symbol'][item] for item in df['ai']
         ]
         l_aj: list[str] = [
-            self.lmp_atoms['atom_symbol'][item-1] for item in df['aj']
+            self.lmp_atoms['atom_symbol'][item] for item in df['aj']
         ]
         l_ak: list[str] = [
-            self.lmp_atoms['atom_symbol'][item-1] for item in df['ak']
+            self.lmp_atoms['atom_symbol'][item] for item in df['ak']
         ]
         angle: list[str] = [
             f"{i}-{j}-{k}" for i, j, k in zip(l_ai, l_aj, l_ak)
@@ -496,9 +510,15 @@ class WriteLmp:
         A LAMMPS data file
     """
 
-    def __init__(self, atoms: pd.DataFrame) -> None:
-        self.atoms = atoms
-        del atoms
+    def __init__(self, lmp: PsfToLmp) -> None:
+        self.atoms = lmp.lmp_atoms
+        self.bonds = lmp.lmp_bonds
+        self.angles = lmp.lmp_angles
+        self.Natoms = lmp.NATOM
+        # self.Natoms_type = lmp.
+        self.Nbonds = lmp.NBOND
+        # self.Nbonds_type
+        print(dir(lmp))
 
     def mk_lmp(self) -> None:
         """calling function to write data into a file"""
@@ -507,7 +527,7 @@ class WriteLmp:
         # get number of atoms, types, bonds
         # self.set_numbers()
         # write file
-        # self.write_data()
+        self.write_data()
         # print(self.atoms['charge'].sum())
 
     def set_box(self) -> None:
@@ -530,19 +550,19 @@ class WriteLmp:
     def write_data(self) -> None:
         """write LAMMPS data file"""
         with open(LMPFILE, 'w') as f:
-            f.write(f"Data file from Ole Nikle for silica slab\n")
+            f.write(f"Data file from VDM for silica slab\n")
             f.write(f"\n")
             self.write_numbers(f)
             self.write_box(f)
-            self.write_masses(f)
+            # self.write_masses(f)
             self.write_atoms(f)
             self.write_bonds(f)
 
     def write_numbers(self, f: typing.TextIO) -> None:
         f.write(f"{self.Natoms} atoms\n")
-        f.write(f"{self.Natoms_type} atom types\n")
+        # f.write(f"{self.Natoms_type} atom types\n")
         f.write(f"{self.Nbonds} bonds\n")
-        f.write(f"{self.Nbonds_type} bond types\n")
+        # f.write(f"{self.Nbonds_type} bond types\n")
         f.write(f"\n")
 
     def write_box(self, f: typing.TextIO) -> None:
@@ -564,7 +584,7 @@ class WriteLmp:
         f.write(f"Atoms # full\n")
         f.write(f"\n")
         columns = ['mol', 'typ', 'charge', 'x', 'y', 'z', 'nx', 'ny', 'nz',
-                   'cmt', 'atom_name']
+                   'cmt', 'atom_symbol']
         self.atoms.to_csv(f, sep=' ', index=True, columns=columns,
                           header=None)
         f.write(f"\n")
@@ -592,5 +612,5 @@ if __name__ == '__main__':
     pdb.get_data()
     psf = PsfToLmp(pdb.atoms_df)
     psf.set_attrs()
-    lmp = WriteLmp(pdb.atoms_df)
+    lmp = WriteLmp(psf)
     lmp.mk_lmp()
