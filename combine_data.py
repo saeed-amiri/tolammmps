@@ -508,8 +508,10 @@ class WriteLmp:
         f.write(f"Masses\n")
         f.write(f"\n")
         for item in self.typ.iterrows():
-            f.write(f"{int(item[1]['typ']): 3} {item[1]['mass']:.5f}\
-                # {item[0]}\n")
+            f.write(f"{int(item[1]['typ']): 3}"
+                    f"  {item[1]['mass']:.5f}"
+                    f"  # {item[0]}\n"
+                    )
         f.write(f"\n")
 
     def write_atoms(self, f: typing.TextIO) -> None:
@@ -518,8 +520,11 @@ class WriteLmp:
         f.write(f"\n")
         columns = ['atom_id', 'mol', 'typ', 'charge', 'x', 'y', 'z', 'nx',
                    'ny', 'nz', 'cmt', 'name']
+        self.system.Atoms = self.system.Atoms.astype(
+            {'x': float, 'y':  float, 'z': float}
+        )
         self.system.Atoms.to_csv(f, sep=' ', index=False, columns=columns,
-                          header=None)
+                                 header=None, float_format='%.8f')
         f.write(f"\n")
         f.write(f"\n")
 
@@ -528,7 +533,7 @@ class WriteLmp:
         f.write(f"\n")
         columns = ['typ', 'ai', 'aj', 'cmt', 'bond']
         self.system.Bonds.to_csv(f, sep=' ', index=True, columns=columns,
-                          header=None)
+                                 header=None)
         f.write(f"\n")
 
     def write_angles(self, f: typing.TextIO) -> None:
@@ -536,7 +541,7 @@ class WriteLmp:
         f.write(f"\n")
         columns = ['typ', 'ai', 'aj', 'ak', 'cmt', 'angle']
         self.system.Angles.to_csv(f, sep=' ', index=True, columns=columns,
-                            header=None)
+                                  header=None)
         f.write(f"\n")
 
     def write_dihedrals(self, f: typing.TextIO) -> None:
@@ -544,9 +549,8 @@ class WriteLmp:
         f.write(f"\n")
         columns = ['typ', 'ai', 'aj', 'ak', 'ak', 'cmt', 'dihedral']
         self.system.Dihedrals.to_csv(f, sep=' ', index=True, columns=columns,
-                            header=None)
+                                     header=None)
         f.write(f"\n")
-
 
 
 INFILE = sys.argv[1:]
@@ -555,4 +559,3 @@ system.mk_lmp_df()
 LMPFILE = 'interface.data'
 lmp = WriteLmp(system)
 lmp.mk_lmp()
-system.Bonds.to_csv('bonds', sep='\t', index=True)
