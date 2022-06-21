@@ -162,13 +162,14 @@ class Bonds:
         """make the bond DataFrame"""
         self.update_atoms_id()
         self.update_bond_typ()
-        _Bonds = self.append_bonds()
+        _Bonds: pd.DataFrame = self.append_bonds()
         _Bonds = _Bonds.reset_index()
         _Bonds.index += 1
-        columns = ['typ', 'ai', 'aj']
-        self.Bonds = _Bonds[columns].copy()
-        self.NBonds = len(self.Bonds)
-        self.NBondTypes = max(self.Bonds['typ'])
+        columns: list[str] = ['typ', 'ai', 'aj']
+        self.Bonds: pd.DataFrame = _Bonds[columns].copy()
+        self.NBonds: int = len(self.Bonds)
+        self.NBondTypes: int = max(self.Bonds['typ'])
+        del _Bonds
 
     def append_bonds(self) -> pd.DataFrame:
         """append bonds DataFrame with updataed id and type"""
@@ -220,10 +221,15 @@ class Angles:
         """make the bond DataFrame"""
         self.update_atoms_id()
         self.update_angle_typ()
-        self.Angles: pd.DataFrame = self.append_angles()
-        self.Angles = self.Angles.astype(int)
+        _Angles: pd.DataFrame = self.append_angles()
+        _Angles = _Angles.astype(int)
+        _Angles = _Angles.reset_index()
+        _Angles.index += 1
+        columns: list[str] = ['typ', 'ai', 'aj', 'ak']
+        self.Angles: pd.DataFrame = _Angles[columns].copy()
         self.NAgnles: int = len(self.Angles)
         self.NAngleType: int = max(self.Angles['typ'])
+        del _Angles
 
     def append_angles(self) -> pd.DataFrame:
         """append bonds DataFrame with updataed id and type"""
@@ -281,10 +287,15 @@ class Dihedrals:
         """make the bond DataFrame"""
         self.update_atoms_id()
         self.update_dihedral_typ()
-        self.Dihedrals: pd.DataFrame = self.append_dihedrals()
-        self.Dihedrals = self.Dihedrals.astype(int)
+        _Dihedrals: pd.DataFrame = self.append_dihedrals()
+        _Dihedrals = _Dihedrals.astype(int)
+        _Dihedrals = _Dihedrals.reset_index()
+        _Dihedrals.index += 1
+        columns: list[str] = ['typ', 'ai', 'aj', 'ak', 'ah']
+        self.Dihedrals = _Dihedrals[columns]
         self.NDihedrals: int = len(self.Dihedrals['typ'])
         self.NDihedralType: int = max(self.Dihedrals['typ'])
+        del _Dihedrals
 
     def append_dihedrals(self) -> pd.DataFrame:
         """append bonds DataFrame with updataed id and type"""
@@ -405,7 +416,7 @@ class Combine:
         _Angle['cmt'] = ["#" for _ in _Angle.index]
         _Angle['angle'] = angle_name
         self.Angles = _Angle
-        self.NAngels = angles.NAgnles
+        self.NAngles = angles.NAgnles
         self.NAngleType = angles.NAngleType
         del _Angle
 
@@ -473,12 +484,18 @@ class WriteLmp:
             # self.write_masses(f)
             self.write_atoms(f)
             self.write_bonds(f)
+            self.write_angles(f)
+            self.write_dihedrals(f)
 
     def write_numbers(self, f: typing.TextIO) -> None:
         f.write(f"{self.system.NAtoms} atoms\n")
         f.write(f"{self.system.NAtomType} atom types\n")
         f.write(f"{self.system.NBonds} bonds\n")
         f.write(f"{self.system.NBondType} bond types\n")
+        f.write(f"{self.system.NAngles} angles\n")
+        f.write(f"{self.system.NAngleType} angle types\n")
+        f.write(f"{self.system.NDihedrals} dihedrals\n")
+        f.write(f"{self.system.NDihedralType} dihedral types\n")
         f.write(f"\n")
 
     def write_box(self, f: typing.TextIO) -> None:
@@ -512,6 +529,25 @@ class WriteLmp:
         columns = ['typ', 'ai', 'aj', 'cmt', 'bond']
         self.system.Bonds.to_csv(f, sep=' ', index=True, columns=columns,
                           header=None)
+        f.write(f"\n")
+
+    def write_angles(self, f: typing.TextIO) -> None:
+        f.write(f"Angles\n")
+        f.write(f"\n")
+        columns = ['typ', 'ai', 'aj', 'ak', 'cmt', 'angle']
+        self.system.Angles.to_csv(f, sep=' ', index=True, columns=columns,
+                            header=None)
+        f.write(f"\n")
+
+    def write_dihedrals(self, f: typing.TextIO) -> None:
+        f.write(f"Dihedrals\n")
+        f.write(f"\n")
+        columns = ['typ', 'ai', 'aj', 'ak', 'ak', 'cmt', 'dihedral']
+        self.system.Dihedrals.to_csv(f, sep=' ', index=True, columns=columns,
+                            header=None)
+        f.write(f"\n")
+
+
 
 INFILE = sys.argv[1:]
 system = Combine(INFILE)
