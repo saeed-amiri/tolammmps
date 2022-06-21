@@ -1,6 +1,7 @@
 import typing
 import pandas as pd
 
+
 class FileErr:
     """
     there is problem in the header of the INFILE,
@@ -65,6 +66,7 @@ class Header:
         """
         # Setting dictionaries to save data of each block in the header
         self.set_attrs()
+        self.set_attr_zero()
         # Setting flags to save data correctly
         Masses, PairCoeff, BondCoeff, AngleCoeff, DihedralCoeff, Atoms\
             = False, False, False, False, False, False
@@ -91,7 +93,7 @@ class Header:
                 elif line.strip().endswith("dihedrals"):
                     self.NDihedrals = int(line.strip().split(' ')[0])
                 elif line.strip().endswith("dihedral typss"):
-                    self.NDihedralsTyp = int(line.strip().split(' ')[0])
+                    self.NDihedralTyp = int(line.strip().split(' ')[0])
                 elif line.strip().endswith("xhi"):
                     self.Xlim = self.get_axis_lim(line.strip().split('xlo')[0])
                 elif line.strip().endswith("yhi"):
@@ -140,6 +142,17 @@ class Header:
         self.BondCoeff: dict[int, typing.Any] = dict()
         self.AngleCoeff: dict[int, typing.Any] = dict()
         self.DihedralCoeff: dict[int, typing.Any] = dict()
+
+    def set_attr_zero(self) -> None:
+        """set the intial values to zero"""
+        self.NATOMS: int = 0
+        self.NBonds: int = 0
+        self.NAngles: int = 0
+        self.NATomTyp: int = 0
+        self.NBondTyp: int = 0
+        self.NAngleTyp: int = 0
+        self.NDihedrals: int = 0
+        self.NDihedralTyp: int = 0
 
     def get_axis_lim(self, lim) -> list:
         lim = lim.split(' ')
