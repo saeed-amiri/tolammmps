@@ -191,6 +191,7 @@ class Angles:
         self.update_atoms_id()
         self.update_angle_typ()
         self.Angles = self.append_angles()
+        self.Angles = self.Angles.astype(int)
 
     def append_angles(self) -> pd.DataFrame:
         """append bonds DataFrame with updataed id and type"""
@@ -238,7 +239,6 @@ class Angles:
 
 class Dihedrals:
     """update the Angels DataFrames and return uniq one"""
-
     def __init__(self,
                  l_dihedrals: dict[str, pd.DataFrame],
                  headers: dict[str, mlmp.Header],
@@ -253,8 +253,9 @@ class Dihedrals:
         self.update_atoms_id()
         self.update_dihedral_typ()
         self.Dihedrals = self.append_dihedrals()
+        self.Dihedrals = self.Dihedrals.astype(int)
 
-    def append_dihedrlas(self) -> pd.DataFrame:
+    def append_dihedrals(self) -> pd.DataFrame:
         """append bonds DataFrame with updataed id and type"""
         return pd.concat(self.l_dihedrals)
 
@@ -321,6 +322,9 @@ class Combine:
         angles = Angles(self.l_angles, self.l_headers, self.f_list)
         angles.mk_angles()
         self.Angles = angles.Angles
+        dihedrals = Dihedrals(self.l_dihedrals, self.l_headers, self.f_list)
+        dihedrals.mk_dihedrals()
+        self.Dihedrals = dihedrals.Dihedrals
 
     def set_df_lists(self) -> None:
         """Set lists to append DataFrame in it"""
@@ -350,3 +354,4 @@ system.mk_lmp_df()
 system.Atoms.to_csv('atoms', sep='\t', index=False, header=None)
 system.Bonds.to_csv('bonds', sep='\t', index=False, header=None)
 system.Angles.to_csv('angles', sep='\t', index=False, header=None)
+system.Dihedrals.to_csv('dihedrals', sep='\t', index=False, header=None)
