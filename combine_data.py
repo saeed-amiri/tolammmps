@@ -48,7 +48,6 @@ class Atoms:
         self.Nmols = self.update_atom_mol()
         self.max_z = self.recenter_atoms()
         self.Atoms = self.append_atoms()
-        print(self.Natoms, self.NATomTyp)
 
     def append_atoms(self) -> pd.DataFrame:
         """append atoms DataFrame with updataed id and type"""
@@ -174,6 +173,7 @@ class Bonds:
                 break
         return NBondTyp
 
+
 class Angles:
     """update the Angels DataFrames and return uniq one"""
 
@@ -197,25 +197,24 @@ class Angles:
         return pd.concat(self.l_angles)
 
     def update_atoms_id(self) -> None:
-        """Update the atom id (ai, aj)"""
+        """Update the atom id (ai, aj, ak)"""
         # Track the number of atom in each file
         Natoms: int = 0
         for i, f in enumerate(self.f_list):
-                if i == 0:
-                    Natoms = self.l_headers[f].NATOMS
-                    print(f)
-                elif i > 0 and i < len(self.f_list):
-                    # Update the the index of the second file
-                    try:
-                        self.l_angles[f]['ai'] += Natoms
-                        self.l_angles[f]['aj'] += Natoms
-                        self.l_angles[f]['ak'] += Natoms
-                    except KeyError:
-                        pass
-                    # Add the number of the atoms of the current file
-                    Natoms += self.l_headers[f].NATOMS
-                if i+1 > len(self.f_list):
-                    break
+            if i == 0:
+                Natoms = self.l_headers[f].NATOMS
+            elif i > 0 and i < len(self.f_list):
+                # Update the the index of the second file
+                try:
+                    self.l_angles[f]['ai'] += Natoms
+                    self.l_angles[f]['aj'] += Natoms
+                    self.l_angles[f]['ak'] += Natoms
+                except KeyError:
+                    pass
+                # Add the number of the atoms of the current file
+                Natoms += self.l_headers[f].NATOMS
+            if i+1 > len(self.f_list):
+                break
 
     def update_angle_typ(self) -> int:
         """update the number of each type in atoms card"""
@@ -227,7 +226,7 @@ class Angles:
                 except KeyError:
                     pass
             elif i > 0 and i < len(self.f_list):
-                try: 
+                try:
                     self.l_angles[f]['typ'] += NAngleTyp
                     NAngleTyp += self.l_headers[f].NAngleTyp
                 except KeyError:
@@ -235,6 +234,69 @@ class Angles:
             if i+1 > len(self.f_list):
                 break
         return NAngleTyp
+
+
+class Dihedrals:
+    """update the Angels DataFrames and return uniq one"""
+
+    def __init__(self,
+                 l_dihedrals: dict[str, pd.DataFrame],
+                 headers: dict[str, mlmp.Header],
+                 f_list: list[str]) -> None:
+        self.l_dihedrals = l_dihedrals
+        self.l_headers = headers
+        self.f_list = f_list
+        del headers, l_dihedrals, f_list
+
+    def mk_dihedrals(self) -> None:
+        """make the bond DataFrame"""
+        self.update_atoms_id()
+        self.update_dihedral_typ()
+        self.Dihedrals = self.append_dihedrals()
+
+    def append_dihedrlas(self) -> pd.DataFrame:
+        """append bonds DataFrame with updataed id and type"""
+        return pd.concat(self.l_dihedrals)
+
+    def update_atoms_id(self) -> None:
+        """Update the atom id (ai, aj, ak, ah)"""
+        # Track the number of atom in each file
+        Natoms: int = 0
+        for i, f in enumerate(self.f_list):
+            if i == 0:
+                Natoms = self.l_headers[f].NATOMS
+            elif i > 0 and i < len(self.f_list):
+                # Update the the index of the second file
+                try:
+                    self.l_dihedrals[f]['ai'] += Natoms
+                    self.l_dihedrals[f]['aj'] += Natoms
+                    self.l_dihedrals[f]['ak'] += Natoms
+                    self.l_dihedrals[f]['ah'] += Natoms
+                except KeyError:
+                    pass
+                # Add the number of the atoms of the current file
+                Natoms += self.l_headers[f].NATOMS
+            if i+1 > len(self.f_list):
+                break
+
+    def update_dihedral_typ(self) -> int:
+        """update the number of each type in atoms card"""
+        NDihedralTyp: int = 0
+        for i, f in enumerate(self.f_list):
+            if i == 0:
+                try:
+                    NDihedralTyp = self.l_headers[f].NDihedralTyp
+                except KeyError:
+                    pass
+            elif i > 0 and i < len(self.f_list):
+                try:
+                    self.l_dihedrals[f]['typ'] += NDihedralTyp
+                    NDihedralTyp += self.l_headers[f].NDihedralTyp
+                except KeyError:
+                    pass
+            if i+1 > len(self.f_list):
+                break
+        return NDihedralTyp
 
 
 class Combine:
