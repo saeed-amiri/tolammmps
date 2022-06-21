@@ -31,7 +31,7 @@ class Header:
         self.infile = infile
         self.atomsLine: int = 0
         self.atomsLine = self.check_file()
-        print(f'number of header lines: {self.atomsLine}\n')
+        print(f'lines in header: {self.atomsLine}\n')
         self.read_header()
 
     def check_file(self) -> int:
