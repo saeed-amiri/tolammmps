@@ -1,6 +1,8 @@
+import re
 import sys
 import pandas as pd
 import read_lmp_data as mlmp  # My lammps
+import typing
 
 
 class Doc:
@@ -47,7 +49,13 @@ class Atoms:
         self.NATomTyp = self.update_atom_typ()
         self.Nmols = self.update_atom_mol()
         self.max_z = self.recenter_atoms()
-        self.Atoms = self.append_atoms()
+        self.update_atom_name()
+        Atoms = self.append_atoms()
+        columns: list[str] = [
+            'atom_id', 'mol', 'typ', 'charge', 'x', 'y', 'z',
+            'nx', 'ny', 'nz', 'cmt', 'name']
+        Atoms = Atoms.reset_index()
+        self.Atoms = Atoms[columns].copy()
 
     def append_atoms(self) -> pd.DataFrame:
         """append atoms DataFrame with updataed id and type"""
@@ -98,6 +106,22 @@ class Atoms:
             if i+1 > len(self.f_list):
                 break
         return Nmols
+
+    def update_atom_name(self) -> None:
+        """Correct the name of the atoms"""
+        for i, f in enumerate(self.f_list):
+            # Drop the chars
+            self.l_atoms[f]['name'] = [
+                self.rm_special_str(item) for item in self.l_atoms[f]['name']]
+            # Drop empty spaces
+            self.l_atoms[f]['name'] = [
+                item.strip() for item in self.l_atoms[f]['name']]
+            # Keep only the first two letters
+            self.l_atoms[f]['name'] = [
+                item[0:2] for item in self.l_atoms[f]['name']]
+
+    def rm_special_str(self, char: list[typing.Any]) -> str:
+        return re.sub('[^A-Za-z0-9]+', '', char)
 
     def recenter_atoms(self) -> float:
         """make sure all the atoms are not overlapping after stacking"""
@@ -222,16 +246,13 @@ class Angles:
         NAngleTyp: int = 0
         for i, f in enumerate(self.f_list):
             if i == 0:
-                try:
-                    NAngleTyp = self.l_headers[f].NAngleTyp
-                except KeyError:
-                    pass
+                NAngleTyp = self.l_headers[f].NAngleTyp
             elif i > 0 and i < len(self.f_list):
                 try:
                     self.l_angles[f]['typ'] += NAngleTyp
-                    NAngleTyp += self.l_headers[f].NAngleTyp
                 except KeyError:
                     pass
+                NAngleTyp += self.l_headers[f].NAngleTyp
             if i+1 > len(self.f_list):
                 break
         return NAngleTyp
@@ -285,16 +306,13 @@ class Dihedrals:
         NDihedralTyp: int = 0
         for i, f in enumerate(self.f_list):
             if i == 0:
-                try:
-                    NDihedralTyp = self.l_headers[f].NDihedralTyp
-                except KeyError:
-                    pass
+                NDihedralTyp = self.l_headers[f].NDihedralTyp
             elif i > 0 and i < len(self.f_list):
                 try:
                     self.l_dihedrals[f]['typ'] += NDihedralTyp
-                    NDihedralTyp += self.l_headers[f].NDihedralTyp
                 except KeyError:
                     pass
+                NDihedralTyp += self.l_headers[f].NDihedralTyp
             if i+1 > len(self.f_list):
                 break
         return NDihedralTyp
@@ -316,12 +334,8 @@ class Combine:
         atoms = Atoms(self.l_atoms, self.l_headers, self.f_list)
         atoms.mk_atoms()
         self.Atoms = atoms.Atoms
-        bonds = Bonds(self.l_bonds, self.l_headers, self.f_list)
-        bonds.mk_bonds()
-        self.Bonds = bonds.Bonds
-        angles = Angles(self.l_angles, self.l_headers, self.f_list)
-        angles.mk_angles()
-        self.Angles = angles.Angles
+        self.set_bonds()
+        self.set_angles()
         dihedrals = Dihedrals(self.l_dihedrals, self.l_headers, self.f_list)
         dihedrals.mk_dihedrals()
         self.Dihedrals = dihedrals.Dihedrals
@@ -347,11 +361,41 @@ class Combine:
             self.l_angles[f] = atoms.Angles_df
             self.l_dihedrals[f] = atoms.Dihedrals_df
 
+    def set_bonds(self) -> None:
+        """get bonds with updating it with names"""
+        bonds = Bonds(self.l_bonds, self.l_headers, self.f_list)
+        bonds.mk_bonds()
+        _Bond: pd.DataFrame = bonds.Bonds
+        bond_name: list[str] = [
+            f"{self.Atoms.iloc[ai-1]['name']}-"
+            f"{self.Atoms.iloc[aj-1]['name']}"
+            for ai, aj in zip(_Bond['ai'], _Bond['aj'])]
+        _Bond['cmt'] = ["#" for _ in _Bond.index]
+        _Bond['bond'] = bond_name
+        self.Bonds = _Bond
+        del _Bond
+
+    def set_angles(self) -> None:
+        """get angles with updating it with names"""
+        angles = Angles(self.l_angles, self.l_headers, self.f_list)
+        angles.mk_angles()
+        _Angle: pd.DataFrame = angles.Angles
+        angle_name: list[str] = [
+            f"{self.Atoms.iloc[ai-1]['name']}-"
+            f"{self.Atoms.iloc[aj-1]['name']}-"
+            f"{self.Atoms.iloc[ak-1]['name']}"
+            for ai, aj, ak in
+            zip(_Angle['ai'], _Angle['aj'], _Angle['ak'])]
+        _Angle['cmt'] = ["#" for _ in _Angle.index]
+        _Angle['angle'] = angle_name
+        self.Angles = _Angle
+        del _Angle
+
 
 INFILE = sys.argv[1:]
 system = Combine(INFILE)
 system.mk_lmp_df()
-system.Atoms.to_csv('atoms', sep='\t', index=False, header=None)
+system.Atoms.to_csv('atoms', sep='\t', index=False)
 system.Bonds.to_csv('bonds', sep='\t', index=False, header=None)
 system.Angles.to_csv('angles', sep='\t', index=False, header=None)
 system.Dihedrals.to_csv('dihedrals', sep='\t', index=False, header=None)
