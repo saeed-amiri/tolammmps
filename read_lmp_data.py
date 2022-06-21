@@ -145,14 +145,14 @@ class Header:
 
     def set_attr_zero(self) -> None:
         """set the intial values to zero"""
-        self.NATOMS: int = 0
-        self.NBonds: int = 0
-        self.NAngles: int = 0
-        self.NATomTyp: int = 0
-        self.NBondTyp: int = 0
-        self.NAngleTyp: int = 0
-        self.NDihedrals: int = 0
-        self.NDihedralTyp: int = 0
+        self.NATOMS = 0
+        self.NBonds = 0
+        self.NAngles = 0
+        self.NATomTyp = 0
+        self.NBondTyp = 0
+        self.NAngleTyp = 0
+        self.NDihedrals = 0
+        self.NDihedralTyp = 0
 
     def get_axis_lim(self, lim) -> list:
         lim = lim.split(' ')
