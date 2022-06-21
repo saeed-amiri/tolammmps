@@ -162,7 +162,13 @@ class Bonds:
         """make the bond DataFrame"""
         self.update_atoms_id()
         self.update_bond_typ()
-        self.Bonds = self.append_bonds()
+        _Bonds = self.append_bonds()
+        _Bonds = _Bonds.reset_index()
+        _Bonds.index += 1
+        columns = ['typ', 'ai', 'aj']
+        self.Bonds = _Bonds[columns].copy()
+        self.NBonds = len(self.Bonds)
+        self.NBondTypes = max(self.Bonds['typ'])
 
     def append_bonds(self) -> pd.DataFrame:
         """append bonds DataFrame with updataed id and type"""
@@ -214,8 +220,10 @@ class Angles:
         """make the bond DataFrame"""
         self.update_atoms_id()
         self.update_angle_typ()
-        self.Angles = self.append_angles()
+        self.Angles: pd.DataFrame = self.append_angles()
         self.Angles = self.Angles.astype(int)
+        self.NAgnles: int = len(self.Angles)
+        self.NAngleType: int = max(self.Angles['typ'])
 
     def append_angles(self) -> pd.DataFrame:
         """append bonds DataFrame with updataed id and type"""
@@ -273,8 +281,10 @@ class Dihedrals:
         """make the bond DataFrame"""
         self.update_atoms_id()
         self.update_dihedral_typ()
-        self.Dihedrals = self.append_dihedrals()
+        self.Dihedrals: pd.DataFrame = self.append_dihedrals()
         self.Dihedrals = self.Dihedrals.astype(int)
+        self.NDihedrals: int = len(self.Dihedrals['typ'])
+        self.NDihedralType: int = max(self.Dihedrals['typ'])
 
     def append_dihedrals(self) -> pd.DataFrame:
         """append bonds DataFrame with updataed id and type"""
@@ -331,14 +341,10 @@ class Combine:
         """making DataFrames from all the inputs"""
         self.set_df_lists()
         self.get_data()
-        atoms = Atoms(self.l_atoms, self.l_headers, self.f_list)
-        atoms.mk_atoms()
-        self.Atoms = atoms.Atoms
+        self.set_atoms()
         self.set_bonds()
         self.set_angles()
-        dihedrals = Dihedrals(self.l_dihedrals, self.l_headers, self.f_list)
-        dihedrals.mk_dihedrals()
-        self.Dihedrals = dihedrals.Dihedrals
+        self.set_dihedrals()
 
     def set_df_lists(self) -> None:
         """Set lists to append DataFrame in it"""
@@ -361,6 +367,14 @@ class Combine:
             self.l_angles[f] = atoms.Angles_df
             self.l_dihedrals[f] = atoms.Dihedrals_df
 
+    def set_atoms(self) -> None:
+        """get atoms"""
+        atoms = Atoms(self.l_atoms, self.l_headers, self.f_list)
+        atoms.mk_atoms()
+        self.Atoms = atoms.Atoms
+        self.NAtoms: int = len(self.Atoms)
+        self.NAtomType: int = max(self.Atoms['typ'])
+
     def set_bonds(self) -> None:
         """get bonds with updating it with names"""
         bonds = Bonds(self.l_bonds, self.l_headers, self.f_list)
@@ -373,6 +387,8 @@ class Combine:
         _Bond['cmt'] = ["#" for _ in _Bond.index]
         _Bond['bond'] = bond_name
         self.Bonds = _Bond
+        self.NBonds = bonds.NBonds
+        self.NBondType = bonds.NBondTypes
         del _Bond
 
     def set_angles(self) -> None:
@@ -389,13 +405,118 @@ class Combine:
         _Angle['cmt'] = ["#" for _ in _Angle.index]
         _Angle['angle'] = angle_name
         self.Angles = _Angle
+        self.NAngels = angles.NAgnles
+        self.NAngleType = angles.NAngleType
         del _Angle
 
+    def set_dihedrals(self) -> None:
+        """get dihedrals with updating it with names"""
+        dihedrals = Dihedrals(self.l_dihedrals, self.l_headers, self.f_list)
+        dihedrals.mk_dihedrals()
+        _Dihedrals: pd.DataFrame = dihedrals.Dihedrals
+        angle_name: list[str] = [
+            f"{self.Atoms.iloc[ai-1]['name']}-"
+            f"{self.Atoms.iloc[aj-1]['name']}-"
+            f"{self.Atoms.iloc[ak-1]['name']}-"
+            f"{self.Atoms.iloc[ah-1]['name']}"
+            for ai, aj, ak, ah in
+            zip(_Dihedrals['ai'], _Dihedrals['aj'],
+                _Dihedrals['ak'], _Dihedrals['ak'])]
+        _Dihedrals['cmt'] = ["#" for _ in _Dihedrals.index]
+        _Dihedrals['dihedral'] = angle_name
+        self.Dihedrals = _Dihedrals
+        self.NDihedrals = dihedrals.NDihedrals
+        self.NDihedralType = dihedrals.NDihedralType
+        del _Dihedrals
+
+
+class WriteLmp:
+    """Write the data in a full atoms style for LAMMPS
+    Input:
+        atoms_df (DataFrame from PDBFILE: Pdb class)
+        bonds_df, angles_df, dihedrals, impropers_df (DataFrame from
+        PSFFILE Psf class)
+    Output:
+        A LAMMPS data file
+    """
+
+    def __init__(self, system: Combine) -> None:
+        self.system = system
+        print(f"Writting '{LMPFILE}' ...")
+        del system
+
+    def mk_lmp(self) -> None:
+        """calling function to write data into a file"""
+        # find box sizes
+        self.set_box()
+        # write file
+        self.write_data()
+        # print(self.atoms['charge'].sum())
+
+    def set_box(self) -> None:
+        """find Max and min of the data"""
+        self.xlim = (self.system.Atoms.x.min(), self.system.Atoms.x.max())
+        self.ylim = (self.system.Atoms.y.min(), self.system.Atoms.y.max())
+        self.zlim = (self.system.Atoms.z.min(), self.system.Atoms.z.max())
+
+    def set_totals(self) -> None:
+        """set the total numbers of charges, ..."""
+        self.Tcharge = self.system.Atoms['charge'].sum()
+
+    def write_data(self) -> None:
+        """write LAMMPS data file"""
+        with open(LMPFILE, 'w') as f:
+            f.write(f"Data file from {INFILE} for silica slab\n")
+            f.write(f"\n")
+            self.write_numbers(f)
+            self.write_box(f)
+            # self.write_masses(f)
+            self.write_atoms(f)
+            self.write_bonds(f)
+
+    def write_numbers(self, f: typing.TextIO) -> None:
+        f.write(f"{self.system.NAtoms} atoms\n")
+        f.write(f"{self.system.NAtomType} atom types\n")
+        f.write(f"{self.system.NBonds} bonds\n")
+        f.write(f"{self.system.NBondType} bond types\n")
+        f.write(f"\n")
+
+    def write_box(self, f: typing.TextIO) -> None:
+        f.write(f"{self.xlim[0]:.3f} {self.xlim[1]:.3f} xlo xhi\n")
+        f.write(f"{self.ylim[0]:.3f} {self.ylim[1]:.3f} ylo yhi\n")
+        f.write(f"{self.zlim[0]:.3f} {self.zlim[1]:.3f} zlo zhi\n")
+        f.write(f"\n")
+
+    def write_masses(self, f: typing.TextIO) -> None:
+        f.write(f"Masses\n")
+        f.write(f"\n")
+        for item in self.typ.iterrows():
+            f.write(f"{int(item[1]['typ']): 3} {item[1]['mass']:.5f}\
+                # {item[0]}\n")
+        f.write(f"\n")
+
+    def write_atoms(self, f: typing.TextIO) -> None:
+        """Write atoms section inot file"""
+        f.write(f"Atoms # full\n")
+        f.write(f"\n")
+        columns = ['atom_id', 'mol', 'typ', 'charge', 'x', 'y', 'z', 'nx',
+                   'ny', 'nz', 'cmt', 'name']
+        self.system.Atoms.to_csv(f, sep=' ', index=False, columns=columns,
+                          header=None)
+        f.write(f"\n")
+        f.write(f"\n")
+
+    def write_bonds(self, f: typing.TextIO) -> None:
+        f.write(f"Bonds\n")
+        f.write(f"\n")
+        columns = ['typ', 'ai', 'aj', 'cmt', 'bond']
+        self.system.Bonds.to_csv(f, sep=' ', index=True, columns=columns,
+                          header=None)
 
 INFILE = sys.argv[1:]
 system = Combine(INFILE)
 system.mk_lmp_df()
-system.Atoms.to_csv('atoms', sep='\t', index=False)
-system.Bonds.to_csv('bonds', sep='\t', index=False, header=None)
-system.Angles.to_csv('angles', sep='\t', index=False, header=None)
-system.Dihedrals.to_csv('dihedrals', sep='\t', index=False, header=None)
+LMPFILE = 'interface.data'
+lmp = WriteLmp(system)
+lmp.mk_lmp()
+system.Bonds.to_csv('bonds', sep='\t', index=True)
