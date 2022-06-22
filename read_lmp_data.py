@@ -80,26 +80,37 @@ class Header:
                 line: str = f.readline()
                 if line.strip().endswith("atoms"):
                     self.NATOMS = int(line.strip().split(' ')[0])
+
                 elif line.strip().endswith("atom types"):
-                    self.NATomTyp = int(line.strip().split(' ')[0])
+                    self.NAtomTyp = int(line.strip().split(' ')[0])
+
                 elif line.strip().endswith("bonds"):
                     self.NBonds = int(line.strip().split(' ')[0])
+
                 elif line.strip().endswith("bond types"):
                     self.NBondTyp = int(line.strip().split(' ')[0])
+
                 elif line.strip().endswith("angles"):
                     self.NAngles = int(line.strip().split(' ')[0])
+
                 elif line.strip().endswith("angle types"):
                     self.NAngleTyp = int(line.strip().split(' ')[0])
+
                 elif line.strip().endswith("dihedrals"):
                     self.NDihedrals = int(line.strip().split(' ')[0])
-                elif line.strip().endswith("dihedral typss"):
+
+                elif line.strip().endswith("dihedral types"):
                     self.NDihedralTyp = int(line.strip().split(' ')[0])
+
                 elif line.strip().endswith("xhi"):
                     self.Xlim = self.get_axis_lim(line.strip().split('xlo')[0])
+
                 elif line.strip().endswith("yhi"):
                     self.Ylim = self.get_axis_lim(line.strip().split('ylo')[0])
+
                 elif line.strip().endswith("zhi"):
                     self.Zlim = self.get_axis_lim(line.strip().split('zlo')[0])
+
                 # setting up Flages for reading the cards of data in the file
                 elif line.strip().startswith("Masses"):
                     Masses, PairCoeff, BondCoeff, AngleCoeff, DihedralCoeff,\
@@ -148,7 +159,7 @@ class Header:
         self.NATOMS = 0
         self.NBonds = 0
         self.NAngles = 0
-        self.NATomTyp = 0
+        self.NAtomTyp = 0
         self.NBondTyp = 0
         self.NAngleTyp = 0
         self.NDihedrals = 0
