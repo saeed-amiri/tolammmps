@@ -128,7 +128,7 @@ class Atoms:
     def stack_atoms(self) -> float:
         """make sure all the atoms are not overlapping after stacking"""
         max_z: float = 0
-        VACUME: int = 2
+        VACUME: int = 2  # Spcace between layers
         for i, f in enumerate(self.f_list):
             self.l_atoms[f] = self.return_to_zero(self.l_atoms[f])
             if i == 0:
@@ -200,13 +200,16 @@ class Bonds:
         Natoms: int = 0
         for i, f in enumerate(self.f_list):
             if i == 0:
-                Natoms = self.l_headers[f].NATOMS
-            elif i > 0 and i < len(self.f_list):
-                # Update the the index of the second file
-                self.l_bonds[f]['ai'] += Natoms
-                self.l_bonds[f]['aj'] += Natoms
-                # Add the number of the atoms of the current file
                 Natoms += self.l_headers[f].NATOMS
+            elif i > 0 and i < len(self.f_list):
+                try:
+                    # Update the the index of the second file
+                    self.l_bonds[f]['ai'] += Natoms
+                    self.l_bonds[f]['aj'] += Natoms
+                    # Add the number of the atoms of the current file
+                    Natoms += self.l_headers[f].NATOMS
+                except KeyError:
+                    pass
             if i+1 > len(self.f_list):
                 break
 
@@ -217,7 +220,10 @@ class Bonds:
             if i == 0:
                 NBondTyp = self.l_headers[f].NBondTyp
             elif i > 0 and i < len(self.f_list):
-                self.l_bonds[f]['typ'] += NBondTyp
+                try:
+                    self.l_bonds[f]['typ'] += NBondTyp
+                except KeyError:
+                    pass
                 NBondTyp += self.l_headers[f].NBondTyp
             if i+1 > len(self.f_list):
                 break
@@ -237,7 +243,7 @@ class Angles:
         del headers, l_angles, f_list
 
     def mk_angles(self) -> None:
-        """make the bond DataFrame"""
+        """make the angle DataFrame"""
         self.update_atoms_id()
         self.update_angle_typ()
         _Angles: pd.DataFrame = self.append_angles()
@@ -464,6 +470,7 @@ class Combine:
         bonds = Bonds(self.l_bonds, self.l_headers, self.f_list)
         bonds.mk_bonds()
         _Bond: pd.DataFrame = bonds.Bonds
+        _Bond = _Bond.astype(int)
         bond_name: list[str] = [
             f"{self.Atoms.iloc[ai-1]['name']}-"
             f"{self.Atoms.iloc[aj-1]['name']}"
@@ -471,27 +478,28 @@ class Combine:
         _Bond['cmt'] = ["#" for _ in _Bond.index]
         _Bond['bond'] = bond_name
         self.Bonds = _Bond
-        self.NBonds = bonds.NBonds
-        self.NBondType = bonds.NBondTypes
+        self.NBonds = int(bonds.NBonds)
+        self.NBondType = int(bonds.NBondTypes)
         del _Bond
 
     def set_angles(self) -> None:
         """get angles with updating it with names"""
         angles = Angles(self.l_angles, self.l_headers, self.f_list)
         angles.mk_angles()
-        _Angle: pd.DataFrame = angles.Angles
-        angle_name: list[str] = [
-            f"{self.Atoms.iloc[ai-1]['name']}-"
-            f"{self.Atoms.iloc[aj-1]['name']}-"
-            f"{self.Atoms.iloc[ak-1]['name']}"
-            for ai, aj, ak in
-            zip(_Angle['ai'], _Angle['aj'], _Angle['ak'])]
-        _Angle['cmt'] = ["#" for _ in _Angle.index]
-        _Angle['angle'] = angle_name
-        self.Angles = _Angle
         self.NAngles = angles.NAgnles
         self.NAngleType = angles.NAngleType
-        del _Angle
+        if self.NAngles > 0:
+            _Angle: pd.DataFrame = angles.Angles
+            angle_name: list[str] = [
+                f"{self.Atoms.iloc[ai-1]['name']}-"
+                f"{self.Atoms.iloc[aj-1]['name']}-"
+                f"{self.Atoms.iloc[ak-1]['name']}"
+                for ai, aj, ak in
+                zip(_Angle['ai'], _Angle['aj'], _Angle['ak'])]
+            _Angle['cmt'] = ["#" for _ in _Angle.index]
+            _Angle['angle'] = angle_name
+            self.Angles = _Angle
+            del _Angle
 
     def set_dihedrals(self) -> None:
         """get dihedrals with updating it with names"""
@@ -578,9 +586,9 @@ class WriteLmp:
         f.write(f"\n")
 
     def write_box(self, f: typing.TextIO) -> None:
-        f.write(f"{self.xlim[0]:.3f} {self.xlim[1]:.3f} xlo xhi\n")
-        f.write(f"{self.ylim[0]:.3f} {self.ylim[1]:.3f} ylo yhi\n")
-        f.write(f"{self.zlim[0]:.3f} {self.zlim[1]:.3f} zlo zhi\n")
+        f.write(f"{self.xlim[0]-1:.3f} {self.xlim[1]+1:.3f} xlo xhi\n")
+        f.write(f"{self.ylim[0]-1:.3f} {self.ylim[1]+1:.3f} ylo yhi\n")
+        f.write(f"{self.zlim[0]-1:.3f} {self.zlim[1]+1:.3f} zlo zhi\n")
         f.write(f"\n")
 
     def write_masses(self, f: typing.TextIO) -> None:
