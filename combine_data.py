@@ -1,6 +1,7 @@
 import re
 import sys
 import pandas as pd
+from sqlalchemy import column
 import read_lmp_data as mlmp  # My lammps
 import typing
 
@@ -339,6 +340,57 @@ class Dihedrals:
         return NDihedralTyp
 
 
+class Mass:
+    """update the Mass card"""
+    def __init__(self,
+                 headers: dict[str, mlmp.Body],
+                 f_list: list[str]) -> None:
+        self.l_headers: dict[str, mlmp.Body] = headers
+        self.f_list: list[str] = f_list
+        del headers, f_list
+
+    def mk_mass(self) -> None:
+        """make the mass card"""
+        Ntype: int = 0
+        self.l_df: dict[str, typing.Any] = dict()
+        self.l_name: dict[str, typing.Any] = dict()
+        for f in self.f_list:
+            df = self.mk_mass_df(f)
+            df['typ'] += Ntype
+            df_name = self.mk_names(f)
+            df_name['typ'] += Ntype
+            Ntype += len(self.l_headers[f].Masses)
+            self.l_df[f] = df
+            self.l_name[f] = df_name
+        Names = pd.concat(self.l_name)
+        self.Masses = pd.concat(self.l_df)
+        self.Masses['cmt'] = ["#" for _ in self.Masses.typ]
+        self.Masses[['name', 'f_name']] = Names[['name', 'f_name']]
+
+    def rm_special_str(self, char: list[typing.Any]) -> str:
+        return re.sub('[^A-Za-z0-9]+', '', char)
+
+    def mk_names(self, f: str) -> pd.DataFrame:
+        """make names for the atoms"""
+        columns = ['typ', 'name']
+        df_name = pd.DataFrame(
+            self.l_headers[f].Names.items(), columns=columns
+            )
+        df_name['name'] = [
+            self.rm_special_str(item) for item in df_name['name']
+            ]
+        df_name['name'] = [item.strip() for item in df_name['name']]
+        df_name['name'] = [item[0:2] for item in df_name['name']]
+        df_name['f_name'] = [f"from_{f}" for _ in df_name['name']]
+        return df_name
+
+    def mk_mass_df(self, f: str) -> pd.DataFrame:
+        """make mass dataframe for each file"""
+        columns = ['typ', 'mass']
+        df = pd.DataFrame(self.l_headers[f].Masses.items(), columns=columns)
+        return df
+
+
 class Combine:
     """combining LAMMPS data file
     Input:
@@ -356,6 +408,7 @@ class Combine:
         self.set_bonds()
         self.set_angles()
         self.set_dihedrals()
+        self.set_masses()
 
     def set_df_lists(self) -> None:
         """Set lists to append DataFrame in it"""
@@ -364,6 +417,7 @@ class Combine:
         self.l_angles: dict[str, pd.DataFrame] = dict()
         self.l_dihedrals: dict[str, pd.DataFrame] = dict()
         self.l_headers: dict[str, mlmp.Header] = dict()
+        self.l_masses: mlmp.Header = dict()
 
     def get_data(self) -> None:
         """loop over all the files and make several DataFrame"""
@@ -377,6 +431,7 @@ class Combine:
             self.l_bonds[f] = atoms.Bonds_df
             self.l_angles[f] = atoms.Angles_df
             self.l_dihedrals[f] = atoms.Dihedrals_df
+            self.l_masses[f] = o.Masses
 
     def set_atoms(self) -> None:
         """get atoms"""
@@ -440,6 +495,12 @@ class Combine:
         self.NDihedralType = dihedrals.NDihedralType
         del _Dihedrals
 
+    def set_masses(self) -> None:
+        """make mass card"""
+        mass = Mass(self.l_headers, self.f_list)
+        mass.mk_mass()
+        self.Masses = mass.Masses
+
 
 class WriteLmp:
     """Write the data in a full atoms style for LAMMPS
@@ -477,11 +538,11 @@ class WriteLmp:
     def write_data(self) -> None:
         """write LAMMPS data file"""
         with open(LMPFILE, 'w') as f:
-            f.write(f"Data file from {INFILE} for silica slab\n")
+            f.write(f"Data file from {INFILE} for an interface\n")
             f.write(f"\n")
             self.write_numbers(f)
             self.write_box(f)
-            # self.write_masses(f)
+            self.write_masses(f)
             self.write_atoms(f)
             self.write_bonds(f)
             self.write_angles(f)
@@ -505,13 +566,11 @@ class WriteLmp:
         f.write(f"\n")
 
     def write_masses(self, f: typing.TextIO) -> None:
+        columns = ['typ', 'mass', 'cmt', 'name', 'f_name']
         f.write(f"Masses\n")
         f.write(f"\n")
-        for item in self.typ.iterrows():
-            f.write(f"{int(item[1]['typ']): 3}"
-                    f"  {item[1]['mass']:.5f}"
-                    f"  # {item[0]}\n"
-                    )
+        self.system.Masses.to_csv(f, sep=' ', index=False, columns=columns,
+                                  header=None)
         f.write(f"\n")
 
     def write_atoms(self, f: typing.TextIO) -> None:
