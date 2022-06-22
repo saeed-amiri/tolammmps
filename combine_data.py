@@ -1,9 +1,9 @@
 import re
 import sys
-import pandas as pd
-from sqlalchemy import column
-import read_lmp_data as mlmp  # My lammps
 import typing
+import pandas as pd
+import numpy as np
+import read_lmp_data as mlmp  # My lammps
 
 
 class Doc:
@@ -47,10 +47,11 @@ class Atoms:
     def mk_atoms(self) -> None:
         """make atoms DataFrame"""
         self.Natoms = self.update_atoms_df()
-        self.NATomTyp = self.update_atom_typ()
+        self.NAtomTyp = self.update_atom_typ()
         self.Nmols = self.update_atom_mol()
-        self.max_z = self.recenter_atoms()
+        self.max_z = self.stack_atoms()
         self.update_atom_name()
+        self.recenter_stak()
         Atoms = self.append_atoms()
         columns: list[str] = [
             'atom_id', 'mol', 'typ', 'charge', 'x', 'y', 'z',
@@ -87,10 +88,10 @@ class Atoms:
         NATomTyp: int = 0
         for i, f in enumerate(self.f_list):
             if i == 0:
-                NATomTyp = self.l_headers[f].NATomTyp
+                NATomTyp = self.l_headers[f].NAtomTyp
             elif i > 0 and i < len(self.f_list):
                 self.l_atoms[f]['typ'] += NATomTyp
-                NATomTyp += self.l_headers[f].NATomTyp
+                NATomTyp += self.l_headers[f].NAtomTyp
             if i+1 > len(self.f_list):
                 break
         return NATomTyp
@@ -124,16 +125,19 @@ class Atoms:
     def rm_special_str(self, char: list[typing.Any]) -> str:
         return re.sub('[^A-Za-z0-9]+', '', char)
 
-    def recenter_atoms(self) -> float:
+    def stack_atoms(self) -> float:
         """make sure all the atoms are not overlapping after stacking"""
         max_z: float = 0
+        VACUME: int = 2
         for i, f in enumerate(self.f_list):
             self.l_atoms[f] = self.return_to_zero(self.l_atoms[f])
             if i == 0:
                 max_z = self.l_atoms[f]['z'].max()
+                max_z += VACUME
             elif i > 0 and i < len(self.f_list):
                 self.l_atoms[f]['z'] += max_z
                 max_z = self.l_atoms[f]['z'].max()
+                max_z += VACUME
             if i+1 > len(self.f_list):
                 break
         return max_z
@@ -145,6 +149,20 @@ class Atoms:
             min_x: float = df[ax].min()
             df[ax] -= min_x
         return df
+
+    def recenter_stak(self) -> None:
+        """put all the staks in the center of mass of bottom one"""
+        x_center: float = 0
+        y_center: float = 0
+        for i, f in enumerate(self.f_list):
+            if i == 0:
+                x_center += np.max(self.l_atoms[f]['x'])/2
+                y_center += np.max(self.l_atoms[f]['y'])/2
+            elif i > 0:
+                _x_center: float = np.max(self.l_atoms[f]['x'])/2
+                _y_center: float = np.max(self.l_atoms[f]['y'])/2
+                self.l_atoms[f]['x'] += (x_center-_x_center)
+                self.l_atoms[f]['y'] += (y_center-_y_center)
 
 
 class Bonds:
