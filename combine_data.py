@@ -85,16 +85,16 @@ class Atoms:
 
     def update_atom_typ(self) -> int:
         """update the number of each type in atoms card"""
-        NATomTyp: int = 0
+        NAtomTyp: int = 0
         for i, f in enumerate(self.f_list):
             if i == 0:
-                NATomTyp = self.l_headers[f].NAtomTyp
+                NAtomTyp = self.l_headers[f].NAtomTyp
             elif i > 0 and i < len(self.f_list):
-                self.l_atoms[f]['typ'] += NATomTyp
-                NATomTyp += self.l_headers[f].NAtomTyp
+                self.l_atoms[f]['typ'] += NAtomTyp
+                NAtomTyp += self.l_headers[f].NAtomTyp
             if i+1 > len(self.f_list):
                 break
-        return NATomTyp
+        return NAtomTyp
 
     def update_atom_mol(self) -> int:
         """update the number of molecules"""
