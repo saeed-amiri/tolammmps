@@ -3,7 +3,7 @@ import sys
 import typing
 import pandas as pd
 import numpy as np
-import read_lmp_data as mlmp  # My lammps
+import read_lmp_data as mlmp  # My lammps reader
 
 
 class Doc:
@@ -210,11 +210,11 @@ class BoAnDi:
     def set_columns(self) -> list[str]:
         """set a list for columns based on the _type"""
         _columns: list[str]
-        if self._type == 'bonds':
+        if self._type == 'bond':
             _columns = ['typ', 'ai', 'aj']
-        elif self._type == 'angles':
+        elif self._type == 'angle':
             _columns = ['typ', 'ai', 'aj', 'ak']
-        elif self._type == 'dihedrals':
+        elif self._type == 'dihedral':
             _columns = ['typ', 'ai', 'aj', 'ak', 'ah']
         return _columns
 
@@ -244,16 +244,22 @@ class BoAnDi:
 
     def update_type(self) -> int:
         """update the number of each type in atoms card"""
-        Ntype: int
+        _Ntype: int
         for i, f in enumerate(self.f_list):
+            if self._type == 'bond':
+                Ntype = self.l_headers[f].NBondTyp
+            elif self._type == 'angle':
+                Ntype = self.l_headers[f].NAngleTyp
+            elif self._type == 'dihedral':
+                Ntype = self.l_headers[f].NDihedralTyp
             if i == 0:
-                Ntype = self.l_headers[f].Ntype
+                _Ntype = Ntype
             elif i > 0 and i < len(self.f_list):
                 try:
-                    self.l_df[f]['typ'] += Ntype
+                    self.l_df[f]['typ'] += _Ntype
                 except KeyError:
                     pass
-                Ntype += self.l_headers[f].Ntype
+                _Ntype += Ntype
             if i+1 > len(self.f_list):
                 break
         return Ntype
@@ -561,9 +567,10 @@ class Combine:
 
     def set_bonds(self) -> None:
         """get bonds with updating it with names"""
-        bonds = Bonds(self.l_bonds, self.l_headers, self.f_list)
-        bonds.mk_bonds()
-        _Bond: pd.DataFrame = bonds.Bonds
+        bonds = BoAnDi(self.l_bonds, self.l_headers, self.f_list, 'bond')
+        bonds.mk_df()
+        bonds.df = bonds.df.astype(int)
+        _Bond: pd.DataFrame = bonds.df
         _Bond = _Bond.astype(int)
         bond_name: list[str] = [
             f"{self.Atoms.iloc[ai-1]['name']}-"
@@ -572,18 +579,19 @@ class Combine:
         _Bond['cmt'] = ["#" for _ in _Bond.index]
         _Bond['bond'] = bond_name
         self.Bonds = _Bond
-        self.NBonds = int(bonds.NBonds)
-        self.NBondType = int(bonds.NBondTypes)
+        self.NBonds = int(bonds.Number)
+        self.NBondType = int(bonds.Ntype)
         del _Bond
 
     def set_angles(self) -> None:
         """get angles with updating it with names"""
-        angles = Angles(self.l_angles, self.l_headers, self.f_list)
-        angles.mk_angles()
-        self.NAngles = angles.NAgnles
-        self.NAngleType = angles.NAngleType
+        angles = BoAnDi(self.l_angles, self.l_headers, self.f_list, 'angle')
+        angles.mk_df()
+        angles.df = angles.df.astype(int)
+        self.NAngles = angles.Number
+        self.NAngleType = angles.Ntype
         if self.NAngles > 0:
-            _Angle: pd.DataFrame = angles.Angles
+            _Angle: pd.DataFrame = angles.df
             angle_name: list[str] = [
                 f"{self.Atoms.iloc[ai-1]['name']}-"
                 f"{self.Atoms.iloc[aj-1]['name']}-"
@@ -597,9 +605,11 @@ class Combine:
 
     def set_dihedrals(self) -> None:
         """get dihedrals with updating it with names"""
-        dihedrals = Dihedrals(self.l_dihedrals, self.l_headers, self.f_list)
-        dihedrals.mk_dihedrals()
-        _Dihedrals: pd.DataFrame = dihedrals.Dihedrals
+        dihedrals = BoAnDi(self.l_dihedrals, self.l_headers, self.f_list,
+                           'dihedral')
+        dihedrals.mk_df()
+        dihedrals.df = dihedrals.df.astype(int)
+        _Dihedrals: pd.DataFrame = dihedrals.df
         angle_name: list[str] = [
             f"{self.Atoms.iloc[ai-1]['name']}-"
             f"{self.Atoms.iloc[aj-1]['name']}-"
@@ -611,8 +621,8 @@ class Combine:
         _Dihedrals['cmt'] = ["#" for _ in _Dihedrals.index]
         _Dihedrals['dihedral'] = angle_name
         self.Dihedrals = _Dihedrals
-        self.NDihedrals = dihedrals.NDihedrals
-        self.NDihedralType = dihedrals.NDihedralType
+        self.NDihedrals = dihedrals.Number
+        self.NDihedralType = dihedrals.Ntype
         del _Dihedrals
 
     def set_masses(self) -> None:
