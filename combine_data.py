@@ -418,7 +418,7 @@ class Combine:
         self.NDihedralType = int(dihedrals.Ntype)
         if self.NDihedrals > 0:
             _Dihedrals: pd.DataFrame = dihedrals.df
-            angle_name: list[str] = [
+            dihedral_name: list[str] = [
                 f"{self.Atoms.iloc[ai-1]['name']}-"
                 f"{self.Atoms.iloc[aj-1]['name']}-"
                 f"{self.Atoms.iloc[ak-1]['name']}-"
@@ -427,7 +427,7 @@ class Combine:
                 zip(_Dihedrals['ai'], _Dihedrals['aj'],
                     _Dihedrals['ak'], _Dihedrals['ak'])]
             _Dihedrals['cmt'] = ["#" for _ in _Dihedrals.index]
-            _Dihedrals['dihedral'] = angle_name
+            _Dihedrals['dihedral'] = dihedral_name
             self.Dihedrals = _Dihedrals
             del _Dihedrals
 
