@@ -30,7 +30,7 @@ class Doc:
     If you use duplicate data files with different names, each file
     will get different types; Then, in the end, it has more complex
     pair interaction definitions.
-    
+
     To fix:
         - BoAnDi class instead of Bond, Angle, and Dihedral calsses,
         - Coniditoinal writing of the number of each cards,
@@ -177,6 +177,7 @@ class Atoms:
                 self.l_atoms[f]['x'] += (x_center-_x_center)
                 self.l_atoms[f]['y'] += (y_center-_y_center)
 
+
 class BoAnDi:
     """update the bonds, angles, and dihedrlas DataFrames and return
     unique one
@@ -201,9 +202,9 @@ class BoAnDi:
         _df: pd.DataFrame = self.append_df()
         _df = _df.reset_index()
         _df.index += 1
-        self.Bonds: pd.DataFrame = _df[self._columns].copy()
-        self.NBonds: int = len(self.Bonds)
-        self.NBondTypes: int = max(self.Bonds['typ'])
+        self.df: pd.DataFrame = _df[self._columns].copy()
+        self.Number: int = len(self.df)
+        self.Ntype: int = max(self.df['typ'])
         del _df
 
     def set_columns(self) -> list[str]:
@@ -243,19 +244,20 @@ class BoAnDi:
 
     def update_type(self) -> int:
         """update the number of each type in atoms card"""
-        NBondTyp: int = 0
+        Ntype: int
         for i, f in enumerate(self.f_list):
             if i == 0:
-                NBondTyp = self.l_headers[f].NBondTyp
+                Ntype = self.l_headers[f].Ntype
             elif i > 0 and i < len(self.f_list):
                 try:
-                    self.l_df[f]['typ'] += NBondTyp
+                    self.l_df[f]['typ'] += Ntype
                 except KeyError:
                     pass
-                NBondTyp += self.l_headers[f].NBondTyp
+                Ntype += self.l_headers[f].Ntype
             if i+1 > len(self.f_list):
                 break
-        return NBondTyp
+        return Ntype
+
 
 class Bonds:
     """update the bonds DataFrames and return unique one"""
