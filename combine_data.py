@@ -194,15 +194,15 @@ class BoAnDi:
         self._type = _type
         del headers, l_df, f_list, _type
 
-    def mk_bonds(self) -> None:
+    def mk_df(self) -> None:
         """make the bond DataFrame"""
-        self._columns: list[str] = self.set_columns()
-        self.update_atoms_id()
+        _columns: list[str] = self.set_columns()
+        self.update_atoms_id(_columns)
         self.update_type()
         _df: pd.DataFrame = self.append_df()
         _df = _df.reset_index()
         _df.index += 1
-        self.df: pd.DataFrame = _df[self._columns].copy()
+        self.df: pd.DataFrame = _df[_columns].copy()
         self.Number: int = len(self.df)
         self.Ntype: int = max(self.df['typ'])
         del _df
@@ -222,17 +222,17 @@ class BoAnDi:
         """append bonds DataFrame with updataed id and type"""
         return pd.concat(self.l_df)
 
-    def update_atoms_id(self) -> None:
+    def update_atoms_id(self, _columns: list[str]) -> None:
         """Update the atom id (ai, aj)"""
         # Track the number of atom in each file
-        Natoms: int = 0
+        Natoms: int
         for i, f in enumerate(self.f_list):
             if i == 0:
-                Natoms += self.l_headers[f].NAtoms
+                Natoms = self.l_headers[f].NAtoms
             elif i > 0 and i < len(self.f_list):
                 try:
                     # Update the the index of the second file
-                    for a in self._columns:
+                    for a in _columns:
                         if a != 'typ':
                             self.l_df[f][a] += Natoms
                     # Add the number of the atoms of the current file
