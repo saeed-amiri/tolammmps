@@ -11,7 +11,7 @@ class FileErr:
 
 class Header:
     """
-    read haeder data of the data file
+    read haeder of the data file
     check the number of the lines, atom, bond ... informations
     get the box , pairs, ... coefficents
     Use this class to read the header of the file (LAMMPS data file),
