@@ -115,21 +115,27 @@ class Header:
                 elif line.strip().startswith("Masses"):
                     Masses, PairCoeff, BondCoeff, AngleCoeff, DihedralCoeff,\
                         Atoms = True, False, False, False, False, False
+                
                 elif line.strip().startswith("Pair"):
                     Masses, PairCoeff, BondCoeff, AngleCoeff, DihedralCoeff,\
                         Atoms = False, True, False, False, False, False
+                
                 elif line.strip().startswith("Bond Coeffs"):
                     Masses, PairCoeff, BondCoeff, AngleCoeff, DihedralCoeff,\
                         Atoms = False, False, True, False, False, False
+                
                 elif line.strip().startswith("Angle Coeffs"):
                     Masses, PairCoeff, BondCoeff, AngleCoeff, DihedralCoeff,\
                         Atoms = False, False, False, True, False, False
+                
                 elif line.strip().startswith("Dihedral Coeffs"):
                     Masses, PairCoeff, BondCoeff, AngleCoeff, DihedralCoeff,\
                         Atoms = False, False, False, False, True, False
+                
                 elif line.strip().startswith("Atoms"):
                     Masses, PairCoeff, BondCoeff, AngleCoeff, DihedralCoeff,\
                         Atoms = False, False, False, False, False, True
+                
                 elif line.strip():
                     if Masses:
                         self.get_masses(line.strip(), 'Masses')
