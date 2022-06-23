@@ -33,6 +33,7 @@ class Doc:
 
     To fix:
         - BoAnDi class instead of Bond, Angle, and Dihedral calsses,
+            Done Jun 23 2022
         - Coniditoinal writing of the number of each cards,
         - Writing LAMPPS as a modual to be used all the scripts,
         - The posibality of duplicate files,
