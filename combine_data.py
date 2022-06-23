@@ -59,7 +59,7 @@ class Atoms:
 
     def mk_atoms(self) -> None:
         """make atoms DataFrame"""
-        self.Natoms = self.update_atoms_df()
+        self.NatomsNAtoms = self.update_atoms_df()
         self.NAtomTyp = self.update_atom_typ()
         self.Nmols = self.update_atom_mol()
         self.max_z = self.stack_atoms()
@@ -86,12 +86,12 @@ class Atoms:
             if i == 0:
                 # jump the first file, no need for update
                 # save the number of atoms
-                Natoms = self.l_headers[f].NATOMS
+                Natoms = self.l_headers[f].NAtoms
             elif i > 0 and i < len(self.f_list):
                 # Update the the index of the second file
                 self.l_atoms[f]['atom_id'] += Natoms
                 # Add the number of the atoms of the current file
-                Natoms += self.l_headers[f].NATOMS
+                Natoms += self.l_headers[f].NAtoms
             if i+1 > len(self.f_list):
                 break
         return Natoms
@@ -228,7 +228,7 @@ class BoAnDi:
         Natoms: int = 0
         for i, f in enumerate(self.f_list):
             if i == 0:
-                Natoms += self.l_headers[f].NATOMS
+                Natoms += self.l_headers[f].NAtoms
             elif i > 0 and i < len(self.f_list):
                 try:
                     # Update the the index of the second file
@@ -236,7 +236,7 @@ class BoAnDi:
                         if a != 'typ':
                             self.l_df[f][a] += Natoms
                     # Add the number of the atoms of the current file
-                    Natoms += self.l_headers[f].NATOMS
+                    Natoms += self.l_headers[f].NAtoms
                 except KeyError:
                     pass
             if i+1 > len(self.f_list):
@@ -294,14 +294,14 @@ class Bonds:
         Natoms: int = 0
         for i, f in enumerate(self.f_list):
             if i == 0:
-                Natoms += self.l_headers[f].NATOMS
+                Natoms += self.l_headers[f].NAtoms
             elif i > 0 and i < len(self.f_list):
                 try:
                     # Update the the index of the second file
                     self.l_bonds[f]['ai'] += Natoms
                     self.l_bonds[f]['aj'] += Natoms
                     # Add the number of the atoms of the current file
-                    Natoms += self.l_headers[f].NATOMS
+                    Natoms += self.l_headers[f].NAtoms
                 except KeyError:
                     pass
             if i+1 > len(self.f_list):
@@ -360,7 +360,7 @@ class Angles:
         Natoms: int = 0
         for i, f in enumerate(self.f_list):
             if i == 0:
-                Natoms = self.l_headers[f].NATOMS
+                Natoms = self.l_headers[f].NAtoms
             elif i > 0 and i < len(self.f_list):
                 # Update the the index of the second file
                 try:
@@ -370,7 +370,7 @@ class Angles:
                 except KeyError:
                     pass
                 # Add the number of the atoms of the current file
-                Natoms += self.l_headers[f].NATOMS
+                Natoms += self.l_headers[f].NAtoms
             if i+1 > len(self.f_list):
                 break
 
@@ -426,7 +426,7 @@ class Dihedrals:
         Natoms: int = 0
         for i, f in enumerate(self.f_list):
             if i == 0:
-                Natoms = self.l_headers[f].NATOMS
+                Natoms = self.l_headers[f].NAtoms
             elif i > 0 and i < len(self.f_list):
                 # Update the the index of the second file
                 try:
@@ -437,7 +437,7 @@ class Dihedrals:
                 except KeyError:
                     pass
                 # Add the number of the atoms of the current file
-                Natoms += self.l_headers[f].NATOMS
+                Natoms += self.l_headers[f].NAtoms
             if i+1 > len(self.f_list):
                 break
 
