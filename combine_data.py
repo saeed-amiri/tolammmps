@@ -24,6 +24,12 @@ class Doc:
     Usage:
         combine_data.py data1 data2 data3 ...
 
+    !!!!!!!!!
+    For now, all the input files should have different names.
+    Files with the same names end up with wrong cards, mass, and types.
+    If you use duplicate data files with different names, each file
+    will get different types; Then, in the end, it has more complex
+    pair interaction definitions.
     """
 
 
@@ -586,9 +592,9 @@ class WriteLmp:
         f.write(f"\n")
 
     def write_box(self, f: typing.TextIO) -> None:
-        f.write(f"{self.xlim[0]-1:.3f} {self.xlim[1]+1:.3f} xlo xhi\n")
-        f.write(f"{self.ylim[0]-1:.3f} {self.ylim[1]+1:.3f} ylo yhi\n")
-        f.write(f"{self.zlim[0]-1:.3f} {self.zlim[1]+1:.3f} zlo zhi\n")
+        f.write(f"{self.xlim[0]-5:.3f} {self.xlim[1]+5:.3f} xlo xhi\n")
+        f.write(f"{self.ylim[0]-5:.3f} {self.ylim[1]+5:.3f} ylo yhi\n")
+        f.write(f"{self.zlim[0]-5:.3f} {self.zlim[1]+5:.3f} zlo zhi\n")
         f.write(f"\n")
 
     def write_masses(self, f: typing.TextIO) -> None:
@@ -611,7 +617,6 @@ class WriteLmp:
         self.system.Atoms.to_csv(f, sep=' ', index=False, columns=columns,
                                  header=None, float_format='%.8f')
         f.write(f"\n")
-        f.write(f"\n")
 
     def write_bonds(self, f: typing.TextIO) -> None:
         f.write(f"Bonds\n")
@@ -632,7 +637,7 @@ class WriteLmp:
     def write_dihedrals(self, f: typing.TextIO) -> None:
         f.write(f"Dihedrals\n")
         f.write(f"\n")
-        columns = ['typ', 'ai', 'aj', 'ak', 'ak', 'cmt', 'dihedral']
+        columns = ['typ', 'ai', 'aj', 'ak', 'ah', 'cmt', 'dihedral']
         self.system.Dihedrals.to_csv(f, sep=' ', index=True, columns=columns,
                                      header=None)
         f.write(f"\n")
