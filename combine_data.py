@@ -32,8 +32,9 @@ class Doc:
     pair interaction definitions.
     
     To fix:
-        - BonAnDi class instead of Bond, Angle, and Dihedral calsses,
+        - BoAnDi class instead of Bond, Angle, and Dihedral calsses,
         - Coniditoinal writing of the number of each cards,
+        - Writing LAMPPS as a modual to be used all the scripts,
         - The posibality of duplicate files,
 
     """
