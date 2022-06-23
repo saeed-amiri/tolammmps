@@ -245,24 +245,26 @@ class BoAnDi:
 
     def update_type(self) -> int:
         """update the number of each type in atoms card"""
-        _Ntype: int
+        Ntype: int  # To return
+        _Ntype: int # Temporary
         for i, f in enumerate(self.f_list):
             if self._type == 'bond':
-                Ntype = self.l_headers[f].NBondTyp
+                _Ntype = self.l_headers[f].NBondTyp
             elif self._type == 'angle':
-                Ntype = self.l_headers[f].NAngleTyp
+                _Ntype = self.l_headers[f].NAngleTyp
             elif self._type == 'dihedral':
-                Ntype = self.l_headers[f].NDihedralTyp
+                _Ntype = self.l_headers[f].NDihedralTyp
             if i == 0:
-                _Ntype = Ntype
+                Ntype = _Ntype
             elif i > 0 and i < len(self.f_list):
                 try:
                     self.l_df[f]['typ'] += _Ntype
                 except KeyError:
                     pass
-                _Ntype += Ntype
+                Ntype += _Ntype
             if i+1 > len(self.f_list):
                 break
+            del _Ntype
         return Ntype
 
 
@@ -373,25 +375,26 @@ class Combine:
         bonds.mk_df()
         bonds.df = bonds.df.astype(int)
         _Bond: pd.DataFrame = bonds.df
-        _Bond = _Bond.astype(int)
-        bond_name: list[str] = [
-            f"{self.Atoms.iloc[ai-1]['name']}-"
-            f"{self.Atoms.iloc[aj-1]['name']}"
-            for ai, aj in zip(_Bond['ai'], _Bond['aj'])]
-        _Bond['cmt'] = ["#" for _ in _Bond.index]
-        _Bond['bond'] = bond_name
-        self.Bonds = _Bond
         self.NBonds = int(bonds.Number)
         self.NBondType = int(bonds.Ntype)
-        del _Bond
+        if self.NBonds > 0:
+            _Bond = _Bond.astype(int)
+            bond_name: list[str] = [
+                f"{self.Atoms.iloc[ai-1]['name']}-"
+                f"{self.Atoms.iloc[aj-1]['name']}"
+                for ai, aj in zip(_Bond['ai'], _Bond['aj'])]
+            _Bond['cmt'] = ["#" for _ in _Bond.index]
+            _Bond['bond'] = bond_name
+            self.Bonds = _Bond
+            del _Bond
 
     def set_angles(self) -> None:
         """get angles with updating it with names"""
         angles = BoAnDi(self.l_angles, self.l_headers, self.f_list, 'angle')
         angles.mk_df()
         angles.df = angles.df.astype(int)
-        self.NAngles = angles.Number
-        self.NAngleType = angles.Ntype
+        self.NAngles = int(angles.Number)
+        self.NAngleType = int(angles.Ntype)
         if self.NAngles > 0:
             _Angle: pd.DataFrame = angles.df
             angle_name: list[str] = [
@@ -411,21 +414,22 @@ class Combine:
                            'dihedral')
         dihedrals.mk_df()
         dihedrals.df = dihedrals.df.astype(int)
-        _Dihedrals: pd.DataFrame = dihedrals.df
-        angle_name: list[str] = [
-            f"{self.Atoms.iloc[ai-1]['name']}-"
-            f"{self.Atoms.iloc[aj-1]['name']}-"
-            f"{self.Atoms.iloc[ak-1]['name']}-"
-            f"{self.Atoms.iloc[ah-1]['name']}"
-            for ai, aj, ak, ah in
-            zip(_Dihedrals['ai'], _Dihedrals['aj'],
-                _Dihedrals['ak'], _Dihedrals['ak'])]
-        _Dihedrals['cmt'] = ["#" for _ in _Dihedrals.index]
-        _Dihedrals['dihedral'] = angle_name
-        self.Dihedrals = _Dihedrals
-        self.NDihedrals = dihedrals.Number
-        self.NDihedralType = dihedrals.Ntype
-        del _Dihedrals
+        self.NDihedrals = int(dihedrals.Number)
+        self.NDihedralType = int(dihedrals.Ntype)
+        if self.NDihedrals > 0:
+            _Dihedrals: pd.DataFrame = dihedrals.df
+            angle_name: list[str] = [
+                f"{self.Atoms.iloc[ai-1]['name']}-"
+                f"{self.Atoms.iloc[aj-1]['name']}-"
+                f"{self.Atoms.iloc[ak-1]['name']}-"
+                f"{self.Atoms.iloc[ah-1]['name']}"
+                for ai, aj, ak, ah in
+                zip(_Dihedrals['ai'], _Dihedrals['aj'],
+                    _Dihedrals['ak'], _Dihedrals['ak'])]
+            _Dihedrals['cmt'] = ["#" for _ in _Dihedrals.index]
+            _Dihedrals['dihedral'] = angle_name
+            self.Dihedrals = _Dihedrals
+            del _Dihedrals
 
     def set_masses(self) -> None:
         """make mass card"""
