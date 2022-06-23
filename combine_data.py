@@ -177,9 +177,88 @@ class Atoms:
                 self.l_atoms[f]['x'] += (x_center-_x_center)
                 self.l_atoms[f]['y'] += (y_center-_y_center)
 
+class BoAnDi:
+    """update the bonds, angles, and dihedrlas DataFrames and return
+    unique one
+    """
+
+    def __init__(self,
+                 l_df: dict[str, pd.DataFrame],
+                 headers: dict[str, mlmp.Header],
+                 f_list: list[str],
+                 _type: str) -> None:
+        self.l_df = l_df
+        self.l_headers = headers
+        self.f_list = f_list
+        self._type = _type
+        del headers, l_df, f_list, _type
+
+    def mk_bonds(self) -> None:
+        """make the bond DataFrame"""
+        self._columns: list[str] = self.set_columns()
+        self.update_atoms_id()
+        self.update_type()
+        _df: pd.DataFrame = self.append_df()
+        _df = _df.reset_index()
+        _df.index += 1
+        self.Bonds: pd.DataFrame = _df[self._columns].copy()
+        self.NBonds: int = len(self.Bonds)
+        self.NBondTypes: int = max(self.Bonds['typ'])
+        del _df
+
+    def set_columns(self) -> list[str]:
+        """set a list for columns based on the _type"""
+        _columns: list[str]
+        if self._type == 'bonds':
+            _columns = ['typ', 'ai', 'aj']
+        elif self._type == 'angles':
+            _columns = ['typ', 'ai', 'aj', 'ak']
+        elif self._type == 'dihedrals':
+            _columns = ['typ', 'ai', 'aj', 'ak', 'ah']
+        return _columns
+
+    def append_df(self) -> pd.DataFrame:
+        """append bonds DataFrame with updataed id and type"""
+        return pd.concat(self.l_df)
+
+    def update_atoms_id(self) -> None:
+        """Update the atom id (ai, aj)"""
+        # Track the number of atom in each file
+        Natoms: int = 0
+        for i, f in enumerate(self.f_list):
+            if i == 0:
+                Natoms += self.l_headers[f].NATOMS
+            elif i > 0 and i < len(self.f_list):
+                try:
+                    # Update the the index of the second file
+                    for a in self._columns:
+                        if a != 'typ':
+                            self.l_df[f][a] += Natoms
+                    # Add the number of the atoms of the current file
+                    Natoms += self.l_headers[f].NATOMS
+                except KeyError:
+                    pass
+            if i+1 > len(self.f_list):
+                break
+
+    def update_type(self) -> int:
+        """update the number of each type in atoms card"""
+        NBondTyp: int = 0
+        for i, f in enumerate(self.f_list):
+            if i == 0:
+                NBondTyp = self.l_headers[f].NBondTyp
+            elif i > 0 and i < len(self.f_list):
+                try:
+                    self.l_df[f]['typ'] += NBondTyp
+                except KeyError:
+                    pass
+                NBondTyp += self.l_headers[f].NBondTyp
+            if i+1 > len(self.f_list):
+                break
+        return NBondTyp
 
 class Bonds:
-    """update the bonds DataFrames and return uniq one"""
+    """update the bonds DataFrames and return unique one"""
 
     def __init__(self,
                  l_bonds: dict[str, pd.DataFrame],
@@ -244,7 +323,7 @@ class Bonds:
 
 
 class Angles:
-    """update the Angels DataFrames and return uniq one"""
+    """update the Angels DataFrames and return unique one"""
 
     def __init__(self,
                  l_angles: dict[str, pd.DataFrame],
@@ -311,7 +390,7 @@ class Angles:
 
 
 class Dihedrals:
-    """update the Angels DataFrames and return uniq one"""
+    """update the Angels DataFrames and return unique one"""
     def __init__(self,
                  l_dihedrals: dict[str, pd.DataFrame],
                  headers: dict[str, mlmp.Header],
