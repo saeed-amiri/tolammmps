@@ -25,11 +25,17 @@ class Doc:
         combine_data.py data1 data2 data3 ...
 
     !!!!!!!!!
-    For now, all the input files should have different names.
+    For now, all the input files should have different names and data.
     Files with the same names end up with wrong cards, mass, and types.
     If you use duplicate data files with different names, each file
     will get different types; Then, in the end, it has more complex
     pair interaction definitions.
+    
+    To fix:
+        - BonAnDi class instead of Bond, Angle, and Dihedral calsses,
+        - Coniditoinal writing of the number of each cards,
+        - The posibality of duplicate files,
+
     """
 
 
