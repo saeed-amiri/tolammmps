@@ -346,7 +346,7 @@ class Combine:
         self.l_angles: dict[str, pd.DataFrame] = dict()
         self.l_dihedrals: dict[str, pd.DataFrame] = dict()
         self.l_headers: dict[str, mlmp.Header] = dict()
-        self.l_masses: dict[str, float] = dict()
+        self.l_masses: dict[str, dict[int, float]] = dict()
 
     def get_data(self) -> None:
         """loop over all the files and make several DataFrame"""
@@ -361,6 +361,7 @@ class Combine:
             self.l_angles[f] = atoms.Angles_df
             self.l_dihedrals[f] = atoms.Dihedrals_df
             self.l_masses[f] = o.Masses
+            print(o.Masses)
 
     def set_atoms(self) -> None:
         """get atoms"""
