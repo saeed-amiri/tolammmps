@@ -265,7 +265,7 @@ class BoAnDi:
                 Ntype += _Ntype
             if i+1 > len(self.f_list):
                 break
-            del _Ntype
+            _Ntype = 0
         return Ntype
 
 
