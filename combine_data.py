@@ -296,7 +296,7 @@ class Mass:
         self.Masses['cmt'] = ["#" for _ in self.Masses.typ]
         self.Masses[['name', 'f_name']] = Names[['name', 'f_name']]
 
-    def rm_special_str(self, char: list[typing.Any]) -> str:
+    def rm_special_str(self, char: str) -> str:
         return re.sub('[^A-Za-z0-9]+', '', char)
 
     def mk_names(self, f: str) -> pd.DataFrame:
