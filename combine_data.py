@@ -142,7 +142,7 @@ class Atoms:
 
     def stack_atoms(self) -> float:
         """make sure all the atoms are not overlapping after stacking"""
-        max_z: float = 0
+        max_z: float
         VACUME: int = 2  # Spcace between layers
         for i, f in enumerate(self.f_list):
             self.l_atoms[f] = self.return_to_zero(self.l_atoms[f])
@@ -166,16 +166,18 @@ class Atoms:
         return df
 
     def recenter_stak(self) -> None:
-        """put all the staks in the center of mass of bottom one"""
-        x_center: float = 0
-        y_center: float = 0
+        """put all the staks COM in the center of mass of bottom one"""
+        x_center: float = 0  # X center of bottem layer
+        y_center: float = 0  # Y center of bottem layer
+        _x_center: float     # X center of other layers
+        _y_center: float     # Y center of other layers
         for i, f in enumerate(self.f_list):
             if i == 0:
                 x_center += np.max(self.l_atoms[f]['x'])/2
                 y_center += np.max(self.l_atoms[f]['y'])/2
             elif i > 0:
-                _x_center: float = np.max(self.l_atoms[f]['x'])/2
-                _y_center: float = np.max(self.l_atoms[f]['y'])/2
+                _x_center = np.max(self.l_atoms[f]['x'])/2
+                _y_center = np.max(self.l_atoms[f]['y'])/2
                 self.l_atoms[f]['x'] += (x_center-_x_center)
                 self.l_atoms[f]['y'] += (y_center-_y_center)
 
