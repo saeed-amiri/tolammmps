@@ -487,12 +487,15 @@ class WriteLmp:
     def write_numbers(self, f: typing.TextIO) -> None:
         f.write(f"{self.system.NAtoms} atoms\n")
         f.write(f"{self.system.NAtomType} atom types\n")
-        f.write(f"{self.system.NBonds} bonds\n")
-        f.write(f"{self.system.NBondType} bond types\n")
-        f.write(f"{self.system.NAngles} angles\n")
-        f.write(f"{self.system.NAngleType} angle types\n")
-        f.write(f"{self.system.NDihedrals} dihedrals\n")
-        f.write(f"{self.system.NDihedralType} dihedral types\n")
+        if self.system.NBonds > 0:
+            f.write(f"{self.system.NBonds} bonds\n")
+            f.write(f"{self.system.NBondType} bond types\n")
+        if self.system.NAngles > 0:
+            f.write(f"{self.system.NAngles} angles\n")
+            f.write(f"{self.system.NAngleType} angle types\n")
+        if self.system.NDihedrals > 0:
+            f.write(f"{self.system.NDihedrals} dihedrals\n")
+            f.write(f"{self.system.NDihedralType} dihedral types\n")
         f.write(f"\n")
 
     def write_box(self, f: typing.TextIO) -> None:
@@ -523,28 +526,31 @@ class WriteLmp:
         f.write(f"\n")
 
     def write_bonds(self, f: typing.TextIO) -> None:
-        f.write(f"Bonds\n")
-        f.write(f"\n")
-        columns = ['typ', 'ai', 'aj', 'cmt', 'bond']
-        self.system.Bonds.to_csv(f, sep=' ', index=True, columns=columns,
-                                 header=None)
-        f.write(f"\n")
+        if self.system.NBonds > 0:
+            f.write(f"Bonds\n")
+            f.write(f"\n")
+            columns = ['typ', 'ai', 'aj', 'cmt', 'bond']
+            self.system.Bonds.to_csv(f, sep=' ', index=True, columns=columns,
+                                     header=None)
+            f.write(f"\n")
 
     def write_angles(self, f: typing.TextIO) -> None:
-        f.write(f"Angles\n")
-        f.write(f"\n")
-        columns = ['typ', 'ai', 'aj', 'ak', 'cmt', 'angle']
-        self.system.Angles.to_csv(f, sep=' ', index=True, columns=columns,
-                                  header=None)
-        f.write(f"\n")
+        if self.system.NAngles > 0:
+            f.write(f"Angles\n")
+            f.write(f"\n")
+            columns = ['typ', 'ai', 'aj', 'ak', 'cmt', 'angle']
+            self.system.Angles.to_csv(f, sep=' ', index=True, columns=columns,
+                                      header=None)
+            f.write(f"\n")
 
     def write_dihedrals(self, f: typing.TextIO) -> None:
-        f.write(f"Dihedrals\n")
-        f.write(f"\n")
-        columns = ['typ', 'ai', 'aj', 'ak', 'ah', 'cmt', 'dihedral']
-        self.system.Dihedrals.to_csv(f, sep=' ', index=True, columns=columns,
-                                     header=None)
-        f.write(f"\n")
+        if self.system.NDihedrals > 0:
+            f.write(f"Dihedrals\n")
+            f.write(f"\n")
+            columns = ['typ', 'ai', 'aj', 'ak', 'ah', 'cmt', 'dihedral']
+            self.system.Dihedrals.to_csv(f, sep=' ', index=True, columns=columns,
+                                         header=None)
+            f.write(f"\n")
 
 
 INFILE = sys.argv[1:]
