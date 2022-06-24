@@ -35,6 +35,7 @@ class Doc:
         - BoAnDi class instead of Bond, Angle, and Dihedral calsses,
             Done Jun 23 2022
         - Coniditoinal writing of the number of each cards,
+            Done Jun 24 2022
         - Writing LAMPPS as a modual to be used all the scripts,
         - The posibality of duplicate files,
 
@@ -136,7 +137,7 @@ class Atoms:
             self.l_atoms[f]['name'] = [
                 item[0:2] for item in self.l_atoms[f]['name']]
 
-    def rm_special_str(self, char: list[typing.Any]) -> str:
+    def rm_special_str(self, char: str) -> str:
         return re.sub('[^A-Za-z0-9]+', '', char)
 
     def stack_atoms(self) -> float:
@@ -245,8 +246,8 @@ class BoAnDi:
 
     def update_type(self) -> int:
         """update the number of each type in atoms card"""
-        Ntype: int  # To return
-        _Ntype: int # Temporary
+        Ntype: int   # To return
+        _Ntype: int  # Temporary
         for i, f in enumerate(self.f_list):
             if self._type == 'bond':
                 _Ntype = self.l_headers[f].NBondTyp
@@ -271,9 +272,9 @@ class BoAnDi:
 class Mass:
     """update the Mass card"""
     def __init__(self,
-                 headers: dict[str, mlmp.Body],
+                 headers: dict[str, mlmp.Header],
                  f_list: list[str]) -> None:
-        self.l_headers: dict[str, mlmp.Body] = headers
+        self.l_headers: dict[str, mlmp.Header] = headers
         self.f_list: list[str] = f_list
         del headers, f_list
 
@@ -345,7 +346,7 @@ class Combine:
         self.l_angles: dict[str, pd.DataFrame] = dict()
         self.l_dihedrals: dict[str, pd.DataFrame] = dict()
         self.l_headers: dict[str, mlmp.Header] = dict()
-        self.l_masses: mlmp.Header = dict()
+        self.l_masses: dict[str, float] = dict()
 
     def get_data(self) -> None:
         """loop over all the files and make several DataFrame"""
@@ -548,8 +549,8 @@ class WriteLmp:
             f.write(f"Dihedrals\n")
             f.write(f"\n")
             columns = ['typ', 'ai', 'aj', 'ak', 'ah', 'cmt', 'dihedral']
-            self.system.Dihedrals.to_csv(f, sep=' ', index=True, columns=columns,
-                                         header=None)
+            self.system.Dihedrals.to_csv(f, sep=' ', index=True,
+                                         columns=columns, header=None)
             f.write(f"\n")
 
 
