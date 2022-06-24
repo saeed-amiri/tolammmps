@@ -354,16 +354,15 @@ class Combine:
         """loop over all the files and make several DataFrame"""
         for f in self.f_list:
             print(f)
-            o = mlmp.Header(f)
-            self.l_headers[f] = o
-            atoms = mlmp.Body(o.Names, f)
+            obj = mlmp.Header(f)
+            self.l_headers[f] = obj
+            atoms = mlmp.Body(obj.Names, f)
             atoms.read_body()
             self.l_atoms[f] = atoms.Atoms_df
             self.l_bonds[f] = atoms.Bonds_df
             self.l_angles[f] = atoms.Angles_df
             self.l_dihedrals[f] = atoms.Dihedrals_df
-            self.l_masses[f] = o.Masses
-            print(o.Masses)
+            self.l_masses[f] = obj.Masses
 
     def set_atoms(self) -> None:
         """get atoms"""
