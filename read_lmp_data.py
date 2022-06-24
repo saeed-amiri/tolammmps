@@ -29,7 +29,7 @@ class Header:
     """
 
     def __init__(self, infile) -> None:
-        self.infile = infile
+        self.infile: str = infile
         self.atomsLine: int = 0
         self.atomsLine = self.check_file()
         print(f'lines in header: {self.atomsLine}\n')
@@ -171,12 +171,12 @@ class Header:
         self.NDihedrals = 0
         self.NDihedralTyp = 0
 
-    def get_axis_lim(self, lim) -> list:
+    def get_axis_lim(self, lim: typing.Any) -> list:
         lim = lim.split(' ')
         lim = [float(item) for item in lim if item]
         return lim
 
-    def get_masses(self, line, check) -> None:
+    def get_masses(self, line: str, check: str) -> None:
         # stting the nth row of the dictionary
         if check not in line:
             typ = int(line.split(' ')[0])
