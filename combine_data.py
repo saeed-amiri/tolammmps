@@ -496,11 +496,18 @@ class WriteLmp:
     def write_param(self, p: typing.TextIO) -> None:
         """write pair interactions file"""
         p.write(f"# Parameters file from {INFILE} for the ")
-        p.write(f"interface file {LMPFILE}\n")
+        p.write(f"interface file '{LMPFILE}'\n")
         p.write(f"\n")
         _header: list[str] = ['#']
         _header.extend(['*']*79)
         _header = ''.join(_header)
+        # Making a DataFrame for bonds coeff
+        _df = self.system.Bonds.groupby(by='bond').min()
+        _df = _df.reset_index()
+        _df.index += 1
+        _df = _df['bond']
+        self.write_bond_couple(p, _df, _header)
+        del _df
         # Making DataFrame for the pair the pair coeff
         _df = self.system.Masses.copy()
         _df = _df.reset_index()
@@ -521,6 +528,7 @@ class WriteLmp:
         self.write_dihedrals_quadruple(p, _df, _header)
         del _df
 
+
     def write_atom_pair(self,
                         p: typing.TextIO,
                         _df: pd.DataFrame,
@@ -530,6 +538,8 @@ class WriteLmp:
         all_types = itertools.combinations_with_replacement(ll, 2)
         p.write(f"{_header}\n")
         p.write(f"# interactions between pairs\n")
+        p.write(f"\n")
+        p.write(f"pair_style hybrid [args...]\n")
         p.write(f"\n")
         for n, i in enumerate(all_types):
             name_i = _df['name'][i[0]]
@@ -550,6 +560,8 @@ class WriteLmp:
         p.write(f"{_header}\n")
         p.write(f"# coefficents for angle interactions\n")
         p.write(f"\n")
+        p.write(f"angle_style hybrid [args...]\n")
+        p.write(f"\n")
         for n, i in enumerate(_df):
             p.write(f"#{n+1} angle_coeff for: {i}\n")
             p.write(f"angle_coeff {_df.index[n]} [style] [args...] \n")
@@ -564,9 +576,27 @@ class WriteLmp:
         p.write(f"{_header}\n")
         p.write(f"# coefficents for dihedral interactions\n")
         p.write(f"\n")
+        p.write(f"dihedral_style hybrid [args...]\n")
+        p.write(f"\n")
         for n, i in enumerate(_df):
             p.write(f"#{n+1} dihedral_coeff for: {i}\n")
             p.write(f"dihedral_coeff {_df.index[n]} [style] [args...] \n")
+            p.write(f"\n")
+        p.write(f"\n")
+
+    def write_bond_couple(self,
+                        p: typing.TextIO,
+                        _df: pd.DataFrame,
+                        _header: str) -> None:
+        """Write coefficents for bonds"""
+        p.write(f"{_header}\n")
+        p.write(f"# coefficents for bonds interactions\n")
+        p.write(f"\n")
+        p.write(f"bond_style hybrid [args...]\n")
+        p.write(f"\n")
+        for n, i in enumerate(_df):
+            p.write(f"#{n+1} bond_coeff for: {i}\n")
+            p.write(f"bond_coeff {_df.index[n]} [style] [args...] \n")
             p.write(f"\n")
         p.write(f"\n")
 
