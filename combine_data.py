@@ -498,10 +498,19 @@ class WriteLmp:
         p.write(f"Parameters file from {INFILE} for the ")
         p.write(f"interface file {LMPFILE}\n")
         p.write(f"\n")
+        # Making DataFrame for the pair the pair coeff
         _df = self.system.Masses.copy()
         _df  = _df.reset_index()
         _df.index += 1
         self.write_pair(p, _df)
+        del _df
+        # Making a DataFrame for angle coeff
+        _df = self.system.Angles.groupby(by='angle').min()
+        _df  = _df.reset_index()
+        _df.index += 1
+        _df = _df['angle']
+        self.write_angle_triple(p, _df)
+        del _df
     
     def write_pair(self, p: typing.TextIO, _df: pd.DataFrame) -> None:
         """Write pair interactions"""
@@ -519,6 +528,17 @@ class WriteLmp:
             p.write(f"{name_i} - {name_j}\n\n")
         p.write(f"\n")
         del _df
+
+    def write_angle_triple(self, p: typing.TextIO, _df: pd.DataFrame) -> None:
+        """Write angle interactions between partciles"""
+        p.write(f"# coefficents for angle interactions\n")
+        p.write(f"\n")
+        for n, i in enumerate(_df):
+            p.write(f"#{n+1} angle_coeff for: {i}\n")
+            p.write(f"angle_coeff {_df.index[n]} [args...] \n")
+            p.write(f"\n")
+        p.write(f"\n")
+
 
     def write_numbers(self, f: typing.TextIO) -> None:
         f.write(f"{self.system.NAtoms} atoms\n")
