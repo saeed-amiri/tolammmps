@@ -495,33 +495,40 @@ class WriteLmp:
 
     def write_param(self, p: typing.TextIO) -> None:
         """write pair interactions file"""
-        p.write(f"Parameters file from {INFILE} for the ")
+        p.write(f"# Parameters file from {INFILE} for the ")
         p.write(f"interface file {LMPFILE}\n")
         p.write(f"\n")
+        _header: list[str] = ['#']
+        _header.extend(['*']*79)
+        _header = ''.join(_header)
         # Making DataFrame for the pair the pair coeff
         _df = self.system.Masses.copy()
         _df = _df.reset_index()
         _df.index += 1
-        self.write_pair(p, _df)
+        self.write_atom_pair(p, _df, _header)
         del _df
         # Making a DataFrame for angle coeff
         _df = self.system.Angles.groupby(by='angle').min()
         _df = _df.reset_index()
         _df.index += 1
         _df = _df['angle']
-        self.write_angle_triple(p, _df)
+        self.write_angle_triple(p, _df, _header)
         # Making a DataFrame for dihedrals coeff
         _df = self.system.Dihedrals.groupby(by='dihedral').min()
         _df = _df.reset_index()
         _df.index += 1
         _df = _df['dihedral']
-        self.write_dihedrals_quadruple(p, _df)
+        self.write_dihedrals_quadruple(p, _df, _header)
         del _df
 
-    def write_pair(self, p: typing.TextIO, _df: pd.DataFrame) -> None:
+    def write_atom_pair(self,
+                        p: typing.TextIO,
+                        _df: pd.DataFrame,
+                        _header: str) -> None:
         """Write pair interactions"""
         ll = list(_df['typ'])
         all_types = itertools.combinations_with_replacement(ll, 2)
+        p.write(f"{_header}\n")
         p.write(f"# interactions between pairs\n")
         p.write(f"\n")
         for n, i in enumerate(all_types):
@@ -535,29 +542,36 @@ class WriteLmp:
         p.write(f"\n")
         del _df
 
-    def write_angle_triple(self, p: typing.TextIO, _df: pd.DataFrame) -> None:
+    def write_angle_triple(self,
+                           p: typing.TextIO,
+                           _df: pd.DataFrame,
+                           _header: str) -> None:
         """Write angle interactions between partciles"""
+        p.write(f"{_header}\n")
         p.write(f"# coefficents for angle interactions\n")
         p.write(f"\n")
         for n, i in enumerate(_df):
             p.write(f"#{n+1} angle_coeff for: {i}\n")
-            p.write(f"angle_coeff {_df.index[n]} [args...] \n")
+            p.write(f"angle_coeff {_df.index[n]} [style] [args...] \n")
             p.write(f"\n")
         p.write(f"\n")
 
     def write_dihedrals_quadruple(self,
                                   p: typing.TextIO,
-                                  _df: pd.DataFrame) -> None:
+                                _df: pd.DataFrame,
+                                _header: str) -> None:
         """Write dihedral interactions"""
+        p.write(f"{_header}\n")
         p.write(f"# coefficents for dihedral interactions\n")
         p.write(f"\n")
         for n, i in enumerate(_df):
             p.write(f"#{n+1} dihedral_coeff for: {i}\n")
-            p.write(f"dihedral_coeff {_df.index[n]} [args...] \n")
+            p.write(f"dihedral_coeff {_df.index[n]} [style] [args...] \n")
             p.write(f"\n")
         p.write(f"\n")
 
     def write_numbers(self, f: typing.TextIO) -> None:
+        """Write the number of each types"""
         f.write(f"{self.system.NAtoms} atoms\n")
         f.write(f"{self.system.NAtomType} atom types\n")
         if self.system.NBonds > 0:
@@ -572,6 +586,7 @@ class WriteLmp:
         f.write(f"\n")
 
     def write_box(self, f: typing.TextIO) -> None:
+        """Write the box sizes"""
         f.write(f"{self.xlim[0]-5:.3f} {self.xlim[1]+5:.3f} xlo xhi\n")
         f.write(f"{self.ylim[0]-5:.3f} {self.ylim[1]+5:.3f} ylo yhi\n")
         f.write(f"{self.zlim[0]-5:.3f} {self.zlim[1]+5:.3f} zlo zhi\n")
