@@ -135,8 +135,8 @@ class Atoms:
             self.l_atoms[f]['name'] = [
                 item.strip() for item in self.l_atoms[f]['name']]
             # Keep only the first two letters
-            self.l_atoms[f]['name'] = [
-                item[0:2] for item in self.l_atoms[f]['name']]
+            # self.l_atoms[f]['name'] = [
+                # item[0:2] for item in self.l_atoms[f]['name']]
 
     def rm_special_str(self, char: str) -> str:
         return re.sub('[^A-Za-z0-9]+', '', char)
@@ -300,6 +300,7 @@ class Mass:
         self.Masses[['name', 'f_name']] = Names[['name', 'f_name']]
 
     def rm_special_str(self, char: str) -> str:
+        print(re.sub('[^A-Za-z0-9]+', '', char))
         return re.sub('[^A-Za-z0-9]+', '', char)
 
     def mk_names(self, f: str) -> pd.DataFrame:
@@ -312,7 +313,7 @@ class Mass:
             self.rm_special_str(item) for item in df_name['name']
             ]
         df_name['name'] = [item.strip() for item in df_name['name']]
-        df_name['name'] = [item[0:2] for item in df_name['name']]
+        # df_name['name'] = [item[0:2] for item in df_name['name']]
         df_name['f_name'] = [f"from_{f}" for _ in df_name['name']]
         return df_name
 
@@ -429,7 +430,7 @@ class Combine:
                 f"{self.Atoms.iloc[ah-1]['name']}"
                 for ai, aj, ak, ah in
                 zip(_Dihedrals['ai'], _Dihedrals['aj'],
-                    _Dihedrals['ak'], _Dihedrals['ak'])]
+                    _Dihedrals['ak'], _Dihedrals['ah'])]
             _Dihedrals['cmt'] = ["#" for _ in _Dihedrals.index]
             _Dihedrals['dihedral'] = dihedral_name
             self.Dihedrals = _Dihedrals
@@ -521,7 +522,7 @@ class WriteLmp:
 
     def group_df(self, df: pd.DataFrame, gb: str) -> pd.DataFrame:
         """Retrun grouped datafrma, gb: column name to group by"""
-        _df = df.groupby(by=gb).min()
+        _df = df.groupby(by='typ').max()
         _df = _df.reset_index()
         _df.index += 1
         _df = _df[gb]
@@ -674,6 +675,6 @@ INFILE = sys.argv[1:]
 system = Combine(INFILE)
 system.mk_lmp_df()
 LMPFILE = 'interface.data'
-PARAMFILE = 'parmeters.data'
+PARAMFILE = 'parmeters.lmp'
 lmp = WriteLmp(system)
 lmp.mk_lmp()
