@@ -1,9 +1,9 @@
-import itertools
 import re
 import sys
 import typing
-import pandas as pd
+import itertools
 import numpy as np
+import pandas as pd
 import read_lmp_data as mlmp  # My lammps reader
 
 
@@ -494,23 +494,31 @@ class WriteLmp:
         self.write_dihedrals(f)
     
     def write_param(self, p: typing.TextIO) -> None:
+        """write pair interactions file"""
         p.write(f"Parameters file from {INFILE} for the ")
         p.write(f"interface file {LMPFILE}\n")
         p.write(f"\n")
         _df = self.system.Masses.copy()
         _df  = _df.reset_index()
         _df.index += 1
-        ll = list(self.system.Masses['typ'])
+        self.write_pair(p, _df)
+    
+    def write_pair(self, p: typing.TextIO, _df: pd.DataFrame) -> None:
+        """Write pair interactions"""
+        ll = list(_df['typ'])
         all_types = itertools.combinations_with_replacement(ll, 2)
+        p.write(f"# interactions between pairs\n")
+        p.write(f"\n")
         for n, i in enumerate(all_types): 
             name_i = _df['name'][i[0]]
             file_i = _df['f_name'][i[0]]
             name_j = _df['name'][i[1]]
             file_j = _df['f_name'][i[1]]
             p.write(f"#{n+1} pair: {name_i} {file_i} - {name_j} {file_j}\n")
-            p.write(f"pair_coeff {i[0]} {i[1]} pair_style args... # ")
+            p.write(f"pair_coeff {i[0]} {i[1]} [pair_style] [args...] # ")
             p.write(f"{name_i} - {name_j}\n\n")
         p.write(f"\n")
+        del _df
 
     def write_numbers(self, f: typing.TextIO) -> None:
         f.write(f"{self.system.NAtoms} atoms\n")
