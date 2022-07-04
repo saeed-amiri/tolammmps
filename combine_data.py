@@ -502,10 +502,7 @@ class WriteLmp:
         _header.extend(['*']*78)
         _header = ''.join(_header)
         # Making a DataFrame for bonds coeff
-        _df = self.system.Bonds.groupby(by='bond').min()
-        _df = _df.reset_index()
-        _df.index += 1
-        _df = _df['bond']
+        _df = self.group_df(self.system.Bonds, 'bond')
         self.write_bond_couple(p, _df, _header)
         del _df
         # Making DataFrame for the pair the pair coeff
@@ -515,18 +512,21 @@ class WriteLmp:
         self.write_atom_pair(p, _df, _header)
         del _df
         # Making a DataFrame for angle coeff
-        _df = self.system.Angles.groupby(by='angle').min()
-        _df = _df.reset_index()
-        _df.index += 1
-        _df = _df['angle']
+        _df = self.group_df(self.system.Angles, 'angle')
         self.write_angle_triple(p, _df, _header)
         # Making a DataFrame for dihedrals coeff
-        _df = self.system.Dihedrals.groupby(by='dihedral').min()
-        _df = _df.reset_index()
-        _df.index += 1
-        _df = _df['dihedral']
+        _df = self.group_df(self.system.Dihedrals, 'dihedral')
         self.write_dihedrals_quadruple(p, _df, _header)
         del _df
+
+    def group_df(self, df: pd.DataFrame, gb: str) -> pd.DataFrame:
+        """Retrun grouped datafrma, gb: column name to group by"""
+        _df = df.groupby(by=gb).min()
+        _df = _df.reset_index()
+        _df.index += 1
+        _df = _df[gb]
+        del df
+        return _df
 
     def write_atom_pair(self,
                         p: typing.TextIO,
