@@ -1,3 +1,4 @@
+import itertools
 import re
 import sys
 import typing
@@ -454,7 +455,6 @@ class WriteLmp:
     def __init__(self, system: Combine) -> None:
         self.system = system
         print(f"Writting '{LMPFILE}' ...")
-        print(system.Masses)
         del system
 
     def mk_lmp(self) -> None:
@@ -494,8 +494,22 @@ class WriteLmp:
         self.write_dihedrals(f)
     
     def write_param(self, p: typing.TextIO) -> None:
-        p.write(f"Parameters file from {INFILE} for the")
+        p.write(f"Parameters file from {INFILE} for the ")
         p.write(f"interface file {LMPFILE}\n")
+        p.write(f"\n")
+        _df = self.system.Masses.copy()
+        _df  = _df.reset_index()
+        _df.index += 1
+        ll = list(self.system.Masses['typ'])
+        all_types = itertools.combinations_with_replacement(ll, 2)
+        for n, i in enumerate(all_types): 
+            name_i = _df['name'][i[0]]
+            file_i = _df['f_name'][i[0]]
+            name_j = _df['name'][i[1]]
+            file_j = _df['f_name'][i[1]]
+            p.write(f"#{n+1} pair: {name_i} {file_i} - {name_j} {file_j}\n")
+            p.write(f"pair_coeff {i[0]} {i[1]} pair_style args... # ")
+            p.write(f"{name_i} - {name_j}\n\n")
         p.write(f"\n")
 
     def write_numbers(self, f: typing.TextIO) -> None:
