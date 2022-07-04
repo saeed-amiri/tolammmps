@@ -492,7 +492,7 @@ class WriteLmp:
         self.write_bonds(f)
         self.write_angles(f)
         self.write_dihedrals(f)
-    
+
     def write_param(self, p: typing.TextIO) -> None:
         """write pair interactions file"""
         p.write(f"Parameters file from {INFILE} for the ")
@@ -500,25 +500,31 @@ class WriteLmp:
         p.write(f"\n")
         # Making DataFrame for the pair the pair coeff
         _df = self.system.Masses.copy()
-        _df  = _df.reset_index()
+        _df = _df.reset_index()
         _df.index += 1
         self.write_pair(p, _df)
         del _df
         # Making a DataFrame for angle coeff
         _df = self.system.Angles.groupby(by='angle').min()
-        _df  = _df.reset_index()
+        _df = _df.reset_index()
         _df.index += 1
         _df = _df['angle']
         self.write_angle_triple(p, _df)
+        # Making a DataFrame for dihedrals coeff
+        _df = self.system.Dihedrals.groupby(by='dihedral').min()
+        _df = _df.reset_index()
+        _df.index += 1
+        _df = _df['dihedral']
+        self.write_dihedrals_quadruple(p, _df)
         del _df
-    
+
     def write_pair(self, p: typing.TextIO, _df: pd.DataFrame) -> None:
         """Write pair interactions"""
         ll = list(_df['typ'])
         all_types = itertools.combinations_with_replacement(ll, 2)
         p.write(f"# interactions between pairs\n")
         p.write(f"\n")
-        for n, i in enumerate(all_types): 
+        for n, i in enumerate(all_types):
             name_i = _df['name'][i[0]]
             file_i = _df['f_name'][i[0]]
             name_j = _df['name'][i[1]]
@@ -539,6 +545,17 @@ class WriteLmp:
             p.write(f"\n")
         p.write(f"\n")
 
+    def write_dihedrals_quadruple(self,
+                                  p: typing.TextIO,
+                                  _df: pd.DataFrame) -> None:
+        """Write dihedral interactions"""
+        p.write(f"# coefficents for dihedral interactions\n")
+        p.write(f"\n")
+        for n, i in enumerate(_df):
+            p.write(f"#{n+1} dihedral_coeff for: {i}\n")
+            p.write(f"dihedral_coeff {_df.index[n]} [args...] \n")
+            p.write(f"\n")
+        p.write(f"\n")
 
     def write_numbers(self, f: typing.TextIO) -> None:
         f.write(f"{self.system.NAtoms} atoms\n")
