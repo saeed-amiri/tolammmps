@@ -454,6 +454,7 @@ class WriteLmp:
     def __init__(self, system: Combine) -> None:
         self.system = system
         print(f"Writting '{LMPFILE}' ...")
+        print(system.Masses)
         del system
 
     def mk_lmp(self) -> None:
@@ -461,7 +462,7 @@ class WriteLmp:
         # find box sizes
         self.set_box()
         # write file
-        self.write_data()
+        self.write_out()
         # print(self.atoms['charge'].sum())
 
     def set_box(self) -> None:
@@ -474,18 +475,28 @@ class WriteLmp:
         """set the total numbers of charges, ..."""
         self.Tcharge = self.system.Atoms['charge'].sum()
 
-    def write_data(self) -> None:
+    def write_out(self) -> None:
+        """Call write methods"""
+        with open(LMPFILE, 'w') as f, open(PARAMFILE, 'w') as p:
+            self.write_data(f)
+            self.write_param(p)
+
+    def write_data(self, f: typing.TextIO) -> None:
         """write LAMMPS data file"""
-        with open(LMPFILE, 'w') as f:
-            f.write(f"Data file from {INFILE} for an interface\n")
-            f.write(f"\n")
-            self.write_numbers(f)
-            self.write_box(f)
-            self.write_masses(f)
-            self.write_atoms(f)
-            self.write_bonds(f)
-            self.write_angles(f)
-            self.write_dihedrals(f)
+        f.write(f"Data file from {INFILE} for an interface\n")
+        f.write(f"\n")
+        self.write_numbers(f)
+        self.write_box(f)
+        self.write_masses(f)
+        self.write_atoms(f)
+        self.write_bonds(f)
+        self.write_angles(f)
+        self.write_dihedrals(f)
+    
+    def write_param(self, p: typing.TextIO) -> None:
+        p.write(f"Parameters file from {INFILE} for the")
+        p.write(f"interface file {LMPFILE}\n")
+        p.write(f"\n")
 
     def write_numbers(self, f: typing.TextIO) -> None:
         f.write(f"{self.system.NAtoms} atoms\n")
@@ -560,5 +571,6 @@ INFILE = sys.argv[1:]
 system = Combine(INFILE)
 system.mk_lmp_df()
 LMPFILE = 'interface.data'
+PARAMFILE = 'parmeters.data'
 lmp = WriteLmp(system)
 lmp.mk_lmp()
