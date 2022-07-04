@@ -499,7 +499,7 @@ class WriteLmp:
         p.write(f"interface file '{LMPFILE}'\n")
         p.write(f"\n")
         _header: list[str] = ['#']
-        _header.extend(['*']*79)
+        _header.extend(['*']*78)
         _header = ''.join(_header)
         # Making a DataFrame for bonds coeff
         _df = self.system.Bonds.groupby(by='bond').min()
@@ -527,7 +527,6 @@ class WriteLmp:
         _df = _df['dihedral']
         self.write_dihedrals_quadruple(p, _df, _header)
         del _df
-
 
     def write_atom_pair(self,
                         p: typing.TextIO,
@@ -570,8 +569,8 @@ class WriteLmp:
 
     def write_dihedrals_quadruple(self,
                                   p: typing.TextIO,
-                                _df: pd.DataFrame,
-                                _header: str) -> None:
+                                  _df: pd.DataFrame,
+                                  _header: str) -> None:
         """Write dihedral interactions"""
         p.write(f"{_header}\n")
         p.write(f"# coefficents for dihedral interactions\n")
@@ -585,9 +584,9 @@ class WriteLmp:
         p.write(f"\n")
 
     def write_bond_couple(self,
-                        p: typing.TextIO,
-                        _df: pd.DataFrame,
-                        _header: str) -> None:
+                          p: typing.TextIO,
+                          _df: pd.DataFrame,
+                          _header: str) -> None:
         """Write coefficents for bonds"""
         p.write(f"{_header}\n")
         p.write(f"# coefficents for bonds interactions\n")
