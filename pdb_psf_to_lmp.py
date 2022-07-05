@@ -423,6 +423,7 @@ class PsfToLmp(PsfToDf):
         # Set the number of types
         self.Nbonds_type: int = self.lmp_bonds['typ'].max()
         self.lmp_angles: pd.DataFrame = self.mk_lmp_angles()
+        self.Nangles_type: int = self.lmp_angles['typ'].max()
 
     def set_type(self) -> pd.DataFrame:
         """set the mass for each type"""
@@ -518,6 +519,15 @@ class PsfToLmp(PsfToDf):
         ]
         df['cmt'] = ['#' for _ in angle]
         df['angle'] = angle
+        columns: list[str] = ['angle']
+        df_sub: pd.DataFrame = df[columns].copy()
+        df_sub = df_sub.groupby(by=columns).min()
+        df_sub = df_sub.reset_index()
+        df_sub.index += 1
+        df_sub['typ'] = df_sub.index
+        df_sub = df_sub.set_index('angle')
+        df['typ'] = [df_sub.loc[item]['typ'] for item in df['angle']]
+        df.index += 1
         return df
 
 
@@ -539,6 +549,8 @@ class WriteLmp:
         self.Natoms_type = lmp.Natom_type
         self.Nbonds = lmp.NBOND
         self.Nbonds_type = lmp.Nbonds_type
+        self.Nangles = lmp.NTHETA
+        self.Nangles_type = lmp.Nangles_type
         self.typ = lmp.typ
         print(f"Writting '{LMPFILE}' ...")
 
@@ -579,12 +591,15 @@ class WriteLmp:
             self.write_masses(f)
             self.write_atoms(f)
             self.write_bonds(f)
+            self.write_angles(f)
 
     def write_numbers(self, f: typing.TextIO) -> None:
         f.write(f"{self.Natoms} atoms\n")
         f.write(f"{self.Natoms_type} atom types\n")
         f.write(f"{self.Nbonds} bonds\n")
         f.write(f"{self.Nbonds_type} bond types\n")
+        f.write(f"{self.Nangles} angles\n")
+        f.write(f"{self.Nangles_type} angle types\n")
         f.write(f"\n")
 
     def write_box(self, f: typing.TextIO) -> None:
@@ -617,6 +632,14 @@ class WriteLmp:
         f.write(f"\n")
         columns = ['id', 'typ', 'ai', 'aj']
         self.bonds.to_csv(f, sep=' ', index=False, columns=columns,
+                          header=None)
+        f.write(f"\n")
+
+    def write_angles(self, f: typing.TextIO) -> None:
+        f.write(f"Angles\n")
+        f.write(f"\n")
+        columns = ['typ', 'ai', 'aj', 'ak']
+        self.angles.to_csv(f, sep=' ', index=True, columns=columns,
                           header=None)
 
 
