@@ -261,12 +261,13 @@ class BoAnDi:
             if i == 0:
                 Ntype = _Ntype
             elif i > 0 and i < len(self.f_list):
-                Ntype += _Ntype
-                _Ntype = 0
                 try:
-                    self.l_df[f]['typ'] += _Ntype
+                    self.l_df[f]['typ'] += Ntype
                 except KeyError:
                     pass
+                Ntype += _Ntype
+                _Ntype = 0
+            print(f, self._type, Ntype)
             if i+1 > len(self.f_list):
                 break
 
@@ -615,9 +616,10 @@ class WriteLmp:
 
     def write_box(self, f: typing.TextIO) -> None:
         """Write the box sizes"""
-        f.write(f"{self.xlim[0]-5:.3f} {self.xlim[1]+5:.3f} xlo xhi\n")
-        f.write(f"{self.ylim[0]-5:.3f} {self.ylim[1]+5:.3f} ylo yhi\n")
-        f.write(f"{self.zlim[0]-5:.3f} {self.zlim[1]+5:.3f} zlo zhi\n")
+        VACUME: int = 2
+        f.write(f"{self.xlim[0]-VACUME:.3f} {self.xlim[1]+VACUME:.3f} xlo xhi\n")
+        f.write(f"{self.ylim[0]-VACUME:.3f} {self.ylim[1]+VACUME:.3f} ylo yhi\n")
+        f.write(f"{self.zlim[0]-VACUME:.3f} {self.zlim[1]+VACUME:.3f} zlo zhi\n")
         f.write(f"\n")
 
     def write_masses(self, f: typing.TextIO) -> None:
@@ -646,7 +648,6 @@ class WriteLmp:
             f.write(f"Bonds\n")
             f.write(f"\n")
             columns = ['typ', 'ai', 'aj', 'cmt', 'bond']
-            print(self.system.Bonds)
             self.system.Bonds.to_csv(f, sep=' ', index=True, columns=columns,
                                      header=None)
             f.write(f"\n")
