@@ -247,7 +247,7 @@ class BoAnDi:
             if i+1 > len(self.f_list):
                 break
 
-    def update_type(self) -> int:
+    def update_type(self) -> None:
         """update the number of each type in atoms card"""
         Ntype: int   # To return
         _Ntype: int  # Temporary
@@ -261,15 +261,14 @@ class BoAnDi:
             if i == 0:
                 Ntype = _Ntype
             elif i > 0 and i < len(self.f_list):
+                Ntype += _Ntype
+                _Ntype = 0
                 try:
                     self.l_df[f]['typ'] += _Ntype
                 except KeyError:
                     pass
-                Ntype += _Ntype
             if i+1 > len(self.f_list):
                 break
-            _Ntype = 0
-        return Ntype
 
 
 class Mass:
@@ -300,7 +299,6 @@ class Mass:
         self.Masses[['name', 'f_name']] = Names[['name', 'f_name']]
 
     def rm_special_str(self, char: str) -> str:
-        print(re.sub('[^A-Za-z0-9]+', '', char))
         return re.sub('[^A-Za-z0-9]+', '', char)
 
     def mk_names(self, f: str) -> pd.DataFrame:
@@ -522,7 +520,7 @@ class WriteLmp:
 
     def group_df(self, df: pd.DataFrame, gb: str) -> pd.DataFrame:
         """Retrun grouped datafrma, gb: column name to group by"""
-        _df = df.groupby(by='typ').max()
+        _df = df.groupby(by='typ').min()
         _df = _df.reset_index()
         _df.index += 1
         _df = _df[gb]
@@ -648,6 +646,7 @@ class WriteLmp:
             f.write(f"Bonds\n")
             f.write(f"\n")
             columns = ['typ', 'ai', 'aj', 'cmt', 'bond']
+            print(self.system.Bonds)
             self.system.Bonds.to_csv(f, sep=' ', index=True, columns=columns,
                                      header=None)
             f.write(f"\n")
