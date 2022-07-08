@@ -2,6 +2,7 @@ import sys
 import os
 import re
 import typing
+import numpy as np
 import pandas as pd
 
 
@@ -54,9 +55,9 @@ class Structure:
 
     def read_struct(self) -> tuple[dict, dict]:
         """read the strut file"""
-        bed_count: int = 0  # to count lines in the matrix of bolcks
         f: typing.IO  # a string to save file
         line: str  # a string to save lines of the strcut file
+        bed_count: int = 0  # to count lines in the matrix of bolcks
         symbole_dict: dict[str, str] = {}  # dict to save name and symb
         block_dict: dict[int, list[str]] = {}  # dict to save matrix
 
@@ -74,6 +75,7 @@ class Structure:
                     bed_count += 1
                 if not line:
                     break
+        self.check_dicts(symbole_dict, block_dict)
         return symbole_dict, block_dict
 
     def get_files(self, line: str) -> tuple[str, str]:
@@ -83,7 +85,15 @@ class Structure:
         # Remove whit spaces
         line = re.sub(r'\s+', '', line)
         sym, fname = line.split("=")
+        self.check_files(fname)
         return sym, fname
+
+    def check_files(self, fname: str) -> None:
+        """check if the fname exist and not empty"""
+        if not os.path.isfile(fname):
+            exit(f'ERROR: "{fname}" does not exist!!\n')
+        if not os.path.getsize(fname) > 0:
+            exit(f'ERROR: "{fname}" is empty!!\n')
 
     def get_matrix(self, line: str) -> list[str]:
         """read the matrix section of the struct file"""
@@ -94,6 +104,23 @@ class Structure:
             line = re.sub(r'\s+', '', line)
         _sym_mat = [item for item in line]
         return _sym_mat
+
+    def check_dicts(self,
+                    sym: dict[str, str],
+                    block: dict[int, list[str]]) -> tuple[dict, dict]:
+        """check all the symbols have a file defeind with them"""
+        e_flag: bool = False  # To check all the typo in the input file
+        for _, row in block.items():
+            for i in range(len(row)):
+                if row[i].isalpha():
+                    if not row[i] in sym.keys():
+                        print(f'ERROR: symbole "{row[i]}" is not defined\n')
+                        e_flag = True
+                elif row[i] not in ['-', '_', '|']:
+                    print(f'ERROR: symbole "{row[i]}" is not defined\n')
+                    e_flag = True
+        if e_flag:
+            exit(f'Mistakes in the "{self.strcut}"')
 
 
 super_str = Structure()
