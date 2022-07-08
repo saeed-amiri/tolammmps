@@ -50,8 +50,9 @@ class Structure:
     def __init__(self) -> None:
         self.strcut: str = sys.argv[1]
 
-    def mk_matrix(self) -> None:
+    def mk_block(self) -> None:
         """make a matrix out of the blocks symbols"""
+        self.symbols, self.block = self.read_struct()
 
     def read_struct(self) -> tuple[dict, dict]:
         """read the strut file"""
@@ -91,37 +92,44 @@ class Structure:
     def check_files(self, fname: str) -> None:
         """check if the fname exist and not empty"""
         if not os.path.isfile(fname):
-            exit(f'ERROR: "{fname}" does not exist!!\n')
+            exit(f'{self.__class__.__name__}:\n'
+                 f'\tERROR: {self.strcut} -> "{fname}" does not exist!!\n')
         if not os.path.getsize(fname) > 0:
-            exit(f'ERROR: "{fname}" is empty!!\n')
+            exit(f'{self.__class__.__name__}:\n'
+                 f'\tERROR: {self.strcut} -> "{fname}" is empty!!\n')
 
     def get_matrix(self, line: str) -> list[str]:
         """read the matrix section of the struct file"""
         _sym_mat: list[str]  # A list to return sequence in line
         if ' ' in line:
-            print(f'WAR: whitespace in the "{self.strcut}" in line: '
-                  f'"{line}", it removed!\n')
+            print(f'WARRNING: whitespace in the "{self.strcut}" in line: '
+                  f'"{line}", it is removed!\n')
             line = re.sub(r'\s+', '', line)
         _sym_mat = [item for item in line]
         return _sym_mat
 
     def check_dicts(self,
                     sym: dict[str, str],
-                    block: dict[int, list[str]]) -> tuple[dict, dict]:
-        """check all the symbols have a file defeind with them"""
+                    block: dict[int, list[str]]) -> None:
+        """check if all the symbols have a file defeind with them"""
         e_flag: bool = False  # To check all the typo in the input file
         for _, row in block.items():
             for i in range(len(row)):
                 if row[i].isalpha():
                     if not row[i] in sym.keys():
-                        print(f'ERROR: symbole "{row[i]}" is not defined\n')
+                        print(f'{self.__class__.__name__}:\n'
+                              f'\tERROR: {self.strcut} -> symbole "{row[i]}" '
+                              f'is not defined\n')
                         e_flag = True
                 elif row[i] not in ['-', '_', '|']:
-                    print(f'ERROR: symbole "{row[i]}" is not defined\n')
+                    print(f'{self.__class__.__name__}:\n'
+                          f'\tERROR: {self.strcut} -> symbole "{row[i]}" is '
+                          f'not defined\n')
                     e_flag = True
         if e_flag:
             exit(f'Mistakes in the "{self.strcut}"')
 
 
 super_str = Structure()
-super_str.read_struct()
+super_str.mk_block()
+print(super_str.symbols)
