@@ -37,7 +37,7 @@ class Doc:
             Done Jun 23 2022
         - Coniditoinal writing of the number of each cards,
             Done Jun 24 2022
-        - Writing LAMPPS as a modual to be used all the scripts,
+        - Writing-LAMPPS as a modual to be used all the scripts,
         - The posibality of duplicate files,
 
     """
@@ -136,7 +136,7 @@ class Atoms:
                 item.strip() for item in self.l_atoms[f]['name']]
             # Keep only the first two letters
             # self.l_atoms[f]['name'] = [
-                # item[0:2] for item in self.l_atoms[f]['name']]
+            # item[0:2] for item in self.l_atoms[f]['name']]
 
     def rm_special_str(self, char: str) -> str:
         return re.sub('[^A-Za-z0-9]+', '', char)
@@ -462,7 +462,7 @@ class WriteLmp:
         # find box sizes
         self.set_box()
         # write file
-        self.write_out()
+        self._write_out()
         # print(self.atoms['charge'].sum())
 
     def set_box(self) -> None:
@@ -475,11 +475,10 @@ class WriteLmp:
         """set the total numbers of charges, ..."""
         self.Tcharge = self.system.Atoms['charge'].sum()
 
-    def write_out(self) -> None:
+    def _write_out(self) -> None:
         """Call write methods"""
-        with open(LMPFILE, 'w') as f, open(PARAMFILE, 'w') as p:
+        with open(LMPFILE, 'w') as f:
             self.write_data(f)
-            self.write_param(p)
 
     def write_data(self, f: typing.TextIO) -> None:
         """write LAMMPS data file"""
@@ -493,7 +492,108 @@ class WriteLmp:
         self.write_angles(f)
         self.write_dihedrals(f)
 
-    def write_param(self, p: typing.TextIO) -> None:
+    def write_numbers(self, f: typing.TextIO) -> None:
+        """Write the number of each types"""
+        f.write(f"{self.system.NAtoms} atoms\n")
+        f.write(f"{self.system.NAtomType} atom types\n")
+        if self.system.NBonds > 0:
+            f.write(f"{self.system.NBonds} bonds\n")
+            f.write(f"{self.system.NBondType} bond types\n")
+        if self.system.NAngles > 0:
+            f.write(f"{self.system.NAngles} angles\n")
+            f.write(f"{self.system.NAngleType} angle types\n")
+        if self.system.NDihedrals > 0:
+            f.write(f"{self.system.NDihedrals} dihedrals\n")
+            f.write(f"{self.system.NDihedralType} dihedral types\n")
+        f.write(f"\n")
+
+    def write_box(self, f: typing.TextIO) -> None:
+        """Write the box sizes"""
+        VACUME: int = 2
+        f.write(
+            f"{self.xlim[0]-VACUME:.3f} {self.xlim[1]+VACUME:.3f} xlo xhi\n"
+            )
+        f.write(
+            f"{self.ylim[0]-VACUME:.3f} {self.ylim[1]+VACUME:.3f} ylo yhi\n"
+            )
+        f.write(
+            f"{self.zlim[0]-VACUME:.3f} {self.zlim[1]+VACUME:.3f} zlo zhi\n"
+            )
+        f.write(f"\n")
+
+    def write_masses(self, f: typing.TextIO) -> None:
+        columns = ['typ', 'mass', 'cmt', 'name', 'f_name']
+        f.write(f"Masses\n")
+        f.write(f"\n")
+        self.system.Masses.to_csv(f, sep=' ', index=False, columns=columns,
+                                  header=None)
+        f.write(f"\n")
+
+    def write_atoms(self, f: typing.TextIO) -> None:
+        """Write atoms section inot file"""
+        f.write(f"Atoms # full\n")
+        f.write(f"\n")
+        columns = ['atom_id', 'mol', 'typ', 'charge', 'x', 'y', 'z', 'nx',
+                   'ny', 'nz', 'cmt', 'name']
+        self.system.Atoms = self.system.Atoms.astype(
+            {'x': float, 'y':  float, 'z': float}
+        )
+        self.system.Atoms.to_csv(f, sep=' ', index=False, columns=columns,
+                                 header=None, float_format='%.8f')
+        f.write(f"\n")
+
+    def write_bonds(self, f: typing.TextIO) -> None:
+        if self.system.NBonds > 0:
+            f.write(f"Bonds\n")
+            f.write(f"\n")
+            columns = ['typ', 'ai', 'aj', 'cmt', 'bond']
+            self.system.Bonds.to_csv(f, sep=' ', index=True, columns=columns,
+                                     header=None)
+            f.write(f"\n")
+
+    def write_angles(self, f: typing.TextIO) -> None:
+        if self.system.NAngles > 0:
+            f.write(f"Angles\n")
+            f.write(f"\n")
+            columns = ['typ', 'ai', 'aj', 'ak', 'cmt', 'angle']
+            self.system.Angles.to_csv(f, sep=' ', index=True, columns=columns,
+                                      header=None)
+            f.write(f"\n")
+
+    def write_dihedrals(self, f: typing.TextIO) -> None:
+        if self.system.NDihedrals > 0:
+            f.write(f"Dihedrals\n")
+            f.write(f"\n")
+            columns = ['typ', 'ai', 'aj', 'ak', 'ah', 'cmt', 'dihedral']
+            self.system.Dihedrals.to_csv(f, sep=' ', index=True,
+                                         columns=columns, header=None)
+            f.write(f"\n")
+
+
+class WriteParam:
+    """Writting the interactions parameters for input of LAMMPS
+        Input:
+        atoms_df (DataFrame from PDBFILE: Pdb class)
+        bonds_df, angles_df, dihedrals, impropers_df (DataFrame from
+        PSFFILE Psf class)
+    Output:
+        A LAMMPS data file
+    """
+    def __init__(self, system: Combine) -> None:
+        self.system = system
+        print(f"Writting '{PARAMFILE}' ...")
+        del system
+
+    def mk_param(self) -> None:
+        """calling functions to write data into file"""
+        self._write_out()
+
+    def _write_out(self) -> None:
+        """write parameters"""
+        with open(PARAMFILE, 'w') as p:
+            self._write_param(p)
+
+    def _write_param(self, p: typing.TextIO) -> None:
         """write pair interactions file"""
         p.write(f"# Parameters file from {INFILE} for the ")
         p.write(f"interface file '{LMPFILE}'\n")
@@ -518,15 +618,6 @@ class WriteLmp:
         _df = self.group_df(self.system.Dihedrals, 'dihedral')
         self.write_dihedrals_quadruple(p, _df, _header)
         del _df
-
-    def group_df(self, df: pd.DataFrame, gb: str) -> pd.DataFrame:
-        """Retrun grouped datafrma, gb: column name to group by"""
-        _df = df.groupby(by='typ').min()
-        _df = _df.reset_index()
-        _df.index += 1
-        _df = _df[gb]
-        del df
-        return _df
 
     def write_atom_pair(self,
                         p: typing.TextIO,
@@ -599,77 +690,14 @@ class WriteLmp:
             p.write(f"\n")
         p.write(f"\n")
 
-    def write_numbers(self, f: typing.TextIO) -> None:
-        """Write the number of each types"""
-        f.write(f"{self.system.NAtoms} atoms\n")
-        f.write(f"{self.system.NAtomType} atom types\n")
-        if self.system.NBonds > 0:
-            f.write(f"{self.system.NBonds} bonds\n")
-            f.write(f"{self.system.NBondType} bond types\n")
-        if self.system.NAngles > 0:
-            f.write(f"{self.system.NAngles} angles\n")
-            f.write(f"{self.system.NAngleType} angle types\n")
-        if self.system.NDihedrals > 0:
-            f.write(f"{self.system.NDihedrals} dihedrals\n")
-            f.write(f"{self.system.NDihedralType} dihedral types\n")
-        f.write(f"\n")
-
-    def write_box(self, f: typing.TextIO) -> None:
-        """Write the box sizes"""
-        VACUME: int = 2
-        f.write(f"{self.xlim[0]-VACUME:.3f} {self.xlim[1]+VACUME:.3f} xlo xhi\n")
-        f.write(f"{self.ylim[0]-VACUME:.3f} {self.ylim[1]+VACUME:.3f} ylo yhi\n")
-        f.write(f"{self.zlim[0]-VACUME:.3f} {self.zlim[1]+VACUME:.3f} zlo zhi\n")
-        f.write(f"\n")
-
-    def write_masses(self, f: typing.TextIO) -> None:
-        columns = ['typ', 'mass', 'cmt', 'name', 'f_name']
-        f.write(f"Masses\n")
-        f.write(f"\n")
-        self.system.Masses.to_csv(f, sep=' ', index=False, columns=columns,
-                                  header=None)
-        f.write(f"\n")
-
-    def write_atoms(self, f: typing.TextIO) -> None:
-        """Write atoms section inot file"""
-        f.write(f"Atoms # full\n")
-        f.write(f"\n")
-        columns = ['atom_id', 'mol', 'typ', 'charge', 'x', 'y', 'z', 'nx',
-                   'ny', 'nz', 'cmt', 'name']
-        self.system.Atoms = self.system.Atoms.astype(
-            {'x': float, 'y':  float, 'z': float}
-        )
-        self.system.Atoms.to_csv(f, sep=' ', index=False, columns=columns,
-                                 header=None, float_format='%.8f')
-        f.write(f"\n")
-
-    def write_bonds(self, f: typing.TextIO) -> None:
-        if self.system.NBonds > 0:
-            f.write(f"Bonds\n")
-            f.write(f"\n")
-            columns = ['typ', 'ai', 'aj', 'cmt', 'bond']
-            self.system.Bonds.to_csv(f, sep=' ', index=True, columns=columns,
-                                     header=None)
-            f.write(f"\n")
-
-    def write_angles(self, f: typing.TextIO) -> None:
-        if self.system.NAngles > 0:
-            f.write(f"Angles\n")
-            f.write(f"\n")
-            columns = ['typ', 'ai', 'aj', 'ak', 'cmt', 'angle']
-            self.system.Angles.to_csv(f, sep=' ', index=True, columns=columns,
-                                      header=None)
-            f.write(f"\n")
-
-    def write_dihedrals(self, f: typing.TextIO) -> None:
-        if self.system.NDihedrals > 0:
-            f.write(f"Dihedrals\n")
-            f.write(f"\n")
-            columns = ['typ', 'ai', 'aj', 'ak', 'ah', 'cmt', 'dihedral']
-            self.system.Dihedrals.to_csv(f, sep=' ', index=True,
-                                         columns=columns, header=None)
-            f.write(f"\n")
-
+    def group_df(self, df: pd.DataFrame, gb: str) -> pd.DataFrame:
+        """Retrun grouped datafrma, gb: column name to group by"""
+        _df = df.groupby(by='typ').min()
+        _df = _df.reset_index()
+        _df.index += 1
+        _df = _df[gb]
+        del df
+        return _df
 
 INFILE = sys.argv[1:]
 system = Combine(INFILE)
@@ -678,3 +706,6 @@ LMPFILE = 'interface.data'
 PARAMFILE = 'parmeters.lmp'
 lmp = WriteLmp(system)
 lmp.mk_lmp()
+param = WriteParam(system)
+param.mk_param()
+
