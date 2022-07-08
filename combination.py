@@ -49,13 +49,16 @@ class Structure:
     def __init__(self) -> None:
         self.strcut: str = sys.argv[1]
 
-    def read_struct(self) -> None:
+    def mk_matrix(self) -> None:
+        """make a matrix out of the blocks symbols"""
+
+    def read_struct(self) -> tuple[dict, dict]:
         """read the strut file"""
         bed_count: int = 0  # to count lines in the matrix of bolcks
         f: typing.IO  # a string to save file
         line: str  # a string to save lines of the strcut file
-        symbole_dict: dict[str, str] = {} # dict to save name and symb
-        mat_dict: dict[str, list[str]] = {} # dict to save matrix
+        symbole_dict: dict[str, str] = {}  # dict to save name and symb
+        block_dict: dict[int, list[str]] = {}  # dict to save matrix
 
         with open(self.strcut, 'r') as f:
             while True:
@@ -67,11 +70,11 @@ class Structure:
                     symbole_dict[sym] = fname
                 elif line.strip():
                     m_list = self.get_matrix(line.strip())
-                    mat_dict[bed_count] = m_list
+                    block_dict[bed_count] = m_list
                     bed_count += 1
                 if not line:
                     break
-        print(mat_dict)
+        return symbole_dict, block_dict
 
     def get_files(self, line: str) -> tuple[str, str]:
         """check the files name and if they are not empty"""
@@ -81,11 +84,11 @@ class Structure:
         line = re.sub(r'\s+', '', line)
         sym, fname = line.split("=")
         return sym, fname
-    
-    def get_matrix(self, line: str) -> None:
+
+    def get_matrix(self, line: str) -> list[str]:
         """read the matrix section of the struct file"""
         _sym_mat: list[str]  # A list to return sequence in line
-        if ' ' in line: 
+        if ' ' in line:
             print(f'WAR: whitespace in the "{self.strcut}" in line: '
                   f'"{line}", it removed!\n')
             line = re.sub(r'\s+', '', line)
