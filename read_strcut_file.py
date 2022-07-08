@@ -10,6 +10,9 @@ class Structure:
 
     def mk_block(self) -> None:
         """make a matrix out of the blocks symbols"""
+        self.check_files(self.strcut)
+        print(f'{self.__class__.__name__}:\n'
+              f'\treading "{self.strcut}"')
         self.symbols, self.block = self.read_struct()
 
     def read_struct(self) -> tuple[dict, dict]:
@@ -51,10 +54,10 @@ class Structure:
         """check if the fname exist and not empty"""
         if not os.path.isfile(fname):
             exit(f'{self.__class__.__name__}:\n'
-                 f'\tERROR: {self.strcut} -> "{fname}" does not exist!!\n')
+                 f'\tERROR: "{fname}" does not exist!!\n')
         if not os.path.getsize(fname) > 0:
             exit(f'{self.__class__.__name__}:\n'
-                 f'\tERROR: {self.strcut} -> "{fname}" is empty!!\n')
+                 f'\tERROR: "{fname}" is empty!!\n')
 
     def get_matrix(self, line: str) -> list[str]:
         """read the matrix section of the struct file"""
