@@ -1,3 +1,4 @@
+from pprint import pprint
 import typing
 import pandas as pd
 
@@ -234,16 +235,16 @@ class Header:
                                            )
 
 
-class Body:
+class Body(Header):
     """
-    read the data for atoms,velocities, bonds, angles, dihedrals
+    read the data for atoms, velocities, bonds, angles, dihedrals
     It needs the names of the atoms read by HEADER class
     """
 
-    def __init__(self, names, infile) -> None:
+    def __init__(self, infile) -> None:
+        super().__init__(infile)
         self.infile: typing.IO = infile
-        self.Name = names
-        del names
+        self.read_body()
 
     def read_body(self):
         self.Atoms, self.Velocities, self.Bonds, self.Angles, self.Dihedrals\
@@ -301,7 +302,7 @@ class Body:
             i_x = float(line[4])
             i_y = float(line[5])
             i_z = float(line[6])
-            i_name = self.Name[i_typ]
+            i_name = self.Names[i_typ]
             try:
                 i_nx = int(line[7])
                 i_ny = int(line[8])
@@ -390,3 +391,10 @@ class Body:
                                                  ak=i_ak,
                                                  ah=i_ah
                                                 )
+
+class ReadData(Body):
+    """reading the input file
+    This class call all other classes and make one output file
+    """
+    def __init__(self, infile) -> None:
+        super().__init__(infile)
