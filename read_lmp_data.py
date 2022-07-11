@@ -33,7 +33,7 @@ class Header:
         self.infile: str = infile
         print(f'{self.__class__.__name__}:\n'
               f'\tReading: {self.infile}\n')
-        self.atomsLine: int = 0
+        self.atomsLine: int
         self.atomsLine = self.check_file()
         self.read_header()
 
