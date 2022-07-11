@@ -6,13 +6,13 @@ import typing
 class Structure:
     """read the struct file"""
     def __init__(self) -> None:
-        self.strcut: str = sys.argv[1]
+        self.fname: str = sys.argv[1]
 
     def mk_block(self) -> None:
         """make a matrix out of the blocks symbols"""
-        self.check_files(self.strcut)
+        self.check_files(self.fname)
         print(f'{self.__class__.__name__}:\n'
-              f'\treading "{self.strcut}"')
+              f'\treading "{self.fname}"')
         self.symbols, self.block = self.read_struct()
 
     def read_struct(self) -> tuple[dict, dict]:
@@ -23,7 +23,7 @@ class Structure:
         symbole_dict: dict[str, str] = {}  # dict to save name and symb
         block_dict: dict[int, list[str]] = {}  # dict to save matrix
 
-        with open(self.strcut, 'r') as f:
+        with open(self.fname, 'r') as f:
             while True:
                 line = f.readline()
                 if line.strip().startswith('#'):
@@ -64,7 +64,7 @@ class Structure:
         _sym_mat: list[str]  # A list to return sequence in line
         if ' ' in line:
             print(f'{self.__class__.__name__}:\n'
-                  f'\t"{self.strcut}" -> WARRNING: whitespace in the in line: '
+                  f'\t"{self.fname}" -> WARRNING: whitespace in the in line: '
                   f'"{line}", it is removed!\n')
             line = re.sub(r'\s+', '', line)
         _sym_mat = [item for item in line]
@@ -80,16 +80,16 @@ class Structure:
                 if row[i].isalpha():
                     if not row[i] in sym.keys():
                         print(f'{self.__class__.__name__}:\n'
-                              f'\tERROR: "{self.strcut}" -> symbole "{row[i]}"'
+                              f'\tERROR: "{self.fname}" -> symbole "{row[i]}"'
                               f' is not defined\n')
                         e_flag = True
                 elif row[i] not in ['-', '_', '|']:
                     print(f'{self.__class__.__name__}:\n'
-                          f'\tERROR: "{self.strcut}" -> symbole "{row[i]}" is '
+                          f'\tERROR: "{self.fname}" -> symbole "{row[i]}" is '
                           f'not defined\n')
                     e_flag = True
         if e_flag:
-            exit(f'Mistake(s) in the "{self.strcut}"')
+            exit(f'Mistake(s) in the "{self.fname}"')
 
 
 if __name__ == "__main__":
