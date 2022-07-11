@@ -1,4 +1,4 @@
-from pprint import pprint
+import sys
 import typing
 import pandas as pd
 
@@ -31,9 +31,10 @@ class Header:
 
     def __init__(self, infile) -> None:
         self.infile: str = infile
+        print(f'{self.__class__.__name__}:\n'
+              f'\tReading: {self.infile}\n')
         self.atomsLine: int = 0
         self.atomsLine = self.check_file()
-        print(f'lines in header: {self.atomsLine}\n')
         self.read_header()
 
     def check_file(self) -> int:
@@ -398,3 +399,6 @@ class ReadData(Body):
     """
     def __init__(self, infile) -> None:
         super().__init__(infile)
+
+if __name__ == '__main__':
+    ReadData(sys.argv[1])
