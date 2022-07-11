@@ -46,20 +46,14 @@ class UpdateType:
                     read_data.Bonds_df = self._update_type(
                         read_data.Bonds_df, bond_indent)
                     bond_indent += read_data.NBondTyp
-                else:
-                    pass
                 if read_data.NAngleTyp > 0:
                     read_data.Angles_df = self._update_type(
                         read_data.Angles_df, angle_indent)
                     angle_indent += read_data.NAngleTyp
-                else:
-                    pass
                 if read_data.NDihedrals > 0:
                     read_data.Dihedrals_df = self._update_type(
                         read_data.Dihedrals_df, dihedral_indent)
                     dihedral_indent += read_data.NDihedralTyp
-                else:
-                    pass
             up_dict[k]['data'] = read_data
         return up_dict
 
