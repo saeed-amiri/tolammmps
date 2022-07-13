@@ -1,5 +1,6 @@
 import numpy as np
 import pandas as pd
+from sqlalchemy import column
 
 class Doc:
     """stack atom in Z loop
@@ -26,7 +27,7 @@ class stack_data:
         v: list(str)  # List of symbols of the data file
         item: str     # An item of v
 
-        x_vacume: int = 2  # Space between blocks
+        VACUME: int = 2  # Space between blocks
 
         x_indent: float = 0.0  # Shift in x column based on previous block
         y_indent: float = 0.0  # Shift in y column based on previous block
@@ -40,16 +41,12 @@ class stack_data:
 
         _df: pd.DataFrame  # Temperary dataframe
         Atoms_df: pd.DataFrame  # To return data
-        df_list: list[pd.DataFrame] = [] # To append DataFrames
-        df_dict = dict()
+        raw_df: pd.DataFrame  # A Dataframe to keep all the row made DF
+        raw_list: list[pd.DataFrame] = []  # A list to keep the raws DF
         for row, (_, v) in enumerate(self.block.items()):
+            df_list: list[pd.DataFrame] = [] # To append DataFrames
             for col, item in enumerate(v):
                 _df = self.bs.system[item]['data'].Atoms_df.copy()
-                if row == 0:
-                    max_y = np.max(_df['y'])
-                else:
-                    _df['y'] += max_y
-                    _df['y'] += x_vacume
                 if col == 0:
                     df_list.append(_df)
                     max_x = np.max(_df['x'])
@@ -57,8 +54,8 @@ class stack_data:
                     max_mol = np.max(_df['mol'])
                     del _df
                 else:
-                    _df['x'] += max_x
-                    _df['x'] += x_vacume
+                    x_indent = max_x + VACUME
+                    _df['x'] += x_indent
                     _df['atom_id'] += max_id
                     _df['mol'] += max_mol
                     max_x = np.max(_df['x'])
@@ -66,7 +63,21 @@ class stack_data:
                     max_mol = np.max(_df['mol'])
                     df_list.append(_df)
                     del _df
-
-        Atoms_df = pd.concat(df_list, ignore_index=True,  axis=0)
-        # print(Atoms_df)
+            raw_df = pd.concat(df_list, ignore_index=True,  axis=0)
+            raw_list.append(raw_df)
+            del raw_df, df_list
+        for i, item in enumerate(raw_list):
+            if i == 0:
+                max_id = np.max(item['atom_id'])
+                max_mol = np.max(item['mol'])
+                max_y = np.max(item['y'])
+            else:
+                item['atom_id'] += max_id
+                item['mol'] += max_mol
+                y_indent = max_y + VACUME
+                item['y'] += y_indent
+                max_id = np.max(item['atom_id'])
+                max_mol = np.max(item['mol'])
+                max_y = np.max(item['y'])
+        Atoms_df = pd.concat(raw_list, ignore_index=True,  axis=0)
         self.Atoms_df = Atoms_df
