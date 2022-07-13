@@ -1,6 +1,6 @@
 import numpy as np
 import pandas as pd
-from sqlalchemy import column
+
 
 class Doc:
     """stack atom in Z loop
@@ -33,9 +33,9 @@ class stack_data:
         y_indent: float = 0.0  # Shift in y column based on previous block
         z_indent: float = 0.0  # Shift in z column based on previous block
 
-        max_x: float = 0 # max in x column after updating DataFrame
-        max_y: float = 0 # max in y column after updating DataFrame
-        max_z: float = 0 # max in z column after updating DataFrame
+        max_x: float = 0  # max in x column after updating DataFrame
+        max_y: float = 0  # max in y column after updating DataFrame
+        max_z: float = 0  # max in z column after updating DataFrame
         max_id: int = 0   # max of id column after updatinf DataFrame
         max_mol: int = 0  # max of mol column after updatinf DataFrame
 
@@ -44,7 +44,7 @@ class stack_data:
         raw_df: pd.DataFrame  # A Dataframe to keep all the row made DF
         raw_list: list[pd.DataFrame] = []  # A list to keep the raws DF
         for row, (_, v) in enumerate(self.block.items()):
-            df_list: list[pd.DataFrame] = [] # To append DataFrames
+            df_list: list[pd.DataFrame] = []  # To append DataFrames
             for col, item in enumerate(v):
                 _df = self.bs.system[item]['data'].Atoms_df.copy()
                 if col == 0:
@@ -66,18 +66,27 @@ class stack_data:
             raw_df = pd.concat(df_list, ignore_index=True,  axis=0)
             raw_list.append(raw_df)
             del raw_df, df_list
+
         for i, item in enumerate(raw_list):
             if i == 0:
                 max_id = np.max(item['atom_id'])
                 max_mol = np.max(item['mol'])
-                max_y = np.max(item['y'])
+                max_z = np.max(item['z'])
+                x_ave_center = 0.5*(np.max(item['x'] - np.min(item['x'])))
+                y_ave_center = 0.5*(np.max(item['y'] - np.min(item['y'])))
+                z_ave_center = 0.5*(np.max(item['z'] - np.min(item['z'])))
+                print(x_ave_center, y_ave_center, z_ave_center)
             else:
-                item['atom_id'] += max_id
+                z_indent = max_z + VACUME
+                item['z'] += z_indent
                 item['mol'] += max_mol
-                y_indent = max_y + VACUME
-                item['y'] += y_indent
+                item['atom_id'] += max_id
                 max_id = np.max(item['atom_id'])
                 max_mol = np.max(item['mol'])
-                max_y = np.max(item['y'])
+                max_z = np.max(item['z'])
+                x_ave = 0.5*(np.max(item['x'] - np.min(item['x'])))
+                y_ave = 0.5*(np.max(item['y'] - np.min(item['y'])))
+                item['x'] -= (x_ave-x_ave_center)
+                item['y'] -= (y_ave-y_ave_center)
         Atoms_df = pd.concat(raw_list, ignore_index=True,  axis=0)
         self.Atoms_df = Atoms_df
