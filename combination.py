@@ -11,6 +11,7 @@ import update_atom_type as mupdate
 import stack_bolcks as mstack
 import write_lmp as mwrt
 
+
 class Doc:
     """This code combines data files and returns a superstructure in
     LAMMPS full atom style.   The input file is <system>.struct file
@@ -51,7 +52,7 @@ class Doc:
 
 
 super_str = struct.Structure()
-files  = super_str.files
+files = super_str.files
 bs = mupdate.UpdateType(files)
 s = mstack.StackData(super_str.block, bs)
 wrt = mwrt.WriteLmp(s)
