@@ -7,7 +7,7 @@ class Doc:
     first in x and then in y direction"""
 
 
-class StackData:
+class UpdateAtoms:
     """put atoms side to side"""
     def __init__(self,
                  block: pd.DataFrame,  # Block information
@@ -109,6 +109,7 @@ class UpdateBond:
                  ) -> None:
         self.block = block
         self.bs = bs
+        self.update_bonds()
         del bs, block
 
     def update_bonds(self):
@@ -116,6 +117,8 @@ class UpdateBond:
         df_list: list[pd.DataFrame] = []  # To append all the DFs
         prev_natoms: int = 0  # Number of atoms up to current
         prev_nbonds: int = 0  # Number of bonds up to current
+        row: int  # counting the rows, not used here just for clairity
+        col: int  # counting the cols, not used here just for clairity
         for row, (_, v) in enumerate(self.block.items()):
             for col, item in enumerate(v):
                 _df = self.bs.system[item]['data'].Bonds_df.copy()
@@ -124,9 +127,18 @@ class UpdateBond:
                 _df['aj'] += prev_natoms
                 df_list.append(_df)
                 prev_natoms += self.bs.system[item]['data'].NAtoms
-        self.bonds_df = pd.concat(df_list, ignore_index=True,  axis=0)
-        self.bonds_df.index += 1
-        if prev_nbonds != len(self.bonds_df):
+        self.Bonds_df = pd.concat(df_list, ignore_index=True,  axis=0)
+        self.Bonds_df.index += 1
+        if prev_nbonds != len(self.Bonds_df):
             exit(f'\tERROR!: Problem in number of bonds\n'
                  f'\tnumber of total bonds: {prev_nbonds}'
-                 f' != {len(self.bonds_df)} number of calculated bonds')
+                 f' != {len(self.Bonds_df)} number of calculated bonds')
+
+class StackData(UpdateAtoms, UpdateBond):
+    """stack all the DataFrame together"""
+    def __init__(self,
+                 block: pd.DataFrame,
+                 bs: dict[str, dict[str, str]]
+                 ) -> None:
+        UpdateAtoms.__init__(self, block, bs)
+        UpdateBond.__init__(self, block, bs)
