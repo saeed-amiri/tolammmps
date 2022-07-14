@@ -1,6 +1,7 @@
 import sys
 import typing
 import pandas as pd
+from sqlalchemy import column
 
 
 class FileErr:
@@ -289,6 +290,7 @@ class Body(Header):
             self.Bonds_df = pd.DataFrame.from_dict(self.Bonds).T
             self.Angles_df = pd.DataFrame.from_dict(self.Angles).T
             self.Dihedrals_df = pd.DataFrame.from_dict(self.Dihedrals).T
+            self.Masses_df = self.set_masses()
             del self.Atoms, self.Bonds, self.Angles, self.Dihedrals
 
     def get_atoms(self, line) -> None:
@@ -393,12 +395,25 @@ class Body(Header):
                                                  ah=i_ah
                                                 )
 
+    def set_masses(self) -> pd.DataFrame:
+        names_list: list[str] = []  # list to store all the names
+        columns: list[str] = ['mass']  # column name of the DFs
+        Masses_df = pd.DataFrame.from_dict(self.Masses,
+                                           orient='index', columns=columns)
+        Masses_df['typ'] = Masses_df.index
+        for k, v in self.Masses.items():
+            names_list.append(self.Names[k])
+        Masses_df['name'] = names_list
+        return Masses_df
+
+
 class ReadData(Body):
     """reading the input file
     This class call all other classes and make one output file
     """
     def __init__(self, infile) -> None:
         super().__init__(infile)
+
 
 if __name__ == '__main__':
     ReadData(sys.argv[1])
