@@ -7,7 +7,7 @@ class Doc:
     first in x and then in y direction"""
 
 
-class UpdateAtoms:
+class UpdateAtom:
     """put atoms side to side"""
     def __init__(self,
                  block: pd.DataFrame,  # Block information
@@ -155,27 +155,70 @@ class UpdateAngle:
         col: int  # counting the cols, not used here just for clairity
         for row, (_, v) in enumerate(self.block.items()):
             for col, item in enumerate(v):
-                _df = self.bs.system[item]['data'].Angles_df.copy()
-                prev_nangles += self.bs.system[item]['data'].NAngles
-                _df['ai'] += prev_natoms
-                _df['aj'] += prev_natoms
-                _df['ak'] += prev_natoms
-                df_list.append(_df)
-                prev_natoms += self.bs.system[item]['data'].NAtoms
+                try:
+                    _df = self.bs.system[item]['data'].Angles_df.copy()
+                    prev_nangles += self.bs.system[item]['data'].NAngles
+                    _df['ai'] += prev_natoms
+                    _df['aj'] += prev_natoms
+                    _df['ak'] += prev_natoms
+                    df_list.append(_df)
+                    prev_natoms += self.bs.system[item]['data'].NAtoms
+                except KeyError:
+                    pass
         self.Angles_df = pd.concat(df_list, ignore_index=True,  axis=0)
         self.Angles_df.index += 1
         if prev_nangles != len(self.Angles_df):
-            exit(f'\tERROR!: Problem in number of bonds\n'
-                 f'\tnumber of total bonds: {prev_nangles}'
-                 f' != {len(self.Angles_df)} number of calculated bonds')
+            exit(f'\tERROR!: Problem in number of angles\n'
+                 f'\tnumber of total angles: {prev_nangles}'
+                 f' != {len(self.Angles_df)} number of calculated angles')
 
 
-class StackData(UpdateAtoms, UpdateBond, UpdateAngle):
+class UpdateDihedral:
+    """updating dihedrals dataframe in and stack them in one DataFrame"""
+    def __init__(self,
+                 block: pd.DataFrame,  # Block information
+                 bs: dict[str, dict[str, str]]  # Inforamtion for all systems
+                 ) -> None:
+        self.block = block
+        self.bs = bs
+        self.update_dihedrals()
+        del bs, block
+
+    def update_dihedrals(self):
+        _df: pd.DataFrame  # A temprarry df to store them
+        df_list: list[pd.DataFrame] = []  # To append all the DFs
+        prev_natoms: int = 0  # Number of atoms up to current
+        prev_ndihedrals: int = 0  # Number of angles up to current
+        row: int  # counting the rows, not used here just for clairity
+        col: int  # counting the cols, not used here just for clairity
+        for row, (_, v) in enumerate(self.block.items()):
+            for col, item in enumerate(v):
+                try:
+                    _df = self.bs.system[item]['data'].Dihedrals_df.copy()
+                    prev_ndihedrals += self.bs.system[item]['data'].NDihedrals
+                    _df['ai'] += prev_natoms
+                    _df['aj'] += prev_natoms
+                    _df['ak'] += prev_natoms
+                    _df['ah'] += prev_natoms
+                    df_list.append(_df)
+                    prev_natoms += self.bs.system[item]['data'].NAtoms
+                except KeyError:
+                    pass
+        self.Dihedrals_df = pd.concat(df_list, ignore_index=True,  axis=0)
+        self.Dihedrals_df.index += 1
+        if prev_ndihedrals != len(self.Dihedrals_df):
+            exit(f'\tERROR!: Problem in number of dihedrals\n'
+                 f'\tnumber of total dihedrals: {prev_ndihedrals}'
+                 f' != {len(self.Dihedrals_df)} number of calculated dihedral')
+
+
+class StackData(UpdateAtom, UpdateBond, UpdateAngle, UpdateDihedral):
     """stack all the DataFrame together"""
     def __init__(self,
                  block: pd.DataFrame,
                  bs: dict[str, dict[str, str]]
                  ) -> None:
-        UpdateAtoms.__init__(self, block, bs)
+        UpdateAtom.__init__(self, block, bs)
         UpdateBond.__init__(self, block, bs)
         UpdateAngle.__init__(self, block, bs)
+        UpdateDihedral.__init__(self, block, bs)
