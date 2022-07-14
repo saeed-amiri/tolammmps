@@ -1,9 +1,7 @@
-import re
 import sys
 import typing
 import numpy as np
 import pandas as pd
-from sqlalchemy import column
 
 
 class Doc:
@@ -46,7 +44,7 @@ class GetData:
         self.yhi = np.max(df.y)
         self.zlo = np.min(df.z)
         self.zhi = np.max(df.z)
-    
+
     def get_bonds(self, df: pd.DataFrame) -> None:
         """get the bond information"""
         self.Nbond_types: int  # Number of atom types
@@ -54,7 +52,6 @@ class GetData:
 
         self.Nbond_types = np.max(df.typ)
         self.Nbonds = len(df)
-
 
 
 class WriteLmp(GetData):
@@ -131,4 +128,4 @@ class WriteLmp(GetData):
             f.write(f'\n')
         else:
             print(f'{self.__class__.__name__}\n'
-                 f'\tWARNING: Bonds section is empty\n')
+                  f'\tWARNING: Bonds section is empty\n')
