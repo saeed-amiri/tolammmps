@@ -2,10 +2,14 @@ import os
 import re
 import sys
 import typing
-import read_strcut_file as struct
 import numpy as np
 import pandas as pd
+from pprint import pprint
 
+import read_strcut_file as struct
+import update_atom_type as mupdate
+import stack_bolcks as mstack
+import write_lmp as mwrt
 
 class Doc:
     """This code combines data files and returns a superstructure in
@@ -47,5 +51,8 @@ class Doc:
 
 
 super_str = struct.Structure()
-super_str.mk_block()
-print(super_str.block)
+files  = super_str.files
+bs = mupdate.UpdateType(files)
+s = mstack.StackData(super_str.block, bs)
+wrt = mwrt.WriteLmp(s)
+wrt.write_lmp()
