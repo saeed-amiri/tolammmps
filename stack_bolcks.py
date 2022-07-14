@@ -121,12 +121,16 @@ class UpdateBond:
         col: int  # counting the cols, not used here just for clairity
         for row, (_, v) in enumerate(self.block.items()):
             for col, item in enumerate(v):
-                _df = self.bs.system[item]['data'].Bonds_df.copy()
-                prev_nbonds += self.bs.system[item]['data'].NBonds
-                _df['ai'] += prev_natoms
-                _df['aj'] += prev_natoms
-                df_list.append(_df)
-                prev_natoms += self.bs.system[item]['data'].NAtoms
+                try:
+                    _df = self.bs.system[item]['data'].Bonds_df.copy()
+                    prev_nbonds += self.bs.system[item]['data'].NBonds
+                    _df['ai'] += prev_natoms
+                    _df['aj'] += prev_natoms
+                    df_list.append(_df)
+                    prev_natoms += self.bs.system[item]['data'].NAtoms
+                    del _df
+                except KeyError:
+                    pass
         self.Bonds_df = pd.concat(df_list, ignore_index=True,  axis=0)
         self.Bonds_df.index += 1
         if prev_nbonds != len(self.Bonds_df):
@@ -163,6 +167,7 @@ class UpdateAngle:
                     _df['ak'] += prev_natoms
                     df_list.append(_df)
                     prev_natoms += self.bs.system[item]['data'].NAtoms
+                    del _df
                 except KeyError:
                     pass
         self.Angles_df = pd.concat(df_list, ignore_index=True,  axis=0)
@@ -202,6 +207,7 @@ class UpdateDihedral:
                     _df['ah'] += prev_natoms
                     df_list.append(_df)
                     prev_natoms += self.bs.system[item]['data'].NAtoms
+                    del _df
                 except KeyError:
                     pass
         self.Dihedrals_df = pd.concat(df_list, ignore_index=True,  axis=0)
@@ -222,3 +228,4 @@ class StackData(UpdateAtom, UpdateBond, UpdateAngle, UpdateDihedral):
         UpdateBond.__init__(self, block, bs)
         UpdateAngle.__init__(self, block, bs)
         UpdateDihedral.__init__(self, block, bs)
+        del block, bs
