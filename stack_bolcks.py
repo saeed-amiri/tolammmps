@@ -134,7 +134,43 @@ class UpdateBond:
                  f'\tnumber of total bonds: {prev_nbonds}'
                  f' != {len(self.Bonds_df)} number of calculated bonds')
 
-class StackData(UpdateAtoms, UpdateBond):
+
+class UpdateAngle:
+    """updating angles dataframe in and stack them in one DataFrame"""
+    def __init__(self,
+                 block: pd.DataFrame,  # Block information
+                 bs: dict[str, dict[str, str]]  # Inforamtion for all systems
+                 ) -> None:
+        self.block = block
+        self.bs = bs
+        self.update_angles()
+        del bs, block
+
+    def update_angles(self):
+        _df: pd.DataFrame  # A temprarry df to store them
+        df_list: list[pd.DataFrame] = []  # To append all the DFs
+        prev_natoms: int = 0  # Number of atoms up to current
+        prev_nangles: int = 0  # Number of angles up to current
+        row: int  # counting the rows, not used here just for clairity
+        col: int  # counting the cols, not used here just for clairity
+        for row, (_, v) in enumerate(self.block.items()):
+            for col, item in enumerate(v):
+                _df = self.bs.system[item]['data'].Angles_df.copy()
+                prev_nangles += self.bs.system[item]['data'].NAngles
+                _df['ai'] += prev_natoms
+                _df['aj'] += prev_natoms
+                _df['ak'] += prev_natoms
+                df_list.append(_df)
+                prev_natoms += self.bs.system[item]['data'].NAtoms
+        self.Angles_df = pd.concat(df_list, ignore_index=True,  axis=0)
+        self.Angles_df.index += 1
+        if prev_nangles != len(self.Angles_df):
+            exit(f'\tERROR!: Problem in number of bonds\n'
+                 f'\tnumber of total bonds: {prev_nangles}'
+                 f' != {len(self.Angles_df)} number of calculated bonds')
+
+
+class StackData(UpdateAtoms, UpdateBond, UpdateAngle):
     """stack all the DataFrame together"""
     def __init__(self,
                  block: pd.DataFrame,
@@ -142,3 +178,4 @@ class StackData(UpdateAtoms, UpdateBond):
                  ) -> None:
         UpdateAtoms.__init__(self, block, bs)
         UpdateBond.__init__(self, block, bs)
+        UpdateAngle.__init__(self, block, bs)
