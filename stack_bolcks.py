@@ -7,12 +7,13 @@ class Doc:
     first in x and then in y direction"""
 
 
-class stack_data:
+class StackData:
     """put atoms side to side"""
     def __init__(self,
                  block: pd.DataFrame,  # Block information
                  bs: dict[str, dict[str, str]]  # Inforamtion for all systems
                  ) -> None:
+
         self.block = block
         self.bs = bs
         self.VACUME: int = 2  # Space between blocks
@@ -21,6 +22,8 @@ class stack_data:
 
     def stack_atoms(self) -> None:
         """stack atoms along axises"""
+        print(f'{self.__class__.__name__}:\n'
+              f'\tUpdating: Atoms\n')
         row_list = self.stack_x()
         self.stack_rows(row_list)
 
@@ -32,15 +35,14 @@ class stack_data:
         row: int      # Row of the block data in struct file
         v: list[str]  # List of symbols of the data file
         item: str     # An item of v
+        raw_df: pd.DataFrame  # A Dataframe to keep all the row made DF
+        row_list: list[pd.DataFrame] = []  # A list to keep the raws DF
+        _df: pd.DataFrame  # Temperary dataframe
 
         x_indent: float = 0.0  # Shift in x column based on previous block
         max_x: float = 0  # max in x column after updating DataFrame
         max_id: int = 0   # max of id column after updatinf DataFrame
         max_mol: int = 0  # max of mol column after updatinf DataFrame
-
-        raw_df: pd.DataFrame  # A Dataframe to keep all the row made DF
-        row_list: list[pd.DataFrame] = []  # A list to keep the raws DF
-        _df: pd.DataFrame  # Temperary dataframe
         for row, (_, v) in enumerate(self.block.items()):
             df_list: list[pd.DataFrame] = []  # To append DataFrames
             for col, item in enumerate(v):
@@ -96,5 +98,35 @@ class stack_data:
                 y_ave = 0.5*(np.max(item['y'] - np.min(item['y'])))
                 item['x'] -= (x_ave-x_ave_center)
                 item['y'] -= (y_ave-y_ave_center)
-        Atoms_df = pd.concat(row_list, ignore_index=True,  axis=0)
-        self.Atoms_df = Atoms_df
+        self.Atoms_df = pd.concat(row_list, ignore_index=True,  axis=0)
+
+
+class UpdateBond:
+    """updating bonds dataframe in and stack them in one DataFrame"""
+    def __init__(self,
+                 block: pd.DataFrame,  # Block information
+                 bs: dict[str, dict[str, str]]  # Inforamtion for all systems
+                 ) -> None:
+        self.block = block
+        self.bs = bs
+        del bs, block
+
+    def update_bonds(self):
+        _df: pd.DataFrame  # A temprarry df to store them
+        df_list: list[pd.DataFrame] = []  # To append all the DFs
+        prev_natoms: int = 0  # Number of atoms up to current
+        prev_nbonds: int = 0  # Number of bonds up to current
+        for row, (_, v) in enumerate(self.block.items()):
+            for col, item in enumerate(v):
+                _df = self.bs.system[item]['data'].Bonds_df.copy()
+                prev_nbonds += self.bs.system[item]['data'].NBonds
+                _df['ai'] += prev_natoms
+                _df['aj'] += prev_natoms
+                df_list.append(_df)
+                prev_natoms += self.bs.system[item]['data'].NAtoms
+        self.bonds_df = pd.concat(df_list, ignore_index=True,  axis=0)
+        self.bonds_df.index += 1
+        if prev_nbonds != len(self.bonds_df):
+            exit(f'\tERROR!: Problem in number of bonds\n'
+                 f'\tnumber of total bonds: {prev_nbonds}'
+                 f' != {len(self.bonds_df)} number of calculated bonds')
