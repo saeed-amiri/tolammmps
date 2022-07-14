@@ -23,8 +23,14 @@ class GetData:
     """
     def __init__(self, obj) -> None:
         self.get_atoms(obj.Atoms_df)
-        self.get_bonds(obj.Bonds_df)
-
+        if not obj.Bonds_df.empty:
+            self.get_bonds(obj.Bonds_df)
+        self.get_angles(obj.Angles_df)
+        try:
+            self.get_dihedrals(obj.Dihedrals_df)
+        except AttributeError:
+            pass
+        
     def get_atoms(self, df: pd.DataFrame) -> None:
         """get the number of atoms and thier types"""
         self.Natom_types: int  # Number of atom types
@@ -47,11 +53,27 @@ class GetData:
 
     def get_bonds(self, df: pd.DataFrame) -> None:
         """get the bond information"""
-        self.Nbond_types: int  # Number of atom types
-        self.Nbonds: int  # Return len of df = Number of atoms
+        self.Nbond_types: int  # Number of bond types
+        self.Nbonds: int  # Return len of df = Number of bonds
 
         self.Nbond_types = np.max(df.typ)
         self.Nbonds = len(df)
+
+    def get_angles(self, df: pd.DataFrame) -> None:
+        """get the angle information"""
+        self.Nangle_types: int  # Number of angle types
+        self.Nangles: int  # Return len of df = Number of angles
+
+        self.Nangle_types = np.max(df.typ)
+        self.Nangles = len(df)
+
+    def get_dihedrals(self, df: pd.DataFrame) -> None:
+        """get the dihedrals information"""
+        self.Ndihedral_types: int  # Number of dihedral types
+        self.Ndihedrals: int  # Return len of df = Number of dihedrals
+
+        self.Ndihedral_types = np.max(df.typ)
+        self.Ndihedrals = len(df)
 
 
 class WriteLmp(GetData):
@@ -60,7 +82,8 @@ class WriteLmp(GetData):
         super().__init__(obj)
         self.obj = obj
         self.fname = 'blocked.data'
-        print(f"write {self.fname}")
+        print(f'{self.__class__.__name__}:\n'
+              f'\tWrite "{self.fname}"')
 
     def write_lmp(self) -> None:
         """call all the function"""
@@ -78,25 +101,60 @@ class WriteLmp(GetData):
         self.write_comments(f)
         self.write_numbers(f)
         self.write_box(f)
+        self.write_masses(self.obj.Masses_df, f)
 
     def write_body(self, f: typing.TextIO) -> None:
         """write the body of the data file, including:
             atoms, bonds, angles, dihedrals
         """
         self.write_atoms(self.obj.Atoms_df, f)
-        self.write_bonds(self.obj.Bonds_df, f)
+        try:
+            self.write_bonds(self.obj.Bonds_df, f)
+        except AttributeError:
+            pass
+        try:
+            self.write_angles(self.obj.Angles_df, f)
+        except AttributeError:
+            pass
+        try:
+            self.write_dihedrals(self.obj.Dihedrals_df, f)
+        except AttributeError:
+            pass
 
     def write_comments(self, f: typing.TextIO) -> None:
         """write comments on the top of the file"""
         f.write(f'# LAMMPS data file from: {sys.argv[1]} by {sys.argv[0]}\n')
+        f.write(f'\n')
 
     def write_numbers(self, f: typing.TextIO) -> None:
         """write numbers of atoms, ..."""
         f.write(f'{self.Natoms} atoms\n')
         f.write(f'{self.Natom_types} atom types\n')
-        f.write(f'{self.Nbonds} bonds\n')
-        f.write(f'{self.Nbond_types} bond types\n')
+        try:
+            f.write(f'{self.Nbonds} bonds\n')
+            f.write(f'{self.Nbond_types} bond types\n')
+        except AttributeError:
+            pass
+        try:
+            f.write(f'{self.Nangles} angles\n')
+            f.write(f'{self.Nangle_types} angle types\n')
+        except AttributeError:
+            pass
+        try:
+            f.write(f'{self.Ndihedral_types} dihedral types\n')
+            f.write(f'{self.Ndihedrals} dihedrals\n')
+        except AttributeError:
+            pass
         f.write(f'\n')
+
+    def write_masses(self, df: pd.DataFrame, f: typing.TextIO) -> None:
+        """write mass section"""
+        columns: list[str] = ['typ', 'mass', 'cmt', 'name']
+        f.write(f"\n")
+        f.write(f"Masses\n")
+        f.write(f"\n")
+        df.to_csv(f, sep=' ', index=False, columns=columns, header=None)
+        f.write(f"\n")
 
     def write_box(self, f: typing.TextIO) -> None:
         """write box limits"""
@@ -112,7 +170,9 @@ class WriteLmp(GetData):
             f.write(f'\n')
             columns = ['atom_id', 'mol', 'typ', 'charge', 'x', 'y', 'z',
                        'nx', 'ny', 'nz', 'cmt', 'name']
-            df.to_csv(f, sep=' ', index=False, columns=columns, header=None)
+            df = df.astype({'x': float, 'y':  float, 'z': float})
+            df.to_csv(f, sep=' ', index=False, columns=columns, header=None,
+                      float_format='%.8f')
             f.write(f'\n')
         else:
             exit(f'{self.__class__.__name__}\n'
@@ -129,3 +189,27 @@ class WriteLmp(GetData):
         else:
             print(f'{self.__class__.__name__}\n'
                   f'\tWARNING: Bonds section is empty\n')
+    
+    def write_angles(self, df: pd.DataFrame, f: typing.TextIO) -> None:
+        """write angles section"""
+        if not df.empty:
+            f.write(f'Angles\n')
+            f.write(f'\n')
+            columns = ['typ', 'ai', 'aj', 'ak']
+            df.to_csv(f, sep=' ', index=True, columns=columns, header=None)
+            f.write(f'\n')
+        else:
+            print(f'{self.__class__.__name__}\n'
+                  f'\tWARNING: Angels section is empty\n')
+
+    def write_dihedrals(self, df: pd.DataFrame, f: typing.TextIO) -> None:
+        """write dihedrals section"""
+        if not df.empty:
+            f.write(f'Dihedrals\n')
+            f.write(f'\n')
+            columns = ['typ', 'ai', 'aj', 'ak', 'ah']
+            df.to_csv(f, sep=' ', index=True, columns=columns, header=None)
+            f.write(f'\n')
+        else:
+            print(f'{self.__class__.__name__}\n'
+                  f'\tWARNING: Dihedrals section is empty\n')
