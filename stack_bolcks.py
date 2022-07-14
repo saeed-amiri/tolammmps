@@ -218,7 +218,31 @@ class UpdateDihedral:
                  f' != {len(self.Dihedrals_df)} number of calculated dihedral')
 
 
-class StackData(UpdateAtom, UpdateBond, UpdateAngle, UpdateDihedral):
+class UpdateMass:
+    """update mass section"""
+    def __init__(self,
+                 bs: dict[str, dict[str, str]]
+                 ) -> None:
+        self.bs = bs
+        self.update_mass()
+
+    def update_mass(self) -> None:
+        """append mass DataFrames"""
+        _df: pd.DataFrame
+        df_list: list[pd.DataFrame] = []
+        for fname in self.bs.files:
+            _df = self.bs.system[fname]['data'].Masses_df
+            df_list.append(_df)
+            del _df
+        self.Masses_df = pd.concat(df_list, ignore_index=True, axis=0)
+
+
+class StackData(UpdateAtom,
+                UpdateBond,
+                UpdateAngle,
+                UpdateDihedral,
+                UpdateMass
+                ):
     """stack all the DataFrame together"""
     def __init__(self,
                  block: pd.DataFrame,
@@ -228,4 +252,5 @@ class StackData(UpdateAtom, UpdateBond, UpdateAngle, UpdateDihedral):
         UpdateBond.__init__(self, block, bs)
         UpdateAngle.__init__(self, block, bs)
         UpdateDihedral.__init__(self, block, bs)
+        UpdateMass.__init__(self, bs)
         del block, bs
