@@ -347,9 +347,15 @@ class Body(Header):
     def get_bonds(self, line) -> None:
         # stting the nth row of the dictionary
         if 'Bonds' not in line:
+            if '#' in line:
+                line = line.split('#')[0]
             line = line.split()
-            line = [int(item) for item in line if item]
+            line = [item for item in line]
+            line = [item for item in line if item]
+            # print(line)
+            line = [int(item) for item in line]
             bond_id = line[0]
+            # print(bond_id)
             i_typ = int(line[1])
             i_ai = int(line[2])
             i_aj = int(line[3])
@@ -362,6 +368,8 @@ class Body(Header):
     def get_angles(self, line) -> None:
         # stting the nth row of the dictionary
         if "Angles" not in line:
+            if '#' in line:
+                line = line.split('#')[0]
             line = line.split()
             line = [int(item) for item in line if item]
             angle_id = line[0]
@@ -379,6 +387,8 @@ class Body(Header):
     def get_dihedrals(self, line) -> None:
         # stting the nth row of the dictionary
         if "Dihedrals" not in line:
+            if '#' in line:
+                line = line.split('#')[0]
             line = line.split()
             line = [int(item) for item in line if item]
             dihedrals_id = line[0]
@@ -397,12 +407,15 @@ class Body(Header):
 
     def set_masses(self) -> pd.DataFrame:
         names_list: list[str] = []  # list to store all the names
+        cmt_list: list[str] = []  # list to store '#'
         columns: list[str] = ['mass']  # column name of the DFs
         Masses_df = pd.DataFrame.from_dict(self.Masses,
                                            orient='index', columns=columns)
         Masses_df['typ'] = Masses_df.index
         for k, v in self.Masses.items():
             names_list.append(self.Names[k])
+            cmt_list.append('#')
+        Masses_df['cmt'] = cmt_list
         Masses_df['name'] = names_list
         return Masses_df
 
