@@ -25,7 +25,10 @@ class GetData:
         self.get_atoms(obj.Atoms_df)
         if not obj.Bonds_df.empty:
             self.get_bonds(obj.Bonds_df)
-        self.get_angles(obj.Angles_df)
+        try:
+            self.get_angles(obj.Angles_df)
+        except AttributeError:
+            pass
         try:
             self.get_dihedrals(obj.Dihedrals_df)
         except AttributeError:
@@ -83,7 +86,7 @@ class WriteLmp(GetData):
         self.obj = obj
         self.fname = 'blocked.data'
         print(f'{self.__class__.__name__}:\n'
-              f'\tWrite "{self.fname}"')
+              f'\tWrite "{self.fname}"\n')
 
     def write_lmp(self) -> None:
         """call all the function"""
@@ -158,9 +161,9 @@ class WriteLmp(GetData):
 
     def write_box(self, f: typing.TextIO) -> None:
         """write box limits"""
-        f.write(f'{self.xlo: 8.3f} {self.xhi: 8.3f} xlo xhi\n')
-        f.write(f'{self.ylo: 8.3f} {self.yhi: 8.3f} ylo yhi\n')
-        f.write(f'{self.zlo: 8.3f} {self.zhi: 8.3f} zlo zhi\n')
+        f.write(f'{self.xlo: 8.3f} {self.xhi+2: 8.3f} xlo xhi\n')
+        f.write(f'{self.ylo: 8.3f} {self.yhi+2: 8.3f} ylo yhi\n')
+        f.write(f'{self.zlo: 8.3f} {self.zhi+2: 8.3f} zlo zhi\n')
         f.write(f'\n')
 
     def write_atoms(self, df: pd.DataFrame, f: typing.TextIO) -> None:
@@ -183,7 +186,7 @@ class WriteLmp(GetData):
         if not df.empty:
             f.write(f'Bonds\n')
             f.write(f'\n')
-            columns = ['typ', 'ai', 'aj']
+            columns = ['typ', 'ai', 'aj', 'cmt', 'name']
             df.to_csv(f, sep=' ', index=True, columns=columns, header=None)
             f.write(f'\n')
         else:
@@ -195,7 +198,7 @@ class WriteLmp(GetData):
         if not df.empty:
             f.write(f'Angles\n')
             f.write(f'\n')
-            columns = ['typ', 'ai', 'aj', 'ak']
+            columns = ['typ', 'ai', 'aj', 'ak', 'cmt', 'name']
             df.to_csv(f, sep=' ', index=True, columns=columns, header=None)
             f.write(f'\n')
         else:
@@ -207,7 +210,7 @@ class WriteLmp(GetData):
         if not df.empty:
             f.write(f'Dihedrals\n')
             f.write(f'\n')
-            columns = ['typ', 'ai', 'aj', 'ak', 'ah']
+            columns = ['typ', 'ai', 'aj', 'ak', 'ah', 'cmt', 'name']
             df.to_csv(f, sep=' ', index=True, columns=columns, header=None)
             f.write(f'\n')
         else:
