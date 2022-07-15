@@ -99,6 +99,7 @@ class UpdateAtom:
                 item['x'] -= (x_ave-x_ave_center)
                 item['y'] -= (y_ave-y_ave_center)
         self.Atoms_df = pd.concat(row_list, ignore_index=True,  axis=0)
+        del row_list
 
 
 class UpdateBond:
@@ -127,16 +128,17 @@ class UpdateBond:
                     _df['ai'] += prev_natoms
                     _df['aj'] += prev_natoms
                     df_list.append(_df)
-                    prev_natoms += self.bs.system[item]['data'].NAtoms
                     del _df
                 except KeyError:
                     pass
+                prev_natoms += self.bs.system[item]['data'].NAtoms
         self.Bonds_df = pd.concat(df_list, ignore_index=True,  axis=0)
         self.Bonds_df.index += 1
         if prev_nbonds != len(self.Bonds_df):
             exit(f'\tERROR!: Problem in number of bonds\n'
                  f'\tnumber of total bonds: {prev_nbonds}'
                  f' != {len(self.Bonds_df)} number of calculated bonds')
+        del df_list
 
 
 class UpdateAngle:
@@ -166,16 +168,21 @@ class UpdateAngle:
                     _df['aj'] += prev_natoms
                     _df['ak'] += prev_natoms
                     df_list.append(_df)
-                    prev_natoms += self.bs.system[item]['data'].NAtoms
                     del _df
                 except KeyError:
                     pass
-        self.Angles_df = pd.concat(df_list, ignore_index=True,  axis=0)
-        self.Angles_df.index += 1
-        if prev_nangles != len(self.Angles_df):
-            exit(f'\tERROR!: Problem in number of angles\n'
-                 f'\tnumber of total angles: {prev_nangles}'
-                 f' != {len(self.Angles_df)} number of calculated angles')
+                prev_natoms += self.bs.system[item]['data'].NAtoms
+        try:
+            self.Angles_df = pd.concat(df_list, ignore_index=True,  axis=0)
+            self.Angles_df.index += 1
+            if prev_nangles != len(self.Angles_df):
+                exit(f'\tERROR!: Problem in number of angles\n'
+                     f'\tnumber of total angles: {prev_nangles}'
+                     f' != {len(self.Angles_df)} number of calculated angles')
+        except ValueError:
+            self.Angles_df = pd.DataFrame(df_list)
+            print(f"\tWARNING: There is no angles defined\n")
+        del df_list
 
 
 class UpdateDihedral:
@@ -206,16 +213,23 @@ class UpdateDihedral:
                     _df['ak'] += prev_natoms
                     _df['ah'] += prev_natoms
                     df_list.append(_df)
-                    prev_natoms += self.bs.system[item]['data'].NAtoms
                     del _df
                 except KeyError:
                     pass
-        self.Dihedrals_df = pd.concat(df_list, ignore_index=True,  axis=0)
-        self.Dihedrals_df.index += 1
-        if prev_ndihedrals != len(self.Dihedrals_df):
-            exit(f'\tERROR!: Problem in number of dihedrals\n'
-                 f'\tnumber of total dihedrals: {prev_ndihedrals}'
-                 f' != {len(self.Dihedrals_df)} number of calculated dihedral')
+                prev_natoms += self.bs.system[item]['data'].NAtoms
+        try:
+            self.Dihedrals_df = pd.concat(df_list, ignore_index=True,  axis=0)
+            self.Dihedrals_df.index += 1
+
+            if prev_ndihedrals != len(self.Dihedrals_df):
+                exit(f'\tERROR!: Problem in number of dihedrals\n'
+                     f'\tnumber of total dihedrals: {prev_ndihedrals}'
+                     f' != {len(self.Dihedrals_df)}'
+                     f' number of calculated dihedral')
+        except ValueError:
+            self.Dihedrals_df = pd.DataFrame(df_list)
+            print(f"\tWARNING: There is no dihedral defined\n")
+        del df_list
 
 
 class UpdateMass:
@@ -235,6 +249,7 @@ class UpdateMass:
             df_list.append(_df)
             del _df
         self.Masses_df = pd.concat(df_list, ignore_index=True, axis=0)
+        del df_list
 
 
 class StackData(UpdateAtom,
@@ -253,4 +268,45 @@ class StackData(UpdateAtom,
         UpdateAngle.__init__(self, block, bs)
         UpdateDihedral.__init__(self, block, bs)
         UpdateMass.__init__(self, bs)
+        self.get_names(self.Dihedrals_df)
+        print(self.Dihedrals_df)
         del block, bs
+
+    def get_names(self, df: pd.DataFrame) -> pd.DataFrame:
+        """add columns for atoms types of each quadrapels"""
+        ai_type: list[int] = []  # List of atom types
+        aj_type: list[int] = []  # List of atom types
+        ak_type: list[int] = []  # List of atom types
+        ah_type: list[int] = []  # List of atom types
+        ai_name: list[str] = []  # List of atoms name
+        aj_name: list[str] = []  # List of atoms name
+        ak_name: list[str] = []  # List of atoms name
+        ah_name: list[str] = []  # List of atoms name
+        cmt_list: list[str] = []  # List of "#"
+        i_id: int  # To temp save the atoms type
+        j_id: int  # To temp save the atoms type
+        k_id: int  # To temp save the atoms type
+        h_id: int  # To temp save the atoms type
+        for ai, aj, ak, ah in zip(df['ai'], df['aj'], df['ak'], df['ah']):
+            i_id = self.Atoms_df.iloc[ai-1]['typ']
+            j_id = self.Atoms_df.iloc[aj-1]['typ']
+            k_id = self.Atoms_df.iloc[ak-1]['typ']
+            h_id = self.Atoms_df.iloc[ah-1]['typ']
+            ai_name.append(
+                self.Masses_df.iloc[i_id-1]['name']
+                )
+            aj_name.append(
+                self.Masses_df.iloc[j_id-1]['name']
+                )
+            ak_name.append(
+                self.Masses_df.iloc[k_id-1]['name']
+                )
+            ah_name.append(
+                self.Masses_df.iloc[h_id-1]['name']
+                )
+            cmt_list.append('#')
+        self.Dihedrals_df['cmt'] = cmt_list
+        self.Dihedrals_df['ai_name'] = ai_name
+        self.Dihedrals_df['aj_name'] = aj_name
+        self.Dihedrals_df['ak_name'] = ak_name
+        self.Dihedrals_df['ah_name'] = ah_name
