@@ -268,20 +268,16 @@ class StackData(UpdateAtom,
         UpdateAngle.__init__(self, block, bs)
         UpdateDihedral.__init__(self, block, bs)
         UpdateMass.__init__(self, bs)
-        self.get_names(self.Dihedrals_df)
-        print(self.Dihedrals_df)
+        self.get_dihedral_names(self.Dihedrals_df)
         del block, bs
 
-    def get_names(self, df: pd.DataFrame) -> pd.DataFrame:
+    def get_dihedral_names(self, df: pd.DataFrame) -> pd.DataFrame:
         """add columns for atoms types of each quadrapels"""
-        ai_type: list[int] = []  # List of atom types
-        aj_type: list[int] = []  # List of atom types
-        ak_type: list[int] = []  # List of atom types
-        ah_type: list[int] = []  # List of atom types
-        ai_name: list[str] = []  # List of atoms name
-        aj_name: list[str] = []  # List of atoms name
-        ak_name: list[str] = []  # List of atoms name
-        ah_name: list[str] = []  # List of atoms name
+        ai_name: str  # Atoms name
+        aj_name: str  # Atoms name
+        ak_name: str  # Atoms name
+        ah_name: str  # Atoms name
+        name: list[str] = []  # List of the dihedrals participents
         cmt_list: list[str] = []  # List of "#"
         i_id: int  # To temp save the atoms type
         j_id: int  # To temp save the atoms type
@@ -292,21 +288,12 @@ class StackData(UpdateAtom,
             j_id = self.Atoms_df.iloc[aj-1]['typ']
             k_id = self.Atoms_df.iloc[ak-1]['typ']
             h_id = self.Atoms_df.iloc[ah-1]['typ']
-            ai_name.append(
-                self.Masses_df.iloc[i_id-1]['name']
-                )
-            aj_name.append(
-                self.Masses_df.iloc[j_id-1]['name']
-                )
-            ak_name.append(
-                self.Masses_df.iloc[k_id-1]['name']
-                )
-            ah_name.append(
-                self.Masses_df.iloc[h_id-1]['name']
-                )
+            ai_name = self.Masses_df.iloc[i_id-1]['name']
+            aj_name = self.Masses_df.iloc[j_id-1]['name']
+            ak_name = self.Masses_df.iloc[k_id-1]['name']
+            ah_name = self.Masses_df.iloc[h_id-1]['name']
+            name.append(f'{ai_name}-{aj_name}-{ak_name}-{ah_name}')
             cmt_list.append('#')
         self.Dihedrals_df['cmt'] = cmt_list
-        self.Dihedrals_df['ai_name'] = ai_name
-        self.Dihedrals_df['aj_name'] = aj_name
-        self.Dihedrals_df['ak_name'] = ak_name
-        self.Dihedrals_df['ah_name'] = ah_name
+        self.Dihedrals_df['name'] = name
+        del name, cmt_list
