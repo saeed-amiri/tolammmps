@@ -1,5 +1,4 @@
 import itertools
-import sys
 import typing
 import numpy as np
 import pandas as pd
@@ -37,10 +36,11 @@ class WriteParam:
         self.__header: str  # str to print on the parameter file sections
         self.__header = ''.join(['#']*79)
         pair_list = self.mk_pairs()
-        self.mk_bond_pair()
+        bond_df = self.mk_bond_couple()
 
         with open(PARAMFIEL, 'w') as f:
             self.write_pairs(pair_list, f)
+            self.write_bond_copule(bond_df, f)
 
     def mk_pairs(self) -> list[tuple[int, int]]:
         # Make pair of all atom type
@@ -48,7 +48,7 @@ class WriteParam:
         pair_list = itertools.combinations_with_replacement(type_list, 2)
         return pair_list
 
-    def mk_bond_pair(self) -> pd.DataFrame:
+    def mk_bond_couple(self) -> pd.DataFrame:
         """make a DataFrame for type and name of bond interactions"""
         # Clairfy bond interactions
         _df: pd.DataFrame  # Temperary Dataframe to group Bonds_df
@@ -93,6 +93,7 @@ class WriteParam:
         _df.index += 1
         for pair in pair_list:
             f.write(f'{self.__header}\n')
+            f.write(f"\n")
             f.write(f'# interactions between pairs\n')
             f.write(f'\n')
             f.write(f'pair_style hybrid [args...]\n')
@@ -105,3 +106,22 @@ class WriteParam:
                 f.write(f' # {i+1} pair: {name_i} - {name_j}\n')
             f.write(f"\n")
         del _df
+
+    def write_bond_copule(self, df: pd.DataFrame, f: typing.TextIO) -> None:
+        """write the bond pair"""
+        """Write coefficents for bonds"""
+        f.write(f"{self.__header}\n")
+        f.write(f"\n")
+        f.write(f"# coefficents for bonds interactions\n")
+        f.write(f"\n")
+        f.write(f"bond_style hybrid [args...]\n")
+        f.write(f"\n")
+        # print(df)
+        for i in range(len(df)):
+            f.write(f'bond_coeff {df.iloc[i]["bond_typ"]}'
+                    f' [style] [args]'
+                    f' # bond_coeff for {df.iloc[i]["ai_name"]} -'
+                    f' {df.iloc[i]["aj_name"]}')
+            # f.write(f"bond_coeff {df.bond_typ[n+1]} [style] [args...] \n")
+            f.write(f"\n")
+        f.write(f"\n")
