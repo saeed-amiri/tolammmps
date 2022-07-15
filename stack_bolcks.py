@@ -269,7 +269,31 @@ class StackData(UpdateAtom,
         UpdateDihedral.__init__(self, block, bs)
         UpdateMass.__init__(self, bs)
         self.get_dihedral_names(self.Dihedrals_df)
+        self.get_angle_names(self.Angles_df)
         del block, bs
+    
+    def get_angle_names(self, df: pd.DataFrame) -> pd.DataFrame:
+        """add columns for atoms types of each triples"""
+        ai_name: str  # Atoms name
+        aj_name: str  # Atoms name
+        ak_name: str  # Atoms name
+        name: list[str] = []  # List of the angles participents
+        cmt_list: list[str] = []  # List of "#"
+        i_id: int  # To temp save the atoms type
+        j_id: int  # To temp save the atoms type
+        k_id: int  # To temp save the atoms type
+        for ai, aj, ak in zip(df['ai'], df['aj'], df['ak']):
+            i_id = self.Atoms_df.iloc[ai-1]['typ']
+            j_id = self.Atoms_df.iloc[aj-1]['typ']
+            k_id = self.Atoms_df.iloc[ak-1]['typ']
+            ai_name = self.Masses_df.iloc[i_id-1]['name']
+            aj_name = self.Masses_df.iloc[j_id-1]['name']
+            ak_name = self.Masses_df.iloc[k_id-1]['name']
+            name.append(f'{ai_name}-{aj_name}-{ak_name}')
+            cmt_list.append('#')
+        self.Angles_df['cmt'] = cmt_list
+        self.Angles_df['name'] = name
+        del name, cmt_list
 
     def get_dihedral_names(self, df: pd.DataFrame) -> pd.DataFrame:
         """add columns for atoms types of each quadrapels"""
