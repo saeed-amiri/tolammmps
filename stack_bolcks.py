@@ -11,7 +11,7 @@ class UpdateAtom:
     """put atoms side to side"""
     def __init__(self,
                  block: pd.DataFrame,  # Block information
-                 axis: str,  # the second stacking axis
+                 axis: dict[str, str],  # the second stacking axis
                  bs: dict[str, dict[str, str]]  # Inforamtion for all systems
                  ) -> None:
 
@@ -276,7 +276,7 @@ class StackData(UpdateAtom,
     """stack all the DataFrame together"""
     def __init__(self,
                  block: pd.DataFrame,
-                 axis: str,
+                 axis: dict[str, str],
                  bs: dict[str, dict[str, str]]
                  ) -> None:
         UpdateAtom.__init__(self, block, axis, bs)
