@@ -9,8 +9,8 @@ from pprint import pprint
 import read_strcut_file as struct
 import update_atom_type as mupdate
 import stack_bolcks as mstack
-import write_lmp as mwrt
-
+import write_lmp as lmpwrt
+import write_param as parwrt
 
 class Doc:
     """This code combines data files and returns a superstructure in
@@ -27,6 +27,9 @@ class Doc:
         ! D=decane.data
         ! W=water.data
         ! S=sio2.data
+    Also the second axis of stacking can be choosen between y and z
+    the defaulf value is z:
+    axis = y
     Then it should have a matrix that shows how you want to build your
     superstructure:
         DWD
@@ -54,6 +57,7 @@ class Doc:
 super_str = struct.Structure()
 files = super_str.files
 bs = mupdate.UpdateType(files)
-s = mstack.StackData(super_str.block, bs)
-wrt = mwrt.WriteLmp(s)
+s = mstack.StackData(super_str.block, super_str.axis, bs)
+wrt = lmpwrt.WriteLmp(s)
 wrt.write_lmp()
+parm  = parwrt.WriteParam(s)
