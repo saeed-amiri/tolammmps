@@ -42,9 +42,9 @@ class ReadParameter:
                     file_count += 1
                     append_flag = True
                     data_dict[file_count] = []
-                elif line.startswith('}'):
+                elif line.strip().startswith('}'):
                     append_flag = False
-                elif line.startswith('#'):
+                elif line.strip().startswith('#'):
                     pass
                 elif append_flag:
                     data_dict[file_count].append(line.strip())
@@ -62,19 +62,21 @@ class ReadParameter:
         for item in parameters:
             if item.startswith('symb'):
                 symb = self.return_item_value(item, 1)
+                # globals()[symb] = dict()
             elif item.startswith('file'):
                 fname = self.return_item_value(item, 1)
+                setattr(symb, 'fname', fname)
             elif item.startswith('style'):
                 style = self.return_item_value(item, 1)
             elif item.startswith('@'):
-                self.return_atom(item)
+               print(self.return_atom(item))
 
     def return_atom(self, item: str) -> list[str]:
         """return a list contains info of each atom"""
         atom_info = item.strip("@")
         atom_type = self.return_item_value(atom_info, 0)
         atom_param = self.return_item_value(atom_info, 1)
-        print(self.set_atom_atrr(atom_type, atom_param))
+        return atom_type, self.set_atom_atrr(atom_type, atom_param)
 
     def set_atom_atrr(self, atom_type: int, atom: str) -> dict[str, list[str]]:
         """set the properties of the atom, as a attributes to thier 
@@ -92,7 +94,6 @@ class ReadParameter:
     def return_item_value(self, item: str, loc: int) -> str:
         """split and strip the vale of each line"""
         return item.split('=', 1)[loc].strip()
-
 
 
 if __name__ == '__main__':
