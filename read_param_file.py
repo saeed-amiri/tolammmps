@@ -30,11 +30,11 @@ class ReadParameter:
         self.process_data(data_dict)
 
     def get_data_block(self) -> dict[int, list[str]]:
-        param_dict: dict[str, list[str]] = dict()  # to save lines from fname
-        data_dict: dict[int, list[str]] = dict()  # To save lines for each file
-        line: str  # string to save read lines
+        line: str  # String to save read lines
+        file_count: int = -1  # "file_id" to lable each block
         append_flag: bool = False  # Flage to see the data files
-        file_count: int = -1  # file_id to lable each block
+        data_dict: dict[int, list[str]] = dict()  # To save lines for each file
+
         with open(self.fname, 'r') as f:
             while True:
                 line = f.readline()
@@ -44,6 +44,8 @@ class ReadParameter:
                     data_dict[file_count] = []
                 elif line.startswith('}'):
                     append_flag = False
+                elif line.startswith('#'):
+                    pass
                 elif append_flag:
                     data_dict[file_count].append(line.strip())
                 if not line:
@@ -59,15 +61,38 @@ class ReadParameter:
         """set parameters for each file"""
         for item in parameters:
             if item.startswith('symb'):
-                symb = self.return_item_value(item)
+                symb = self.return_item_value(item, 1)
             elif item.startswith('file'):
-                fname = self.return_item_value(item)
+                fname = self.return_item_value(item, 1)
             elif item.startswith('style'):
-                style = self.return_item_value(item)
+                style = self.return_item_value(item, 1)
+            elif item.startswith('@'):
+                self.return_atom(item)
 
-    def return_item_value(self, item: str) -> str:
+    def return_atom(self, item: str) -> list[str]:
+        """return a list contains info of each atom"""
+        atom_info = item.strip("@")
+        atom_type = self.return_item_value(atom_info, 0)
+        atom_param = self.return_item_value(atom_info, 1)
+        print(self.set_atom_atrr(atom_type, atom_param))
+
+    def set_atom_atrr(self, atom_type: int, atom: str) -> dict[str, list[str]]:
+        """set the properties of the atom, as a attributes to thier 
+        name"""
+        # drop brackets
+        atom = re.sub(r"[\([{})\]]", "", atom)
+        atom_attr = atom.split(',')
+        atom_dict: dict[int, str] = dict()  # To save info for each atom
+        for item in atom_attr:
+            attrs = self.return_item_value(item, 0)
+            value = self.return_item_value(item, 1)
+            atom_dict[attrs] = value
+        return atom_dict
+
+    def return_item_value(self, item: str, loc: int) -> str:
         """split and strip the vale of each line"""
-        return item.split('=')[1].strip()
+        return item.split('=', 1)[loc].strip()
+
 
 
 if __name__ == '__main__':
