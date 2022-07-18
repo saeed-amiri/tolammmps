@@ -11,14 +11,16 @@ class UpdateAtom:
     """put atoms side to side"""
     def __init__(self,
                  block: pd.DataFrame,  # Block information
+                 axis: str,  # the second stacking axis
                  bs: dict[str, dict[str, str]]  # Inforamtion for all systems
                  ) -> None:
 
         self.block = block
         self.bs = bs
+        self.axis = axis
         self.VACUME: int = 2  # Space between blocks
         self.stack_atoms()
-        del block, bs
+        del block, bs, axis
 
     def stack_atoms(self) -> None:
         """stack atoms along axises"""
@@ -63,7 +65,7 @@ class UpdateAtom:
                     max_mol = np.max(_df['mol'])
                     df_list.append(_df)
                     del _df
-            raw_df = pd.concat(df_list, ignore_index=True,  axis=0)
+            raw_df = pd.concat(df_list, ignore_index=True, axis=0)
             row_list.append(raw_df)
             del raw_df, df_list
         return row_list
@@ -73,31 +75,44 @@ class UpdateAtom:
         this function stack data from self.stack_atoms along y-axis"""
         # Declear variables
         max_z: float = 0  # max in z column after updating DataFrame
+        y_indent: float = 0  # Shift in y column based on previous block
         z_indent: float = 0  # Shift in z column based on previous block
         x_ave_center: float  # x of center_of_mass of bottom layer
         y_ave_center: float  # y of center_of_mass of bottom layer
         x_ave: float  # x center_of_mass of each layer
         y_ave: float  # y center_of_mass of each layer
-        Atoms_df: pd.DataFrame  # To return data
+        self.Atoms_df: pd.DataFrame  # To return data
+        ax: str = self.axis['axis']  # Second stacking axis
         for i, item in enumerate(row_list):
             if i == 0:
                 max_id = np.max(item['atom_id'])
                 max_mol = np.max(item['mol'])
                 max_z = np.max(item['z'])
+                max_y = np.max(item['y'])
                 x_ave_center = 0.5*(np.max(item['x'] - np.min(item['x'])))
                 y_ave_center = 0.5*(np.max(item['y'] - np.min(item['y'])))
+                z_ave_center = 0.5*(np.max(item['z'] - np.min(item['z'])))
             else:
-                z_indent = max_z + self.VACUME
-                item['z'] += z_indent
+                if ax == 'y':
+                    y_indent = max_y + self.VACUME
+                    item['y'] += y_indent
+                elif ax == 'z':
+                    z_indent = max_z + self.VACUME
+                    item['z'] += z_indent
                 item['mol'] += max_mol
                 item['atom_id'] += max_id
                 max_id = np.max(item['atom_id'])
                 max_mol = np.max(item['mol'])
+                max_y = np.max(item['y'])
                 max_z = np.max(item['z'])
                 x_ave = 0.5*(np.max(item['x'] - np.min(item['x'])))
-                y_ave = 0.5*(np.max(item['y'] - np.min(item['y'])))
                 item['x'] -= (x_ave-x_ave_center)
-                item['y'] -= (y_ave-y_ave_center)
+                if ax == 'z':
+                    y_ave = 0.5*(np.max(item['y'] - np.min(item['y'])))
+                    item['y'] -= (y_ave-y_ave_center)
+                if ax == 'y':
+                    z_ave = 0.5*(np.max(item['z'] - np.min(item['z'])))
+                    item['z'] -= (z_ave-z_ave_center)
         self.Atoms_df = pd.concat(row_list, ignore_index=True,  axis=0)
         del row_list
 
@@ -261,9 +276,10 @@ class StackData(UpdateAtom,
     """stack all the DataFrame together"""
     def __init__(self,
                  block: pd.DataFrame,
+                 axis: str,
                  bs: dict[str, dict[str, str]]
                  ) -> None:
-        UpdateAtom.__init__(self, block, bs)
+        UpdateAtom.__init__(self, block, axis, bs)
         UpdateBond.__init__(self, block, bs)
         UpdateAngle.__init__(self, block, bs)
         UpdateDihedral.__init__(self, block, bs)
@@ -273,9 +289,12 @@ class StackData(UpdateAtom,
 
     def update_names(self) -> None:
         """append name of each counterpart"""
-        self.get_dihedral_names(self.Dihedrals_df)
-        self.get_angle_names(self.Angles_df)
-        self.get_bond_names(self.Bonds_df)
+        if not self.Bonds_df.empty:
+            self.get_bond_names(self.Bonds_df)
+        if not self.Angles_df.empty:
+            self.get_angle_names(self.Angles_df)
+        if not self.Dihedrals_df.empty:
+            self.get_dihedral_names(self.Dihedrals_df)
 
     def get_bond_names(self, df: pd.DataFrame) -> pd.DataFrame:
         """add columns for atoms types of each coplus"""
