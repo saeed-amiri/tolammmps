@@ -25,7 +25,8 @@ class UpdateAtom:
     def stack_atoms(self) -> None:
         """stack atoms along axises"""
         print(f'{self.__class__.__name__}:\n'
-              f'\tUpdating: Atoms\n')
+              f'\tUpdating: Atoms\n'
+              f'\tSecond stacking axis: {self.axis["axis"]}\n')
         row_list = self.stack_x()
         self.stack_rows(row_list)
 
