@@ -167,15 +167,9 @@ class WriteParam:
             r_cut = r_cut_i
         else:
             if file_i is file_j:  # if both atom are from the same file
-                if mix_i == 'geometric':
-                    epsilon, sigma = self.mix_geometric(epsilon_i, epsilon_j,
-                                                        sigma_i, sigma_j)
-                elif mix_i == 'arithmetic':
-                    epsilon, sigma = self.mix_arithmetic(epsilon_i, epsilon_j,
-                                                         sigma_i, sigma_j)
-                elif mix_i == 'sixthpower':
-                    epsilon, sigma = self.mix_sixthpower(epsilon_i, epsilon_j,
-                                                         sigma_i, sigma_j)
+                epsilon, sigma = self.mixed_sigma_epsilon(epsilon_i, epsilon_j,
+                                                        sigma_i, sigma_j, mix_i
+                                                        )
             else:
                 files = [file_i, file_j]
                 check_mix = itertools.combinations_with_replacement(files, 2)
@@ -184,19 +178,30 @@ class WriteParam:
                     if pair_mix in list(self.mix_df['pair']):
                         mix = self.mix_df.loc[self.mix_df['pair'] ==
                                               pair_mix]['mix'][1]
-                if mix == 'geometric':
-                    epsilon, sigma = self.mix_geometric(epsilon_i, epsilon_j,
-                                                        sigma_i, sigma_j)
-                elif mix == 'arithmetic':
-                    epsilon, sigma = self.mix_arithmetic(epsilon_i, epsilon_j,
-                                                         sigma_i, sigma_j)
-                elif mix == 'sixthpower':
-                    epsilon, sigma = self.mix_sixthpower(epsilon_i, epsilon_j,
-                                                         sigma_i, sigma_j)
+                epsilon, sigma = self.mixed_sigma_epsilon(epsilon_i, epsilon_j,
+                                                        sigma_i, sigma_j, mix)
         args.append(f'{epsilon: 8.3f}')
         args.append(f'{sigma: 8.3f}')
         args.append(f'{r_cut}')
         return " ".join(args)
+
+    def mixed_sigma_epsilon(self,
+                            epsilon_i: float,
+                            epsilon_j: float,
+                            sigma_i: float,
+                            sigma_j: float,
+                            mix: str) -> tuple[float, float]:
+        """return mixed sigma and epsilon for ij mixed pairs"""
+        if mix == 'geometric':
+                    epsilon, sigma = self.mix_geometric(epsilon_i, epsilon_j,
+                                                        sigma_i, sigma_j)
+        elif mix == 'arithmetic':
+            epsilon, sigma = self.mix_arithmetic(epsilon_i, epsilon_j,
+                                                 sigma_i, sigma_j)
+        elif mix == 'sixthpower':
+            epsilon, sigma = self.mix_sixthpower(epsilon_i, epsilon_j,
+                                                 sigma_i, sigma_j)
+        return epsilon, sigma
 
     def set_pair_style(self,
                        file_i: str,
