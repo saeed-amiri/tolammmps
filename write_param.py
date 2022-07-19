@@ -38,6 +38,7 @@ class WriteParam:
         _atom: dict[str, list[str]]  # Temporary dict to correct form
         symb_list: list[str] = []  # To save the symbol of each file
         style_list: list[str] = []  # To save the style of each forcefiled
+        mix_list: list[str] = []  # To save the mix style of each forcefiled
         for f in self.param['files']:
             for atom in f['atoms']:
                 _atom = {k: [v] for k, v in atom.items()}
@@ -45,10 +46,12 @@ class WriteParam:
                 df_list.append(df)
                 symb_list.append(f['symb'])
                 style_list.append(f['style'])
+                mix_list.append(f['mix'])
                 del df
         param_df = pd.concat(df_list)
         param_df['f_symb'] = symb_list
         param_df['f_style'] = style_list
+        param_df['mix'] = mix_list
         param_df.sort_values(by='type', axis=0, inplace=True)
         param_df.reset_index(inplace=True)
         param_df.drop(['index'], inplace=True, axis=1)
@@ -57,7 +60,7 @@ class WriteParam:
 
     def get_pairs(self) -> None:
         """find out the pairs that have somthing together"""
-        self.mk_parameters()
+        self.param = self.mk_parameters()
         PARAMFIEL = 'parameters.lmp'
         print(f'{self.__class__.__name__}:\n'
               f'\tWritting: "{PARAMFIEL}"\n')
@@ -92,21 +95,79 @@ class WriteParam:
         """write pair nonbonding interactions"""
         _df = self.obj.Masses_df.copy()
         _df.index += 1
-        for pair in pair_list:
-            f.write(f'{self.__header}\n')
-            f.write(f"\n")
-            f.write(f'# interactions between pairs\n')
-            f.write(f'\n')
-            f.write(f'pair_style hybrid [args...]\n')
-            f.write(f'\n')
-            for i, pair in enumerate(pair_list):
-                name_i = _df['name'][pair[0]]
-                name_j = _df['name'][pair[1]]
-                f.write(f'pair_coeff {pair[0]} {pair[1]}'
-                        f' [pair_style] [args...]')
-                f.write(f' # {i+1} pair: {name_i} - {name_j}\n')
-            f.write(f"\n")
+        # for pair in pair_list:
+        style_set: set[str] = set(self.param['f_style'])
+        styles = ' '.join(style_set)
+        f.write(f'{self.__header}\n')
+        f.write(f"\n")
+        f.write(f'# interactions between pairs\n')
+        f.write(f'\n')
+        f.write(f'pair_style hybrid {styles}\n')
+        f.write(f'\n')
+        for i, pair in enumerate(pair_list):
+            # print(i, self.param.iloc[pair[0]-1]['f_style'])
+            name_i = _df['name'][pair[0]]
+            name_j = _df['name'][pair[1]]
+            file_i = self.param.iloc[pair[0]-1]['f_symb']
+            file_j = self.param.iloc[pair[1]-1]['f_symb']
+            if file_i is file_j:
+                pair_style = self.param.iloc[pair[0]-1]['f_style']
+                pair_style = self.drop_digit(pair_style)
+            else:
+                pair_style = 'lj/cut'
+            args = []
+            if pair[0] == pair[1]:
+                sigma = self.param.iloc[pair[0]-1]['sigma']
+                epsilon = self.param.iloc[pair[0]-1]['epsilon']
+                r_cut = self.param.iloc[pair[0]-1]['r_cut']
+            else:
+                sigma = 's_mix'
+                epsilon = 'e_mix'
+                r_cut = 'r_mix'
+            args.append(str(epsilon))
+            args.append(str(sigma))
+            args.append(str(r_cut))
+            f.write(f'pair_coeff {pair[0]} {pair[1]}'
+                    f' {pair_style} {" ".join(args)}')
+            f.write(f' # {i+1} pair: {name_i} - {name_j}\n')
+        f.write(f"\n")
         del _df
+
+    def mix_geometric(self,
+                      epsilon0: float,
+                      epsilon1: float,
+                      sigma0: float,
+                      sigma1: float) -> tuple[float, float]:
+        """mix interaction by geometric method form LAMMMPS manual"""
+        epsilon = np.sqrt(epsilon0*epsilon1)
+        sigma = np.sqrt(sigma0*sigma1)
+        return epsilon, sigma
+    
+    def mix_arithmetic(self,
+                      epsilon0: float,
+                      epsilon1: float,
+                      sigma0: float,
+                      sigma1: float) -> tuple[float, float]:
+        """mix interaction by arithmetic method form LAMMMPS manual"""
+        epsilon = np.sqrt(epsilon0*epsilon1)
+        sigma = 0.5*(sigma0+sigma1)
+        return epsilon, sigma
+    
+    def mix_sixthpower(self,
+                      epsilon0: float,
+                      epsilon1: float,
+                      sigma0: float,
+                      sigma1: float) -> tuple[float, float]:
+        """mix interaction by sixthpower method form LAMMMPS manual"""
+        epsilon = 2 * np.sqrt(epsilon0*epsilon1)*sigma0**3*sigma1**3
+        epsilon /= (sigma0**6 +sigma1**6)
+        sigma = (0.5*(sigma0**6 + sigma**6))**(1/6)
+        return epsilon, sigma
+
+
+    def drop_digit(self, s: str) -> str:
+        """drop numbers from string"""
+        return re.sub(r" \d+", " ", s).strip()
 
     def write_bond_copule(self,
                           df: pd.DataFrame,
