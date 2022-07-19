@@ -94,7 +94,7 @@ class WriteParam:
         """make a dataframe for mixed pair interactions"""
         df: pd.DataFrame  # Temporary dataframe
         pair_df: pd.DataFrame  # Return the DataFrame of mixed pair interaction
-        pair_dict: dict[str, str]  # dict of the pairs
+        pair_dict: dict[str, list[str]]  # dict of the pairs
         pair_list: list[pd.DataFrame] = []  # list of the temporary dataframes
         for p in self.param['Pairs']:
             pair_dict = {k: [v] for k, v in p.items()}
@@ -160,7 +160,7 @@ class WriteParam:
         sigma: float
         epsilon: float
         r_cut: float
-        mix = None
+        # mix = None
         if pair[0] == pair[1]:
             sigma = sigma_i
             epsilon = epsilon_i
@@ -194,7 +194,7 @@ class WriteParam:
                             sigma_j: float,
                             r_cut_i: float,
                             r_cut_j: float,
-                            mix: str) -> tuple[float, float]:
+                            mix: str) -> tuple[float, float, float]:
         """return mixed sigma and epsilon for ij mixed pairs"""
         if mix == 'geometric':
             epsilon, sigma, r_cut = self.mix_geometric(
