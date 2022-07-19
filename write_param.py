@@ -116,20 +116,11 @@ class WriteParam:
             r_cut_j: float = self.param.iloc[pair[1]-1]['r_cut']
 
             pair_style: str = self.set_pair_style(file_i, file_j, pair)
-            args: list[typing.Any] = []  # Make the arguments for interactions
-            if pair[0] == pair[1]:
-                sigma = self.param.iloc[pair[0]-1]['sigma']
-                epsilon = self.param.iloc[pair[0]-1]['epsilon']
-                r_cut = self.param.iloc[pair[0]-1]['r_cut']
-            else:
-                sigma = 's_mix'
-                epsilon = 'e_mix'
-                r_cut = 'r_mix'
-            args.append(str(epsilon))
-            args.append(str(sigma))
-            args.append(str(r_cut))
+            args: str = self.set_pair_args(epsilon_i, epsilon_j, sigma_i,
+                                           sigma_j, r_cut_i, r_cut_j, pair
+                                           )
             f.write(f'pair_coeff {pair[0]} {pair[1]}'
-                    f' {pair_style} {" ".join(args)}')
+                    f' {pair_style} {args}')
             f.write(f' # {i+1} pair: {name_i} - {name_j}\n')
         f.write(f"\n")
         del _df
