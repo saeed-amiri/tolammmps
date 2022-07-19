@@ -33,7 +33,7 @@ class WriteParam:
     def mk_parameters(self) -> None:
         """make dataframe from updated parameter file"""
         df: pd.DataFrame  # Temporary dataframe
-        param_df: pd.DataFrame  # The main dataframe to return
+        lj_df: pd.DataFrame  # The main dataframe for pairwise interaction
         df_list: list[pd.DataFrame] = []  # To append df in loop
         _atom: dict[str, list[str]]  # Temporary dict to correct form
         symb_list: list[str] = []  # To save the symbol of each file
@@ -48,19 +48,19 @@ class WriteParam:
                 style_list.append(f['style'])
                 mix_list.append(f['mix'])
                 del df
-        param_df = pd.concat(df_list)
-        param_df['f_symb'] = symb_list
-        param_df['f_style'] = style_list
-        param_df['mix'] = mix_list
-        param_df.sort_values(by='type', axis=0, inplace=True)
-        param_df.reset_index(inplace=True)
-        param_df.drop(['index'], inplace=True, axis=1)
-        param_df.index += 1
-        return param_df
+        lj_df = pd.concat(df_list)
+        lj_df['f_symb'] = symb_list
+        lj_df['f_style'] = style_list
+        lj_df['mix'] = mix_list
+        lj_df.sort_values(by='type', axis=0, inplace=True)
+        lj_df.reset_index(inplace=True)
+        lj_df.drop(['index'], inplace=True, axis=1)
+        lj_df.index += 1
+        return lj_df
 
     def get_pairs(self) -> None:
         """find out the pairs that have somthing together"""
-        self.param = self.mk_parameters()
+        self.lj_df = self.mk_parameters()
         PARAMFIEL = 'parameters.lmp'
         print(f'{self.__class__.__name__}:\n'
               f'\tWritting: "{PARAMFIEL}"\n')
@@ -95,7 +95,7 @@ class WriteParam:
         """write pair nonbonding interactions"""
         _df = self.obj.Masses_df.copy()
         _df.index += 1
-        style_set: set[str] = set(self.param['f_style'])
+        style_set: set[str] = set(self.lj_df['f_style'])
         styles = ' '.join(style_set)
         f.write(f'{self.__header}\n')
         f.write(f"\n")
@@ -106,23 +106,25 @@ class WriteParam:
         for i, pair in enumerate(pair_list):
             name_i: str = _df['name'][pair[0]]
             name_j: str = _df['name'][pair[1]]
-            file_i: str = self.param.iloc[pair[0]-1]['f_symb']
-            file_j: str = self.param.iloc[pair[1]-1]['f_symb']
-            epsilon_i: float = self.param.iloc[pair[0]-1]['epsilon']
-            epsilon_j: float = self.param.iloc[pair[1]-1]['epsilon']
-            sigma_i: float = self.param.iloc[pair[0]-1]['sigma']
-            sigma_j: float = self.param.iloc[pair[1]-1]['sigma']
-            r_cut_i: float = self.param.iloc[pair[0]-1]['r_cut']
-            r_cut_j: float = self.param.iloc[pair[1]-1]['r_cut']
-
+            file_i: str = self.lj_df.iloc[pair[0]-1]['f_symb']
+            file_j: str = self.lj_df.iloc[pair[1]-1]['f_symb']
+            epsilon_i: float = self.lj_df.iloc[pair[0]-1]['epsilon']
+            epsilon_j: float = self.lj_df.iloc[pair[1]-1]['epsilon']
+            sigma_i: float = self.lj_df.iloc[pair[0]-1]['sigma']
+            sigma_j: float = self.lj_df.iloc[pair[1]-1]['sigma']
+            r_cut_i: float = self.lj_df.iloc[pair[0]-1]['r_cut']
+            r_cut_j: float = self.lj_df.iloc[pair[1]-1]['r_cut']
+            mix_i: str = self.lj_df.iloc[pair[0]-1]['mix']
+            mix_j: str = self.lj_df.iloc[pair[1]-1]['mix']
             pair_style: str = self.set_pair_style(file_i, file_j, pair)
             args: str = self.set_pair_args(epsilon_i, epsilon_j, sigma_i,
-                                           sigma_j, r_cut_i, r_cut_j, pair
-                                           )
+                                           sigma_j, r_cut_i, r_cut_j, pair,
+                                           mix_i, mix_j, file_i, file_j)
             f.write(f'pair_coeff {pair[0]} {pair[1]}'
                     f' {pair_style} {args}')
             f.write(f' # {i+1} pair: {name_i} - {name_j}\n')
         f.write(f"\n")
+        print(self.lj_df)
         del _df
 
     def set_pair_args(self,
@@ -132,20 +134,38 @@ class WriteParam:
                       sigma_j: float,
                       r_cut_i: float,
                       r_cut_j: float,
-                      pair: tuple[int, int]) -> str:
+                      pair: tuple[int, int],
+                      mix_i: str,
+                      mix_j: str,
+                      file_i: str,
+                      file_j: str) -> str:
         """make a sequnce of the interaction arguments"""
         args: list[typing.Any] = []  # Make the arguments for interactions
+        sigma = 's_'
+        epsilon = 'e_'
+        r_cut = 'r_'
         if pair[0] == pair[1]:
             sigma = sigma_i
             epsilon = epsilon_i
             r_cut = r_cut_i
         else:
-            sigma = 's_mix'
-            epsilon = 'e_mix'
-            r_cut = 'r_mix'
-        args.append(str(epsilon))
-        args.append(str(sigma))
-        args.append(str(r_cut))
+            if file_i is file_j:  # if both atom are from the same file
+                if mix_i == 'geometric':
+                    epsilon, sigma = self.mix_geometric(epsilon_i, epsilon_j,
+                                                        sigma_i, sigma_j)
+                elif mix_i == 'arithmetic':
+                    epsilon, sigma = self.mix_arithmetic(epsilon_i, epsilon_j,
+                                                         sigma_i, sigma_j)
+                elif mix_i == 'sixthpower':
+                    epsilon, sigma = self.mix_sixthpower(epsilon_i, epsilon_j,
+                                                         sigma_i, sigma_j)
+            else:
+                sigma = 0
+                epsilon = 0
+                r_cut = -1
+        args.append(f'{epsilon: 8.3f}')
+        args.append(f'{sigma: 8.3f}')
+        args.append(f'{r_cut}')
         return " ".join(args)
 
     def set_pair_style(self,
@@ -154,7 +174,7 @@ class WriteParam:
                        pair: tuple[int, int]) -> str:
         """set the pair style for each one of them"""
         if file_i is file_j:
-            pair_style: str = self.param.iloc[pair[0]-1]['f_style']
+            pair_style: str = self.lj_df.iloc[pair[0]-1]['f_style']
             pair_style = self.drop_digit(pair_style)
         else:
             pair_style = 'lj/cut'
