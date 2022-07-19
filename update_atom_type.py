@@ -11,6 +11,7 @@ class Doc:
     {'A': 'decane.data', 'B: 'water.data'}
     """
 
+
 class ReadParameter:
     """Update types of the atoms in the parameter file along with
     other updating the types"""
@@ -87,8 +88,6 @@ class UpdateType(ReadParameter):
             if f['symb'] is symb:
                 for atom in f['atoms']:
                     atom['type'] += indent
-        
-
 
     def _update_type(self, df: pd.DataFrame, indent: int) -> pd.DataFrame:
         df['typ'] += indent
