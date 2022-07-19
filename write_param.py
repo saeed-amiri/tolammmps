@@ -159,7 +159,7 @@ class WriteParam:
         args: list[typing.Any] = []  # Make the arguments for interactions
         sigma: float
         epsilon: float
-        r_cut: float = -1
+        r_cut: float
         mix = None
         if pair[0] == pair[1]:
             sigma = sigma_i
@@ -167,9 +167,9 @@ class WriteParam:
             r_cut = r_cut_i
         else:
             if file_i is file_j:  # if both atom are from the same file
-                epsilon, sigma = self.mixed_sigma_epsilon(epsilon_i, epsilon_j,
-                                                        sigma_i, sigma_j, mix_i
-                                                        )
+                epsilon, sigma, r_cut = self.mixed_sigma_epsilon(
+                    epsilon_i, epsilon_j, sigma_i, sigma_j,
+                    r_cut_i, r_cut_j, mix_i)
             else:
                 files = [file_i, file_j]
                 check_mix = itertools.combinations_with_replacement(files, 2)
@@ -178,11 +178,13 @@ class WriteParam:
                     if pair_mix in list(self.mix_df['pair']):
                         mix = self.mix_df.loc[self.mix_df['pair'] ==
                                               pair_mix]['mix'][1]
-                epsilon, sigma = self.mixed_sigma_epsilon(epsilon_i, epsilon_j,
-                                                        sigma_i, sigma_j, mix)
+                epsilon, sigma, r_cut = self.mixed_sigma_epsilon(
+                    epsilon_i, epsilon_j, sigma_i, sigma_j,
+                    r_cut_i, r_cut_j, mix)
+
         args.append(f'{epsilon: 8.3f}')
         args.append(f'{sigma: 8.3f}')
-        args.append(f'{r_cut}')
+        args.append(f'{r_cut: 8.3f}')
         return " ".join(args)
 
     def mixed_sigma_epsilon(self,
@@ -190,18 +192,20 @@ class WriteParam:
                             epsilon_j: float,
                             sigma_i: float,
                             sigma_j: float,
+                            r_cut_i: float,
+                            r_cut_j: float,
                             mix: str) -> tuple[float, float]:
         """return mixed sigma and epsilon for ij mixed pairs"""
         if mix == 'geometric':
-                    epsilon, sigma = self.mix_geometric(epsilon_i, epsilon_j,
-                                                        sigma_i, sigma_j)
+            epsilon, sigma, r_cut = self.mix_geometric(
+                epsilon_i, epsilon_j, sigma_i, sigma_j, r_cut_i, r_cut_j)
         elif mix == 'arithmetic':
-            epsilon, sigma = self.mix_arithmetic(epsilon_i, epsilon_j,
-                                                 sigma_i, sigma_j)
+            epsilon, sigma, r_cut = self.mix_arithmetic(
+                epsilon_i, epsilon_j, sigma_i, sigma_j, r_cut_i, r_cut_j)
         elif mix == 'sixthpower':
-            epsilon, sigma = self.mix_sixthpower(epsilon_i, epsilon_j,
-                                                 sigma_i, sigma_j)
-        return epsilon, sigma
+            epsilon, sigma, r_cut = self.mix_sixthpower(
+                epsilon_i, epsilon_j, sigma_i, sigma_j, r_cut_i, r_cut_j)
+        return epsilon, sigma, r_cut
 
     def set_pair_style(self,
                        file_i: str,
@@ -219,32 +223,41 @@ class WriteParam:
                       epsilon_i: float,
                       epsilon_j: float,
                       sigma_i: float,
-                      sigma_j: float) -> tuple[float, float]:
+                      sigma_j: float,
+                      r_cut_i: float,
+                      r_cut_j: float) -> tuple[float, float, float]:
         """mix interaction by geometric method form LAMMMPS manual"""
         epsilon = np.sqrt(epsilon_i*epsilon_j)
         sigma = np.sqrt(sigma_i*sigma_j)
-        return epsilon, sigma
+        r_cut = np.sqrt(r_cut_i*r_cut_j)
+        return epsilon, sigma, r_cut
 
     def mix_arithmetic(self,
                        epsilon_i: float,
                        epsilon_j: float,
                        sigma_i: float,
-                       sigma_j: float) -> tuple[float, float]:
+                       sigma_j: float,
+                       r_cut_i: float,
+                       r_cut_j: float) -> tuple[float, float, float]:
         """mix interaction by arithmetic method form LAMMMPS manual"""
         epsilon = np.sqrt(epsilon_i*epsilon_j)
         sigma = 0.5*(sigma_i+sigma_j)
-        return epsilon, sigma
+        r_cut = 0.5*(r_cut_i+r_cut_j)
+        return epsilon, sigma, r_cut
 
     def mix_sixthpower(self,
                        epsilon_i: float,
                        epsilon_j: float,
                        sigma_i: float,
-                       sigma_j: float) -> tuple[float, float]:
+                       sigma_j: float,
+                       r_cut_i: float,
+                       r_cut_j: float) -> tuple[float, float, float]:
         """mix interaction by sixthpower method form LAMMMPS manual"""
         epsilon: float = 2 * np.sqrt(epsilon_i*epsilon_j)*sigma_i**3*sigma_j**3
         epsilon /= (sigma_i**6 + sigma_j**6)
-        sigma: float = (0.5*(sigma_i**6 + sigma**6))**(1/6)
-        return epsilon, sigma
+        sigma: float = (0.5*(sigma_i**6 + sigma_j**6))**(1/6)
+        r_cut: float = (0.5*(r_cut_i**6 + r_cut_j**6))**(1/6)
+        return epsilon, sigma, r_cut
 
     def drop_digit(self, s: str) -> str:
         """drop numbers from string"""
