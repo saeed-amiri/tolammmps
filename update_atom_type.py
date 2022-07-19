@@ -1,3 +1,4 @@
+import json
 import typing
 import numpy as np
 import pandas as pd
@@ -10,13 +11,27 @@ class Doc:
     {'A': 'decane.data', 'B: 'water.data'}
     """
 
+class ReadParameter:
+    """Update types of the atoms in the parameter file along with
+    other updating the types"""
+    def __init__(self, fname) -> None:
+        print(f'\tUpdate parameter file: "{fname}"\n')
+        self.get_param(fname)
 
-class UpdateType:
+    def get_param(self, fname: str) -> None:
+        with open(fname, 'r') as f:
+            data = json.load(f)
+        self.param = data
+        del data
+
+
+class UpdateType(ReadParameter):
     """updata types"""
-    def __init__(self, files: dict[str, str]) -> None:
+    def __init__(self, files: dict[str, str], param_fname) -> None:
         self.files = files
-        del files
+        super().__init__(param_fname)
         self.system = self.update_atom_type()
+        del files
 
     def update_atom_type(self) -> dict[str, dict[str, typing.Any]]:
         mass_indent: int = 0  # to increase the type of each file
@@ -30,7 +45,7 @@ class UpdateType:
             up_dict[k]['fname'] = v
             read_data = mlmp.ReadData(v)
             print(f'{self.__class__.__name__}:\n'
-                  f'\tUpdating: {v}\n')
+                  f'\tUpdating: {v}')
             read_data.Atoms_df = self.bring_to_zero(read_data.Atoms_df)
             if i == 0:
                 atom_indent += read_data.NAtomTyp
@@ -41,12 +56,13 @@ class UpdateType:
             else:
                 if read_data.NAtomTyp > 0:
                     read_data.Atoms_df = self._update_type(
-                        read_data.Atoms_df, atom_indent)
+                        read_data.Atoms_df, atom_indent
+                        )
                     read_data.Masses_df = self._update_type(
-                        read_data.Masses_df, atom_indent)
-                    print(read_data.Names)
+                        read_data.Masses_df, atom_indent
+                        )
+                    self.update_param(k, atom_indent)
                     atom_indent += read_data.NAtomTyp
-
                 else:
                     exit(f'{self.__class__.__name__}:\n'
                          f'\tERROR:  ZERO atom type in "{v}"')
@@ -64,6 +80,15 @@ class UpdateType:
                     dihedral_indent += read_data.NDihedralTyp
             up_dict[k]['data'] = read_data
         return up_dict
+
+    def update_param(self, symb: str, indent: int) -> None:
+        """update type of atom in the parameter file"""
+        for f in self.param['files']:
+            if f['symb'] is symb:
+                for atom in f['atoms']:
+                    atom['type'] += indent
+        
+
 
     def _update_type(self, df: pd.DataFrame, indent: int) -> pd.DataFrame:
         df['typ'] += indent
