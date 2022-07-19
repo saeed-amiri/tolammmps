@@ -108,11 +108,14 @@ class WriteParam:
             name_j: str = _df['name'][pair[1]]
             file_i: str = self.param.iloc[pair[0]-1]['f_symb']
             file_j: str = self.param.iloc[pair[1]-1]['f_symb']
-            if file_i is file_j:
-                pair_style: str = self.param.iloc[pair[0]-1]['f_style']
-                pair_style = self.drop_digit(pair_style)
-            else:
-                pair_style = 'lj/cut'
+            epsilon_i: float = self.param.iloc[pair[0]-1]['epsilon']
+            epsilon_j: float = self.param.iloc[pair[1]-1]['epsilon']
+            sigma_i: float = self.param.iloc[pair[0]-1]['sigma']
+            sigma_j: float = self.param.iloc[pair[1]-1]['sigma']
+            r_cut_i: float = self.param.iloc[pair[0]-1]['r_cut']
+            r_cut_j: float = self.param.iloc[pair[1]-1]['r_cut']
+
+            pair_style: str = self.set_pair_style(file_i, file_j, pair)
             args: list[typing.Any] = []  # Make the arguments for interactions
             if pair[0] == pair[1]:
                 sigma = self.param.iloc[pair[0]-1]['sigma']
@@ -131,6 +134,41 @@ class WriteParam:
         f.write(f"\n")
         del _df
 
+    def set_pair_args(self,
+                      epsilon_i: float,
+                      epsilon_j: float,
+                      sigma_i: float,
+                      sigma_j: float,
+                      r_cut_i: float,
+                      r_cut_j: float,
+                      pair: tuple[int, int]) -> str:
+        """make a sequnce of the interaction arguments"""
+        args: list[typing.Any] = []  # Make the arguments for interactions
+        if pair[0] == pair[1]:
+            sigma = sigma_i
+            epsilon = epsilon_i
+            r_cut = r_cut_i
+        else:
+            sigma = 's_mix'
+            epsilon = 'e_mix'
+            r_cut = 'r_mix'
+        args.append(str(epsilon))
+        args.append(str(sigma))
+        args.append(str(r_cut))
+        return " ".join(args)
+
+    def set_pair_style(self,
+                       file_i: str,
+                       file_j: str,
+                       pair: tuple[int, int]) -> str:
+        """set the pair style for each one of them"""
+        if file_i is file_j:
+            pair_style: str = self.param.iloc[pair[0]-1]['f_style']
+            pair_style = self.drop_digit(pair_style)
+        else:
+            pair_style = 'lj/cut'
+        return pair_style
+
     def mix_geometric(self,
                       epsilon_i: float,
                       epsilon_j: float,
@@ -140,28 +178,27 @@ class WriteParam:
         epsilon = np.sqrt(epsilon_i*epsilon_j)
         sigma = np.sqrt(sigma_i*sigma_j)
         return epsilon, sigma
-    
+
     def mix_arithmetic(self,
-                      epsilon_i: float,
-                      epsilon_j: float,
-                      sigma_i: float,
-                      sigma_j: float) -> tuple[float, float]:
+                       epsilon_i: float,
+                       epsilon_j: float,
+                       sigma_i: float,
+                       sigma_j: float) -> tuple[float, float]:
         """mix interaction by arithmetic method form LAMMMPS manual"""
         epsilon = np.sqrt(epsilon_i*epsilon_j)
         sigma = 0.5*(sigma_i+sigma_j)
         return epsilon, sigma
-    
-    def mix_sixthpower(self,
-                      epsilon_i: float,
-                      epsilon_j: float,
-                      sigma_i: float,
-                      sigma_j: float) -> tuple[float, float]:
-        """mix interaction by sixthpower method form LAMMMPS manual"""
-        epsilon = 2 * np.sqrt(epsilon_i*epsilon_j)*sigma_i**3*sigma_j**3
-        epsilon /= (sigma_i**6 +sigma_j**6)
-        sigma = (0.5*(sigma_i**6 + sigma**6))**(1/6)
-        return epsilon, sigma
 
+    def mix_sixthpower(self,
+                       epsilon_i: float,
+                       epsilon_j: float,
+                       sigma_i: float,
+                       sigma_j: float) -> tuple[float, float]:
+        """mix interaction by sixthpower method form LAMMMPS manual"""
+        epsilon: float = 2 * np.sqrt(epsilon_i*epsilon_j)*sigma_i**3*sigma_j**3
+        epsilon /= (sigma_i**6 + sigma_j**6)
+        sigma: float = (0.5*(sigma_i**6 + sigma**6))**(1/6)
+        return epsilon, sigma
 
     def drop_digit(self, s: str) -> str:
         """drop numbers from string"""
