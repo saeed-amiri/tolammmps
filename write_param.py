@@ -95,7 +95,6 @@ class WriteParam:
         """write pair nonbonding interactions"""
         _df = self.obj.Masses_df.copy()
         _df.index += 1
-        # for pair in pair_list:
         style_set: set[str] = set(self.param['f_style'])
         styles = ' '.join(style_set)
         f.write(f'{self.__header}\n')
@@ -105,17 +104,16 @@ class WriteParam:
         f.write(f'pair_style hybrid {styles}\n')
         f.write(f'\n')
         for i, pair in enumerate(pair_list):
-            # print(i, self.param.iloc[pair[0]-1]['f_style'])
-            name_i = _df['name'][pair[0]]
-            name_j = _df['name'][pair[1]]
-            file_i = self.param.iloc[pair[0]-1]['f_symb']
-            file_j = self.param.iloc[pair[1]-1]['f_symb']
+            name_i: str = _df['name'][pair[0]]
+            name_j: str = _df['name'][pair[1]]
+            file_i: str = self.param.iloc[pair[0]-1]['f_symb']
+            file_j: str = self.param.iloc[pair[1]-1]['f_symb']
             if file_i is file_j:
-                pair_style = self.param.iloc[pair[0]-1]['f_style']
+                pair_style: str = self.param.iloc[pair[0]-1]['f_style']
                 pair_style = self.drop_digit(pair_style)
             else:
                 pair_style = 'lj/cut'
-            args = []
+            args: list[typing.Any] = []  # Make the arguments for interactions
             if pair[0] == pair[1]:
                 sigma = self.param.iloc[pair[0]-1]['sigma']
                 epsilon = self.param.iloc[pair[0]-1]['epsilon']
@@ -134,34 +132,34 @@ class WriteParam:
         del _df
 
     def mix_geometric(self,
-                      epsilon0: float,
-                      epsilon1: float,
-                      sigma0: float,
-                      sigma1: float) -> tuple[float, float]:
+                      epsilon_i: float,
+                      epsilon_j: float,
+                      sigma_i: float,
+                      sigma_j: float) -> tuple[float, float]:
         """mix interaction by geometric method form LAMMMPS manual"""
-        epsilon = np.sqrt(epsilon0*epsilon1)
-        sigma = np.sqrt(sigma0*sigma1)
+        epsilon = np.sqrt(epsilon_i*epsilon_j)
+        sigma = np.sqrt(sigma_i*sigma_j)
         return epsilon, sigma
     
     def mix_arithmetic(self,
-                      epsilon0: float,
-                      epsilon1: float,
-                      sigma0: float,
-                      sigma1: float) -> tuple[float, float]:
+                      epsilon_i: float,
+                      epsilon_j: float,
+                      sigma_i: float,
+                      sigma_j: float) -> tuple[float, float]:
         """mix interaction by arithmetic method form LAMMMPS manual"""
-        epsilon = np.sqrt(epsilon0*epsilon1)
-        sigma = 0.5*(sigma0+sigma1)
+        epsilon = np.sqrt(epsilon_i*epsilon_j)
+        sigma = 0.5*(sigma_i+sigma_j)
         return epsilon, sigma
     
     def mix_sixthpower(self,
-                      epsilon0: float,
-                      epsilon1: float,
-                      sigma0: float,
-                      sigma1: float) -> tuple[float, float]:
+                      epsilon_i: float,
+                      epsilon_j: float,
+                      sigma_i: float,
+                      sigma_j: float) -> tuple[float, float]:
         """mix interaction by sixthpower method form LAMMMPS manual"""
-        epsilon = 2 * np.sqrt(epsilon0*epsilon1)*sigma0**3*sigma1**3
-        epsilon /= (sigma0**6 +sigma1**6)
-        sigma = (0.5*(sigma0**6 + sigma**6))**(1/6)
+        epsilon = 2 * np.sqrt(epsilon_i*epsilon_j)*sigma_i**3*sigma_j**3
+        epsilon /= (sigma_i**6 +sigma_j**6)
+        sigma = (0.5*(sigma_i**6 + sigma**6))**(1/6)
         return epsilon, sigma
 
 
