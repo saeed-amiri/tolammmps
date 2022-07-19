@@ -30,37 +30,10 @@ class WriteParam:
         self.get_pairs()
         del obj, bs
 
-    def mk_parameters(self) -> None:
-        """make dataframe from updated parameter file"""
-        df: pd.DataFrame  # Temporary dataframe
-        lj_df: pd.DataFrame  # The main dataframe for pairwise interaction
-        df_list: list[pd.DataFrame] = []  # To append df in loop
-        _atom: dict[str, list[str]]  # Temporary dict to correct form
-        symb_list: list[str] = []  # To save the symbol of each file
-        style_list: list[str] = []  # To save the style of each forcefiled
-        mix_list: list[str] = []  # To save the mix style of each forcefiled
-        for f in self.param['files']:
-            for atom in f['atoms']:
-                _atom = {k: [v] for k, v in atom.items()}
-                df = pd.DataFrame.from_dict(_atom, orient='columns')
-                df_list.append(df)
-                symb_list.append(f['symb'])
-                style_list.append(f['style'])
-                mix_list.append(f['mix'])
-                del df
-        lj_df = pd.concat(df_list)
-        lj_df['f_symb'] = symb_list
-        lj_df['f_style'] = style_list
-        lj_df['mix'] = mix_list
-        lj_df.sort_values(by='type', axis=0, inplace=True)
-        lj_df.reset_index(inplace=True)
-        lj_df.drop(['index'], inplace=True, axis=1)
-        lj_df.index += 1
-        return lj_df
-
     def get_pairs(self) -> None:
         """find out the pairs that have somthing together"""
-        self.lj_df = self.mk_parameters()
+        self.lj_df = self.mk_lj_parameter()
+        self.mix_df = self.mk_ij_parameters()  # Parameters for the i&j pairs
         PARAMFIEL = 'parameters.lmp'
         print(f'{self.__class__.__name__}:\n'
               f'\tWritting: "{PARAMFIEL}"\n')
@@ -88,6 +61,50 @@ class WriteParam:
                 self.write_dihedral_qudrauple(dihedral_df, f)
             except KeyError:
                 pass
+
+    def mk_lj_parameter(self) -> pd.DataFrame:
+        """make dataframe from updated parameter file"""
+        df: pd.DataFrame  # Temporary dataframe
+        lj_df: pd.DataFrame  # The main dataframe for pairwise interaction
+        df_list: list[pd.DataFrame] = []  # To append df in loop
+        _atom: dict[str, list[str]]  # Temporary dict to correct form
+        symb_list: list[str] = []  # To save the symbol of each file
+        style_list: list[str] = []  # To save the style of each forcefiled
+        mix_list: list[str] = []  # To save the mix style of each forcefiled
+        for f in self.param['files']:
+            for atom in f['atoms']:
+                _atom = {k: [v] for k, v in atom.items()}
+                df = pd.DataFrame.from_dict(_atom, orient='columns')
+                df_list.append(df)
+                symb_list.append(f['symb'])
+                style_list.append(f['style'])
+                mix_list.append(f['mix'])
+                del df
+        lj_df = pd.concat(df_list)
+        lj_df['f_symb'] = symb_list
+        lj_df['f_style'] = style_list
+        lj_df['mix'] = mix_list
+        lj_df.sort_values(by='type', axis=0, inplace=True)
+        lj_df.reset_index(inplace=True)
+        lj_df.drop(['index'], inplace=True, axis=1)
+        lj_df.index += 1
+        return lj_df
+
+    def mk_ij_parameters(self) -> pd.DataFrame:
+        """make a dataframe for mixed pair interactions"""
+        df: pd.DataFrame  # Temporary dataframe
+        pair_df: pd.DataFrame  # Return the DataFrame of mixed pair interaction
+        pair_dict: dict[str, str]  # dict of the pairs
+        pair_list: list[pd.DataFrame] = []  # list of the temporary dataframes
+        for p in self.param['Pairs']:
+            pair_dict = {k: [v] for k, v in p.items()}
+            df = pd.DataFrame.from_dict(pair_dict)
+            pair_list.append(df)
+        pair_df = pd.concat(pair_list)
+        pair_df.reset_index(inplace=True)
+        pair_df.drop(['index'], inplace=True, axis=1)
+        pair_df.index += 1
+        return pair_df
 
     def write_pairs(self,
                     pair_list: list[tuple[int, int]],
@@ -124,7 +141,6 @@ class WriteParam:
                     f' {pair_style} {args}')
             f.write(f' # {i+1} pair: {name_i} - {name_j}\n')
         f.write(f"\n")
-        print(self.lj_df)
         del _df
 
     def set_pair_args(self,
@@ -141,9 +157,10 @@ class WriteParam:
                       file_j: str) -> str:
         """make a sequnce of the interaction arguments"""
         args: list[typing.Any] = []  # Make the arguments for interactions
-        sigma = 's_'
-        epsilon = 'e_'
-        r_cut = 'r_'
+        sigma: float
+        epsilon: float
+        r_cut: float = -1
+        mix = None
         if pair[0] == pair[1]:
             sigma = sigma_i
             epsilon = epsilon_i
@@ -160,9 +177,22 @@ class WriteParam:
                     epsilon, sigma = self.mix_sixthpower(epsilon_i, epsilon_j,
                                                          sigma_i, sigma_j)
             else:
-                sigma = 0
-                epsilon = 0
-                r_cut = -1
+                files = [file_i, file_j]
+                check_mix = itertools.combinations_with_replacement(files, 2)
+                for m in check_mix:
+                    pair_mix = f"{m[0]}{m[1]}"
+                    if pair_mix in list(self.mix_df['pair']):
+                        mix = self.mix_df.loc[self.mix_df['pair'] ==
+                                              pair_mix]['mix'][1]
+                if mix == 'geometric':
+                    epsilon, sigma = self.mix_geometric(epsilon_i, epsilon_j,
+                                                        sigma_i, sigma_j)
+                elif mix == 'arithmetic':
+                    epsilon, sigma = self.mix_arithmetic(epsilon_i, epsilon_j,
+                                                         sigma_i, sigma_j)
+                elif mix == 'sixthpower':
+                    epsilon, sigma = self.mix_sixthpower(epsilon_i, epsilon_j,
+                                                         sigma_i, sigma_j)
         args.append(f'{epsilon: 8.3f}')
         args.append(f'{sigma: 8.3f}')
         args.append(f'{r_cut}')
