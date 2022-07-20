@@ -363,12 +363,12 @@ class WriteParam(MakeParamDf):
                     )
             f.write(f"\n")
         f.write(f"\n")
-    
+
     def bond_args(self, i_loc: int) -> str:
         """return str contains arguments for the bond coeffs"""
         args: str
         args = f'{self.bond_df.iloc[i_loc]["kbond"]: 8.3f} ' \
-               f'{self.bond_df.iloc[i_loc]["r"]: 8.3f}' 
+               f'{self.bond_df.iloc[i_loc]["r"]: 8.3f}'
         return args
 
     def write_angle_triple(self,
@@ -385,8 +385,6 @@ class WriteParam(MakeParamDf):
         f.write(f'\n')
         f.write(f'angle_style hybrid {style_args}\n')
         f.write(f'\n')
-        print(self.angle_df)
-        print(df)
         for i in range(len(df)):
             style: str = self.angle_df.iloc[i]['style']
             args: str = self.angle_args(i)
@@ -439,7 +437,6 @@ class WriteParam(MakeParamDf):
                f'{self.dihedral_df.iloc[i_loc]["k4"]: 8.3f}'
         return args
 
-
     def mk_pairs(self) -> list[tuple[int, int]]:
         # Make pair of all atom type
         type_list = self.obj.Masses_df['typ']
@@ -457,7 +454,7 @@ class WriteParam(MakeParamDf):
         j_id: int  # To temp save the atoms type
         _df_bpair: pd.DataFrame  # To return bond pair information
         _df = self.obj.Bonds_df.copy()
-        _df = _df.loc[_df.groupby(by=['typ'])['ai'].idxmin(),:]
+        _df = _df.loc[_df.groupby(by=['typ'])['ai'].idxmin(), :]
         _df = _df.reset_index()  # To make "typ" as a column
         bond_list = _df['typ']
         _df_bpair = pd.DataFrame(bond_list)
@@ -487,7 +484,7 @@ class WriteParam(MakeParamDf):
         k_id: int  # To temp save the atoms type
         _df_apair: pd.DataFrame  # To return angle information
         _df = self.obj.Angles_df.copy()
-        _df = _df.loc[_df.groupby(by=['typ'])['ai'].idxmin(),:]
+        _df = _df.loc[_df.groupby(by=['typ'])['ai'].idxmin(), :]
         _df = _df.reset_index()  # To make "typ" as a column
         angle_list = _df['typ']
         _df_apair = pd.DataFrame(angle_list)
@@ -524,7 +521,7 @@ class WriteParam(MakeParamDf):
         _df_dpair: pd.DataFrame  # To return dihedral information
         try:
             _df = self.obj.Dihedrals_df.copy()
-            _df = _df.loc[_df.groupby(by=['typ'])['ai'].idxmin(),:]
+            _df = _df.loc[_df.groupby(by=['typ'])['ai'].idxmin(), :]
             _df = _df.reset_index()  # To make "typ" as a column
             dihedral_list = _df['typ']
             _df_dpair = pd.DataFrame(dihedral_list)
