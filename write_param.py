@@ -286,13 +286,13 @@ class WriteParam(MakeParamDf):
             epsilon = epsilon_i
             r_cut = r_cut_i
         else:
-            if file_i is file_j:  # if both atom are from the same file
+            if file_i == file_j:  # if both atom are from the same file
                 epsilon, sigma, r_cut = self.mixed_sigma_epsilon(
                     epsilon_i, epsilon_j, sigma_i, sigma_j,
                     r_cut_i, r_cut_j, mix_i)
             else:
                 files = [file_i, file_j]
-                check_mix = itertools.combinations_with_replacement(files, 2)
+                check_mix = itertools.permutations(files, 2)
                 for m in check_mix:
                     pair_mix = f"{m[0]}{m[1]}"
                     if pair_mix in list(self.mix_df['pair']):
@@ -343,7 +343,7 @@ class WriteParam(MakeParamDf):
                           df: pd.DataFrame,
                           f: typing.TextIO) -> None:
         """write the bond pair and coefficents of the force field"""
-        bonds_set: set[str]
+        bonds_set: set[str]  # Get the unique bond style in the files
         bonds_set = set(self.bond_df['style'])
         style_args: str  # A string contain all the bonds style
         style_args = " ".join(bonds_set)
@@ -354,12 +354,11 @@ class WriteParam(MakeParamDf):
         f.write(f'bond_style hybrid {style_args}\n')
         f.write(f'\n')
         for i in range(len(df)):
-            style = self.bond_df.iloc[i]['style']
-            args = self.bond_args(i)
+            style: str = self.bond_df.iloc[i]['style']
+            args: str = self.bond_args(i)
             f.write(f'bond_coeff {df.iloc[i]["bond_typ"]}'
                     f' {style} {args}'
-                    f' # bond_coeff for {df.iloc[i]["ai_name"]} -'
-                    f' {df.iloc[i]["aj_name"]}'
+                    f' # bond_coeff for {df.iloc[i]["name"]}'
                     f' (name: {self.bond_df.iloc[i]["name"]})'
                     )
             f.write(f"\n")
@@ -376,40 +375,70 @@ class WriteParam(MakeParamDf):
                            df: pd.DataFrame,
                            f: typing.TextIO) -> None:
         """write the triple atoms interaction that shares angle"""
-        f.write(f"{self.__header}\n")
-        f.write(f"\n")
-        f.write(f"# coefficents for angles interactions\n")
-        f.write(f"\n")
-        f.write(f"angle_style hybrid [args...]\n")
-        f.write(f"\n")
+        angles_set: set[str]  # Get the unique angle style in the files
+        angles_set = set(self.angle_df['style'])
+        style_args: str  # A string contain all the angles style
+        style_args = " ".join(angles_set)
+        f.write(f'{self.__header}\n')
+        f.write(f'\n')
+        f.write(f'# coefficents for angles interactions\n')
+        f.write(f'\n')
+        f.write(f'angle_style hybrid {style_args}\n')
+        f.write(f'\n')
+        print(self.angle_df)
+        print(df)
         for i in range(len(df)):
+            style: str = self.angle_df.iloc[i]['style']
+            args: str = self.angle_args(i)
             f.write(f'angle_coeff {df.iloc[i]["angle_typ"]}'
-                    f' [style] [args]'
-                    f' # angle_coeff for {df.iloc[i]["ai_name"]} -'
-                    f' {df.iloc[i]["aj_name"]} -'
-                    f' {df.iloc[i]["ak_name"]}')
+                    f' {style} {args}'
+                    f' # angle_coeff for {df.iloc[i]["name"]}'
+                    f' (name: {self.angle_df.iloc[i]["name"]})'
+                    )
             f.write(f"\n")
         f.write(f"\n")
+
+    def angle_args(self, i_loc: int) -> str:
+        """return str contains arguments for the angle coeffs"""
+        args: str
+        args = f'{self.angle_df.iloc[i_loc]["kangle"]: 8.3f} '\
+               f'{self.angle_df.iloc[i_loc]["angle"]: 8.3f}'
+        return args
 
     def write_dihedral_qudrauple(self,
                                  df: pd.DataFrame,
                                  f: typing.TextIO) -> None:
         """write the quadrauple atoms interaction that shares dihedrals"""
+        dihedrals_set: set[str]  # Get the unique dihedral style in the files
+        dihedrals_set = set(self.dihedral_df['style'])
+        style_args: str  # A string contain all the dihedrals style
+        style_args = " ".join(dihedrals_set)
         f.write(f"{self.__header}\n")
         f.write(f"\n")
         f.write(f"# coefficents for dihedrals interactions\n")
         f.write(f"\n")
-        f.write(f"dihedral_style hybrid [args...]\n")
+        f.write(f"dihedral_style hybrid {style_args}\n")
         f.write(f"\n")
         for i in range(len(df)):
+            style: str = self.dihedral_df.iloc[i]['style']
+            args: str = self.dihedral_args(i)
             f.write(f'dihedral_coeff {df.iloc[i]["dihedral_typ"]}'
-                    f' [style] [args]'
-                    f' # dihedral_coeff for {df.iloc[i]["ai_name"]} -'
-                    f' {df.iloc[i]["aj_name"]} -'
-                    f' {df.iloc[i]["ak_name"]} -'
-                    f' {df.iloc[i]["ah_name"]}')
+                    f' {style} {args}'
+                    f' # dihedral_coeff for {df.iloc[i]["name"]}'
+                    f' (name: {self.dihedral_df.iloc[i]["name"]})'
+                    )
             f.write(f"\n")
         f.write(f"\n")
+
+    def dihedral_args(self, i_loc: int) -> str:
+        """return str contains arguments for the angle coeffs"""
+        args: str
+        args = f'{self.dihedral_df.iloc[i_loc]["k1"]: 8.3f} '\
+               f'{self.dihedral_df.iloc[i_loc]["k2"]: 8.3f} '\
+               f'{self.dihedral_df.iloc[i_loc]["k3"]: 8.3f} '\
+               f'{self.dihedral_df.iloc[i_loc]["k4"]: 8.3f}'
+        return args
+
 
     def mk_pairs(self) -> list[tuple[int, int]]:
         # Make pair of all atom type
@@ -424,29 +453,24 @@ class WriteParam(MakeParamDf):
         bond_list: list[int]  # List of bond types
         ai_type: list[int] = []  # List of atom types
         aj_type: list[int] = []  # List of atom types
-        ai_name: list[str] = []  # List of atoms name
-        aj_name: list[str] = []  # List of atoms name
         i_id: int  # To temp save the atoms type
         j_id: int  # To temp save the atoms type
         _df_bpair: pd.DataFrame  # To return bond pair information
         _df = self.obj.Bonds_df.copy()
-        _df = _df.groupby(by='typ').min()
+        _df = _df.loc[_df.groupby(by=['typ'])['ai'].idxmin(),:]
         _df = _df.reset_index()  # To make "typ" as a column
         bond_list = _df['typ']
         _df_bpair = pd.DataFrame(bond_list)
         _df_bpair = _df_bpair.rename(columns={'typ': 'bond_typ'})
+        _df_bpair['name'] = _df['name'].copy()
         for ai, aj in zip(_df['ai'], _df['aj']):
             i_id = self.obj.Atoms_df.iloc[ai-1]['typ']
             j_id = self.obj.Atoms_df.iloc[aj-1]['typ']
             ai_type.append(i_id)
             aj_type.append(j_id)
-            ai_name.append(self.obj.Masses_df.iloc[i_id-1]['name'])
-            aj_name.append(self.obj.Masses_df.iloc[j_id-1]['name'])
         _df_bpair['ai_typ'] = ai_type
         _df_bpair['aj_typ'] = aj_type
-        _df_bpair['ai_name'] = ai_name
-        _df_bpair['aj_name'] = aj_name
-        del _df, ai_type, aj_type, ai_name, aj_name
+        del _df, ai_type, aj_type
         _df_bpair.index += 1
         return _df_bpair
 
@@ -458,20 +482,17 @@ class WriteParam(MakeParamDf):
         ai_type: list[int] = []  # List of atom types
         aj_type: list[int] = []  # List of atom types
         ak_type: list[int] = []  # List of atom types
-        ai_name: list[str] = []  # List of atoms name
-        aj_name: list[str] = []  # List of atoms name
-        ak_name: list[str] = []  # List of atoms name
         i_id: int  # To temp save the atoms type
         j_id: int  # To temp save the atoms type
         k_id: int  # To temp save the atoms type
         _df_apair: pd.DataFrame  # To return angle information
-
         _df = self.obj.Angles_df.copy()
-        _df = _df.groupby(by=['typ']).min()
+        _df = _df.loc[_df.groupby(by=['typ'])['ai'].idxmin(),:]
         _df = _df.reset_index()  # To make "typ" as a column
         angle_list = _df['typ']
         _df_apair = pd.DataFrame(angle_list)
         _df_apair = _df_apair.rename(columns={'typ': 'angle_typ'})
+        _df_apair['name'] = _df['name'].copy()
         for ai, aj, ak in zip(_df['ai'], _df['aj'], _df['ak']):
             i_id = self.obj.Atoms_df.iloc[ai-1]['typ']
             j_id = self.obj.Atoms_df.iloc[aj-1]['typ']
@@ -479,22 +500,10 @@ class WriteParam(MakeParamDf):
             ai_type.append(i_id)
             aj_type.append(j_id)
             ak_type.append(k_id)
-            ai_name.append(
-                self.obj.Masses_df.iloc[i_id-1]['name']
-                )
-            aj_name.append(
-                self.obj.Masses_df.iloc[j_id-1]['name']
-                )
-            ak_name.append(
-                self.obj.Masses_df.iloc[k_id-1]['name']
-                )
         _df_apair['ai_typ'] = ai_type
         _df_apair['aj_typ'] = aj_type
         _df_apair['ak_typ'] = ak_type
-        _df_apair['ai_name'] = ai_name
-        _df_apair['aj_name'] = aj_name
-        _df_apair['ak_name'] = ak_name
-        del _df, ai_type, aj_type, ak_type, ai_name, aj_name, ak_name
+        del _df, ai_type, aj_type, ak_type
         _df_apair.index += 1
         return _df_apair
 
@@ -508,9 +517,6 @@ class WriteParam(MakeParamDf):
         ak_type: list[int] = []  # List of atom types
         ah_type: list[int] = []  # List of atom types
         ai_name: list[str] = []  # List of atoms name
-        aj_name: list[str] = []  # List of atoms name
-        ak_name: list[str] = []  # List of atoms name
-        ah_name: list[str] = []  # List of atoms name
         i_id: int  # To temp save the atoms type
         j_id: int  # To temp save the atoms type
         k_id: int  # To temp save the atoms type
@@ -518,11 +524,12 @@ class WriteParam(MakeParamDf):
         _df_dpair: pd.DataFrame  # To return dihedral information
         try:
             _df = self.obj.Dihedrals_df.copy()
-            _df = _df.groupby(by=['typ']).min()
+            _df = _df.loc[_df.groupby(by=['typ'])['ai'].idxmin(),:]
             _df = _df.reset_index()  # To make "typ" as a column
             dihedral_list = _df['typ']
             _df_dpair = pd.DataFrame(dihedral_list)
             _df_dpair = _df_dpair.rename(columns={'typ': 'dihedral_typ'})
+            _df_dpair['name'] = _df['name'].copy()
             for ai, aj, ak, ah in zip(_df['ai'], _df['aj'],
                                       _df['ak'], _df['ah']):
                 i_id = self.obj.Atoms_df.iloc[ai-1]['typ']
@@ -533,28 +540,12 @@ class WriteParam(MakeParamDf):
                 aj_type.append(j_id)
                 ak_type.append(k_id)
                 ah_type.append(h_id)
-                ai_name.append(
-                    self.obj.Masses_df.iloc[i_id-1]['name']
-                    )
-                aj_name.append(
-                    self.obj.Masses_df.iloc[j_id-1]['name']
-                    )
-                ak_name.append(
-                    self.obj.Masses_df.iloc[k_id-1]['name']
-                    )
-                ah_name.append(
-                    self.obj.Masses_df.iloc[h_id-1]['name']
-                    )
             _df_dpair['ai_typ'] = ai_type
             _df_dpair['aj_typ'] = aj_type
             _df_dpair['ak_typ'] = ak_type
             _df_dpair['ah_typ'] = ah_type
-            _df_dpair['ai_name'] = ai_name
-            _df_dpair['aj_name'] = aj_name
-            _df_dpair['ak_name'] = ak_name
-            _df_dpair['ah_name'] = ah_name
             del _df, ai_type, aj_type, ak_type, ah_type
-            del ai_name, aj_name, ak_name, ah_name
+            del ai_name
             _df_dpair.index += 1
             return _df_dpair
         except AttributeError:
