@@ -15,7 +15,169 @@ class Doc:
      """
 
 
-class WriteParam:
+class MakeParamDf:
+    """Make DataFrame of atoms, bonds, angles, dihedrals
+    Input:
+        obj from updated parameter-file
+    Output:
+        DataFrames
+    """
+    def __init__(self, param) -> None:
+        self.param = param
+        self.mk_dataframes()
+        del param
+
+    def mk_dataframes(self) -> None:
+        """call all the methods"""
+        self.lj_df = self.mk_lj_piar_df()
+        self.mix_df = self.mk_mix_pair_df()  # Parameters for the i&j pairs
+        self.bond_df = self.mk_bond_df()
+        self.angle_df = self.mk_angle_df()
+        self.dihedral_df = self.mk_dihedral_df()
+
+    def mk_lj_piar_df(self) -> pd.DataFrame:
+        """make dataframe from updated parameter file for pair intera-
+        ctions.
+        It is the main DataFrame read and updated from the input para-
+        meter file.
+        It contains all the information from the "atoms" section in
+        the parameter input file.
+        """
+        df: pd.DataFrame  # Temporary dataframe
+        lj_df: pd.DataFrame  # The main dataframe for pairwise interaction
+        df_list: list[pd.DataFrame] = []  # To append df in loop
+        _atom: dict[str, list[str]]  # Temporary dict to correct form
+        symb_list: list[str] = []  # To save the symbol of each file
+        style_list: list[str] = []  # To save the style of each forcefiled
+        mix_list: list[str] = []  # To save the mix style of each forcefiled
+        for f in self.param['files']:
+            if 'atoms' in f:
+                for atom in f['atoms']:
+                    _atom = {k: [v] for k, v in atom.items()}
+                    df = pd.DataFrame.from_dict(_atom, orient='columns')
+                    df_list.append(df)
+                    symb_list.append(f['symb'])
+                    style_list.append(f['style'])
+                    mix_list.append(f['mix'])
+                    del df
+            else:
+                exit(f'\tERROR: there is no atom defeined in the file: '
+                     f'`{f["file"]}`')
+        lj_df = pd.concat(df_list)
+        del df_list
+        lj_df['f_symb'] = symb_list
+        lj_df['f_style'] = style_list
+        lj_df['mix'] = mix_list
+        lj_df.sort_values(by='type', inplace=True, axis=0)
+        lj_df.reset_index(inplace=True)
+        lj_df.drop(['index'], inplace=True, axis=1)
+        lj_df.index += 1
+        return lj_df
+
+    def mk_mix_pair_df(self) -> pd.DataFrame:
+        """make a dataframe for mixed pair interactions
+        It is DataFrame from the "Pairs" section of the parameter input
+        file.
+        It includes information on how the atoms in the different files
+        interact.
+        """
+        df: pd.DataFrame  # Temporary dataframe
+        pair_df: pd.DataFrame  # Return the of mixed pair interaction
+        pair_dict: dict[str, list[str]]  # dict of the pairs
+        pair_list: list[pd.DataFrame] = []  # list of the temporary df
+        for p in self.param['Pairs']:
+            pair_dict = {k: [v] for k, v in p.items()}
+            df = pd.DataFrame.from_dict(pair_dict)
+            pair_list.append(df)
+        pair_df = pd.concat(pair_list)
+        pair_df.reset_index(inplace=True)
+        pair_df.drop(['index'], inplace=True, axis=1)
+        pair_df.index += 1
+        return pair_df
+
+    def mk_bond_df(self) -> pd.DataFrame:
+        """make dataframe for all the bonds information.
+        It contains the bonds with updated "types"
+        """
+        df: pd.DataFrame  # Temporary dataframe
+        bond_df: pd.DataFrame  # The main dataframe for bonds' info
+        df_list: list[pd.DataFrame] = []  # To append df in loop
+        _bond: dict[str, list[str]]  # Temporary dict to correct form
+        symb_list: list[str] = []  # To save the symbol of each file
+        for f in self.param['files']:
+            for bond in f['bonds']:
+                _bond = {k: [v] for k, v in bond.items()}
+                df = pd.DataFrame.from_dict(_bond, orient='columns')
+                df_list.append(df)
+                symb_list.append(f['symb'])
+                del df
+        bond_df = pd.concat(df_list)
+        del df_list
+        bond_df['f_symb'] = symb_list
+        bond_df.sort_values(by='type', inplace=True, axis=0)
+        bond_df.reset_index(inplace=True)
+        bond_df.drop(['index'], inplace=True, axis=1)
+        bond_df.index += 1
+        return bond_df
+
+    def mk_angle_df(self) -> pd.DataFrame:
+        """make dataframe for all the angles information.
+        It contains the bonds with updated "types"
+        """
+        df: pd.DataFrame  # Temporary dataframe
+        angle_df: pd.DataFrame  # The main dataframe for angles' info
+        df_list: list[pd.DataFrame] = []  # To append df in loop
+        _angle: dict[str, list[str]]  # Temporary dict to correct form
+        symb_list: list[str] = []  # To save the symbol of each file
+        for f in self.param['files']:
+            if 'angles' in f:
+                for angle in f['angles']:
+                    _angle = {k: [v] for k, v in angle.items()}
+                    df = pd.DataFrame.from_dict(_angle, orient='columns')
+                    df_list.append(df)
+                    symb_list.append(f['symb'])
+                    del df
+            else:
+                pass
+        angle_df = pd.concat(df_list)
+        del df_list
+        angle_df['f_symb'] = symb_list
+        angle_df.sort_values(by='type', inplace=True, axis=0)
+        angle_df.reset_index(inplace=True)
+        angle_df.drop(['index'], inplace=True, axis=1)
+        angle_df.index += 1
+        return angle_df
+
+    def mk_dihedral_df(self) -> pd.DataFrame:
+        """make dataframe for all the dihedrals information.
+        It contains the bonds with updated "types"
+        """
+        df: pd.DataFrame  # Temporary dataframe
+        dihedral_df: pd.DataFrame  # The main dataframe for dihedrals' info
+        df_list: list[pd.DataFrame] = []  # To append df in loop
+        _dihedral: dict[str, list[str]]  # Temporary dict to correct form
+        symb_list: list[str] = []  # To save the symbol of each file
+        for f in self.param['files']:
+            if 'dihedrals' in f:
+                for dihedral in f['dihedrals']:
+                    _dihedral = {k: [v] for k, v in dihedral.items()}
+                    df = pd.DataFrame.from_dict(_dihedral, orient='columns')
+                    df_list.append(df)
+                    symb_list.append(f['symb'])
+                    del df
+            else:
+                pass
+        dihedral_df = pd.concat(df_list)
+        del df_list
+        dihedral_df['f_symb'] = symb_list
+        dihedral_df.sort_values(by='type', inplace=True, axis=0)
+        dihedral_df.reset_index(inplace=True)
+        dihedral_df.drop(['index'], inplace=True, axis=1)
+        dihedral_df.index += 1
+        return dihedral_df
+
+
+class WriteParam(MakeParamDf):
     """Writting the interactions parameters for input of LAMMPS
         Input:
         atoms_df (DataFrame from PDBFILE: Pdb class)
@@ -27,16 +189,15 @@ class WriteParam:
     def __init__(self, obj, bs) -> None:
         self.obj = obj
         self.param = bs.param
+        super().__init__(self.param)
         self.get_pairs()
         del obj, bs
 
     def get_pairs(self) -> None:
         """find out the pairs that have somthing together"""
-        self.lj_df = self.mk_parameter_df()
-        self.mix_df = self.mk_pair_pair_df()  # Parameters for the i&j pairs
         PARAMFIEL = 'parameters.lmp'
         print(f'{self.__class__.__name__}:\n'
-              f'\tWritting: "{PARAMFIEL}"\n')
+              f'\tWritting: `{PARAMFIEL}`\n')
         self.__header: str  # str to write on top of each sections
         self.__header = ''.join(['#']*79)
 
@@ -61,61 +222,6 @@ class WriteParam:
                 self.write_dihedral_qudrauple(dihedral_df, f)
             except KeyError:
                 pass
-
-    def mk_parameter_df(self) -> pd.DataFrame:
-        """make dataframe from updated parameter file for pair intera-
-        ctions.
-        It is the main DataFrame read and updated from the input para-
-        meter file.
-        It contains all the information from the "atoms" section in
-        the parameter input file. 
-        """
-        df: pd.DataFrame  # Temporary dataframe
-        lj_df: pd.DataFrame  # The main dataframe for pairwise interaction
-        df_list: list[pd.DataFrame] = []  # To append df in loop
-        _atom: dict[str, list[str]]  # Temporary dict to correct form
-        symb_list: list[str] = []  # To save the symbol of each file
-        style_list: list[str] = []  # To save the style of each forcefiled
-        mix_list: list[str] = []  # To save the mix style of each forcefiled
-        for f in self.param['files']:
-            for atom in f['atoms']:
-                _atom = {k: [v] for k, v in atom.items()}
-                df = pd.DataFrame.from_dict(_atom, orient='columns')
-                df_list.append(df)
-                symb_list.append(f['symb'])
-                style_list.append(f['style'])
-                mix_list.append(f['mix'])
-                del df
-        lj_df = pd.concat(df_list)
-        lj_df['f_symb'] = symb_list
-        lj_df['f_style'] = style_list
-        lj_df['mix'] = mix_list
-        lj_df.sort_values(by='type', axis=0, inplace=True)
-        lj_df.reset_index(inplace=True)
-        lj_df.drop(['index'], inplace=True, axis=1)
-        lj_df.index += 1
-        return lj_df
-
-    def mk_pair_pair_df(self) -> pd.DataFrame:
-        """make a dataframe for mixed pair interactions
-        It is DataFrame from the "Pairs" section of the parameter input
-        file.
-        It includes information on how the atoms in the different files
-        interact.
-        """
-        df: pd.DataFrame  # Temporary dataframe
-        pair_df: pd.DataFrame  # Return the DataFrame of mixed pair interaction
-        pair_dict: dict[str, list[str]]  # dict of the pairs
-        pair_list: list[pd.DataFrame] = []  # list of the temporary dataframes
-        for p in self.param['Pairs']:
-            pair_dict = {k: [v] for k, v in p.items()}
-            df = pd.DataFrame.from_dict(pair_dict)
-            pair_list.append(df)
-        pair_df = pd.concat(pair_list)
-        pair_df.reset_index(inplace=True)
-        pair_df.drop(['index'], inplace=True, axis=1)
-        pair_df.index += 1
-        return pair_df
 
     def write_pairs(self,
                     pair_list: list[tuple[int, int]],
