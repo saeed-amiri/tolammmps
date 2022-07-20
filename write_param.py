@@ -32,8 +32,8 @@ class WriteParam:
 
     def get_pairs(self) -> None:
         """find out the pairs that have somthing together"""
-        self.lj_df = self.mk_lj_parameter()
-        self.mix_df = self.mk_ij_parameters()  # Parameters for the i&j pairs
+        self.lj_df = self.mk_parameter_df()
+        self.mix_df = self.mk_pair_pair_df()  # Parameters for the i&j pairs
         PARAMFIEL = 'parameters.lmp'
         print(f'{self.__class__.__name__}:\n'
               f'\tWritting: "{PARAMFIEL}"\n')
@@ -62,8 +62,14 @@ class WriteParam:
             except KeyError:
                 pass
 
-    def mk_lj_parameter(self) -> pd.DataFrame:
-        """make dataframe from updated parameter file"""
+    def mk_parameter_df(self) -> pd.DataFrame:
+        """make dataframe from updated parameter file for pair intera-
+        ctions.
+        It is the main DataFrame read and updated from the input para-
+        meter file.
+        It contains all the information from the "atoms" section in
+        the parameter input file. 
+        """
         df: pd.DataFrame  # Temporary dataframe
         lj_df: pd.DataFrame  # The main dataframe for pairwise interaction
         df_list: list[pd.DataFrame] = []  # To append df in loop
@@ -90,8 +96,13 @@ class WriteParam:
         lj_df.index += 1
         return lj_df
 
-    def mk_ij_parameters(self) -> pd.DataFrame:
-        """make a dataframe for mixed pair interactions"""
+    def mk_pair_pair_df(self) -> pd.DataFrame:
+        """make a dataframe for mixed pair interactions
+        It is DataFrame from the "Pairs" section of the parameter input
+        file.
+        It includes information on how the atoms in the different files
+        interact.
+        """
         df: pd.DataFrame  # Temporary dataframe
         pair_df: pd.DataFrame  # Return the DataFrame of mixed pair interaction
         pair_dict: dict[str, list[str]]  # dict of the pairs
@@ -160,7 +171,7 @@ class WriteParam:
                       file_j: str) -> str:
         """make a sequnce of the interaction arguments"""
         mix: str  # "mix" style LAMMPS equation
-        r_cut: float  #  Calculated r_cut
+        r_cut: float  # Calculated r_cut
         epsilon: float  # Calculated epsilon
         sigma: float  # Calculated sigma
         args: list[typing.Any] = []  # Make the arguments for interactions
