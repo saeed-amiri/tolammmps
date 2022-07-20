@@ -36,6 +36,7 @@ class WriteParam:
         self.mix_df = self.mk_mix_pair_df()  # Parameters for the i&j pairs
         self.bond_df = self.mk_bond_df()
         self.angle_df = self.mk_angle_df()
+        self.dihedral_df = self.mk_dihedral_df()
         PARAMFIEL = 'parameters.lmp'
         print(f'{self.__class__.__name__}:\n'
               f'\tWritting: "{PARAMFIEL}"\n')
@@ -64,6 +65,34 @@ class WriteParam:
             except KeyError:
                 pass
 
+    def mk_dihedral_df(self) -> pd.DataFrame:
+        """make dataframe for all the dihedrals information.
+        It contains the bonds with updated "types"
+        """
+        df: pd.DataFrame  # Temporary dataframe
+        dihedral_df: pd.DataFrame  # The main dataframe for dihedrals' info
+        df_list: list[pd.DataFrame] = []  # To append df in loop
+        _dihedral: dict[str, list[str]]  # Temporary dict to correct form
+        symb_list: list[str] = []  # To save the symbol of each file
+        for f in self.param['files']:
+            if 'dihedrals' in f:
+                for dihedral in f['dihedrals']:
+                    _dihedral = {k: [v] for k, v in dihedral.items()}
+                    df = pd.DataFrame.from_dict(_dihedral, orient='columns')
+                    df_list.append(df)
+                    symb_list.append(f['symb'])
+                    del df
+            else:
+                pass
+        dihedral_df = pd.concat(df_list)
+        del df_list
+        dihedral_df['f_symb'] = symb_list
+        dihedral_df.sort_values(by='type', inplace=True, axis=0)
+        dihedral_df.reset_index(inplace=True)
+        dihedral_df.drop(['index'], inplace=True, axis=1)
+        dihedral_df.index += 1
+        return dihedral_df
+
     def mk_angle_df(self) -> pd.DataFrame:
         """make dataframe for all the angles information.
         It contains the bonds with updated "types"
@@ -74,12 +103,15 @@ class WriteParam:
         _angle: dict[str, list[str]]  # Temporary dict to correct form
         symb_list: list[str] = []  # To save the symbol of each file
         for f in self.param['files']:
-            for angle in f['angles']:
-                _angle = {k: [v] for k, v in angle.items()}
-                df = pd.DataFrame.from_dict(_angle, orient='columns')
-                df_list.append(df)
-                symb_list.append(f['symb'])
-                del df
+            if 'angles' in f:
+                for angle in f['angles']:
+                    _angle = {k: [v] for k, v in angle.items()}
+                    df = pd.DataFrame.from_dict(_angle, orient='columns')
+                    df_list.append(df)
+                    symb_list.append(f['symb'])
+                    del df
+            else:
+                pass
         angle_df = pd.concat(df_list)
         del df_list
         angle_df['f_symb'] = symb_list
@@ -130,14 +162,18 @@ class WriteParam:
         style_list: list[str] = []  # To save the style of each forcefiled
         mix_list: list[str] = []  # To save the mix style of each forcefiled
         for f in self.param['files']:
-            for atom in f['atoms']:
-                _atom = {k: [v] for k, v in atom.items()}
-                df = pd.DataFrame.from_dict(_atom, orient='columns')
-                df_list.append(df)
-                symb_list.append(f['symb'])
-                style_list.append(f['style'])
-                mix_list.append(f['mix'])
-                del df
+            if 'atoms' in f:
+                for atom in f['atoms']:
+                    _atom = {k: [v] for k, v in atom.items()}
+                    df = pd.DataFrame.from_dict(_atom, orient='columns')
+                    df_list.append(df)
+                    symb_list.append(f['symb'])
+                    style_list.append(f['style'])
+                    mix_list.append(f['mix'])
+                    del df
+            else:
+                exit(f'\tERROR: there is no atom defeined in the file: '
+                     f'`{f["file"]}`')
         lj_df = pd.concat(df_list)
         del df_list
         lj_df['f_symb'] = symb_list
