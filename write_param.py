@@ -343,19 +343,34 @@ class WriteParam(MakeParamDf):
                           df: pd.DataFrame,
                           f: typing.TextIO) -> None:
         """write the bond pair and coefficents of the force field"""
-        f.write(f"{self.__header}\n")
-        f.write(f"\n")
-        f.write(f"# coefficents for bonds interactions\n")
-        f.write(f"\n")
-        f.write(f"bond_style hybrid [args...]\n")
-        f.write(f"\n")
+        bonds_set: set[str]
+        bonds_set = set(self.bond_df['style'])
+        style_args: str  # A string contain all the bonds style
+        style_args = " ".join(bonds_set)
+        f.write(f'{self.__header}\n')
+        f.write(f'\n')
+        f.write(f'# coefficents for bonds interactions\n')
+        f.write(f'\n')
+        f.write(f'bond_style hybrid {style_args}\n')
+        f.write(f'\n')
         for i in range(len(df)):
+            style = self.bond_df.iloc[i]['style']
+            args = self.bond_args(i)
             f.write(f'bond_coeff {df.iloc[i]["bond_typ"]}'
-                    f' [style] [args]'
+                    f' {style} {args}'
                     f' # bond_coeff for {df.iloc[i]["ai_name"]} -'
-                    f' {df.iloc[i]["aj_name"]}')
+                    f' {df.iloc[i]["aj_name"]}'
+                    f' (name: {self.bond_df.iloc[i]["name"]})'
+                    )
             f.write(f"\n")
         f.write(f"\n")
+    
+    def bond_args(self, i_loc: int) -> str:
+        """return str contains arguments for the bond coeffs"""
+        args: str
+        args = f'{self.bond_df.iloc[i_loc]["kbond"]: 8.3f} ' \
+               f'{self.bond_df.iloc[i_loc]["r"]: 8.3f}' 
+        return args
 
     def write_angle_triple(self,
                            df: pd.DataFrame,
