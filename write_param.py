@@ -208,18 +208,18 @@ class WriteParam(MakeParamDf):
             except KeyError:
                 pass
             try:
-                bond_df = self.mk_bond_couple()
-                self.write_bond_copule(bond_df, f)
+                bond_pair_df = self.mk_bond_couple()
+                self.write_bond_copule(bond_pair_df, f)
             except KeyError:
                 pass
             try:
-                angle_df = self.mk_angle_triple()
-                self.write_angle_triple(angle_df, f)
+                angle_triple_df = self.mk_angle_triple()
+                self.write_angle_triple(angle_triple_df, f)
             except KeyError:
                 pass
             try:
-                dihedral_df = self.mk_dihedral_quadruple()
-                self.write_dihedral_qudrauple(dihedral_df, f)
+                dihedral_quadruple_df = self.mk_dihedral_quadruple()
+                self.write_dihedral_qudrauple(dihedral_quadruple_df, f)
             except KeyError:
                 pass
 
@@ -339,50 +339,6 @@ class WriteParam(MakeParamDf):
             pair_style = 'lj/cut'
         return pair_style
 
-    def mix_geometric(self,
-                      epsilon_i: float,
-                      epsilon_j: float,
-                      sigma_i: float,
-                      sigma_j: float,
-                      r_cut_i: float,
-                      r_cut_j: float) -> tuple[float, float, float]:
-        """mix interaction by geometric method form LAMMMPS manual"""
-        epsilon = np.sqrt(epsilon_i*epsilon_j)
-        sigma = np.sqrt(sigma_i*sigma_j)
-        r_cut = np.sqrt(r_cut_i*r_cut_j)
-        return epsilon, sigma, r_cut
-
-    def mix_arithmetic(self,
-                       epsilon_i: float,
-                       epsilon_j: float,
-                       sigma_i: float,
-                       sigma_j: float,
-                       r_cut_i: float,
-                       r_cut_j: float) -> tuple[float, float, float]:
-        """mix interaction by arithmetic method form LAMMMPS manual"""
-        epsilon = np.sqrt(epsilon_i*epsilon_j)
-        sigma = 0.5*(sigma_i+sigma_j)
-        r_cut = 0.5*(r_cut_i+r_cut_j)
-        return epsilon, sigma, r_cut
-
-    def mix_sixthpower(self,
-                       epsilon_i: float,
-                       epsilon_j: float,
-                       sigma_i: float,
-                       sigma_j: float,
-                       r_cut_i: float,
-                       r_cut_j: float) -> tuple[float, float, float]:
-        """mix interaction by sixthpower method form LAMMMPS manual"""
-        epsilon: float = 2 * np.sqrt(epsilon_i*epsilon_j)*sigma_i**3*sigma_j**3
-        epsilon /= (sigma_i**6 + sigma_j**6)
-        sigma: float = (0.5*(sigma_i**6 + sigma_j**6))**(1/6)
-        r_cut: float = (0.5*(r_cut_i**6 + r_cut_j**6))**(1/6)
-        return epsilon, sigma, r_cut
-
-    def drop_digit(self, s: str) -> str:
-        """drop numbers from string"""
-        return re.sub(r" \d+", " ", s).strip()
-
     def write_bond_copule(self,
                           df: pd.DataFrame,
                           f: typing.TextIO) -> None:
@@ -476,6 +432,7 @@ class WriteParam(MakeParamDf):
         _df_bpair['ai_name'] = ai_name
         _df_bpair['aj_name'] = aj_name
         del _df, ai_type, aj_type, ai_name, aj_name
+        _df_bpair.index += 1
         return _df_bpair
 
     def mk_angle_triple(self) -> pd.DataFrame:
@@ -523,6 +480,7 @@ class WriteParam(MakeParamDf):
         _df_apair['aj_name'] = aj_name
         _df_apair['ak_name'] = ak_name
         del _df, ai_type, aj_type, ak_type, ai_name, aj_name, ak_name
+        _df_apair.index += 1
         return _df_apair
 
     def mk_dihedral_quadruple(self) -> pd.DataFrame:
@@ -582,11 +540,57 @@ class WriteParam(MakeParamDf):
             _df_dpair['ah_name'] = ah_name
             del _df, ai_type, aj_type, ak_type, ah_type
             del ai_name, aj_name, ak_name, ah_name
+            _df_dpair.index += 1
             return _df_dpair
         except AttributeError:
             empty_list: list[typing.Any] = []
             _df_dpair = pd.DataFrame(empty_list)
+            _df_dpair.index += 1
             return _df_dpair
+
+    def mix_geometric(self,
+                      epsilon_i: float,
+                      epsilon_j: float,
+                      sigma_i: float,
+                      sigma_j: float,
+                      r_cut_i: float,
+                      r_cut_j: float) -> tuple[float, float, float]:
+        """mix interaction by geometric method form LAMMMPS manual"""
+        epsilon = np.sqrt(epsilon_i*epsilon_j)
+        sigma = np.sqrt(sigma_i*sigma_j)
+        r_cut = np.sqrt(r_cut_i*r_cut_j)
+        return epsilon, sigma, r_cut
+
+    def mix_arithmetic(self,
+                       epsilon_i: float,
+                       epsilon_j: float,
+                       sigma_i: float,
+                       sigma_j: float,
+                       r_cut_i: float,
+                       r_cut_j: float) -> tuple[float, float, float]:
+        """mix interaction by arithmetic method form LAMMMPS manual"""
+        epsilon = np.sqrt(epsilon_i*epsilon_j)
+        sigma = 0.5*(sigma_i+sigma_j)
+        r_cut = 0.5*(r_cut_i+r_cut_j)
+        return epsilon, sigma, r_cut
+
+    def mix_sixthpower(self,
+                       epsilon_i: float,
+                       epsilon_j: float,
+                       sigma_i: float,
+                       sigma_j: float,
+                       r_cut_i: float,
+                       r_cut_j: float) -> tuple[float, float, float]:
+        """mix interaction by sixthpower method form LAMMMPS manual"""
+        epsilon: float = 2 * np.sqrt(epsilon_i*epsilon_j)*sigma_i**3*sigma_j**3
+        epsilon /= (sigma_i**6 + sigma_j**6)
+        sigma: float = (0.5*(sigma_i**6 + sigma_j**6))**(1/6)
+        r_cut: float = (0.5*(r_cut_i**6 + r_cut_j**6))**(1/6)
+        return epsilon, sigma, r_cut
+
+    def drop_digit(self, s: str) -> str:
+        """drop numbers from string"""
+        return re.sub(r" \d+", " ", s).strip()
 
     def keep_letter(self, s: str) -> str:
         """keep letter and remove the rest"""
