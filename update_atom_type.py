@@ -62,7 +62,7 @@ class UpdateType(ReadParameter):
                     read_data.Masses_df = self._update_type(
                         read_data.Masses_df, atom_indent
                         )
-                    self.update_param(k, atom_indent)
+                    self.update_param(k, atom_indent, 'atoms')
                     atom_indent += read_data.NAtomTyp
                 else:
                     exit(f'{self.__class__.__name__}:\n'
@@ -71,22 +71,25 @@ class UpdateType(ReadParameter):
                     read_data.Bonds_df = self._update_type(
                         read_data.Bonds_df, bond_indent)
                     bond_indent += read_data.NBondTyp
+                    self.update_param(k, bond_indent, 'bonds')
                 if read_data.NAngleTyp > 0:
                     read_data.Angles_df = self._update_type(
                         read_data.Angles_df, angle_indent)
                     angle_indent += read_data.NAngleTyp
+                    self.update_param(k, angle_indent, 'angles')
                 if read_data.NDihedrals > 0:
                     read_data.Dihedrals_df = self._update_type(
                         read_data.Dihedrals_df, dihedral_indent)
                     dihedral_indent += read_data.NDihedralTyp
+                    self.update_param(k, dihedral_indent, 'dihedrals')
             up_dict[k]['data'] = read_data
         return up_dict
 
-    def update_param(self, symb: str, indent: int) -> None:
+    def update_param(self, symb: str, indent: int, parameter: str) -> None:
         """update type of atom in the parameter file"""
         for f in self.param['files']:
             if f['symb'] is symb:
-                for atom in f['atoms']:
+                for atom in f[parameter]:
                     atom['type'] += indent
 
     def _update_type(self, df: pd.DataFrame, indent: int) -> pd.DataFrame:
