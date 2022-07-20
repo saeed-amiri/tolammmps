@@ -34,7 +34,8 @@ class WriteParam:
         """find out the pairs that have somthing together"""
         self.lj_df = self.mk_lj_piar_df()
         self.mix_df = self.mk_mix_pair_df()  # Parameters for the i&j pairs
-        self.mk_bond_df()
+        self.bond_df = self.mk_bond_df()
+        self.angle_df = self.mk_angle_df()
         PARAMFIEL = 'parameters.lmp'
         print(f'{self.__class__.__name__}:\n'
               f'\tWritting: "{PARAMFIEL}"\n')
@@ -63,16 +64,40 @@ class WriteParam:
             except KeyError:
                 pass
 
+    def mk_angle_df(self) -> pd.DataFrame:
+        """make dataframe for all the angles information.
+        It contains the bonds with updated "types"
+        """
+        df: pd.DataFrame  # Temporary dataframe
+        angle_df: pd.DataFrame  # The main dataframe for angles' info
+        df_list: list[pd.DataFrame] = []  # To append df in loop
+        _angle: dict[str, list[str]]  # Temporary dict to correct form
+        symb_list: list[str] = []  # To save the symbol of each file
+        for f in self.param['files']:
+            for angle in f['angles']:
+                _angle = {k: [v] for k, v in angle.items()}
+                df = pd.DataFrame.from_dict(_angle, orient='columns')
+                df_list.append(df)
+                symb_list.append(f['symb'])
+                del df
+        angle_df = pd.concat(df_list)
+        del df_list
+        angle_df['f_symb'] = symb_list
+        angle_df.sort_values(by='type', inplace=True, axis=0)
+        angle_df.reset_index(inplace=True)
+        angle_df.drop(['index'], inplace=True, axis=1)
+        angle_df.index += 1
+        return angle_df
+
     def mk_bond_df(self) -> pd.DataFrame:
         """make dataframe for all the bonds information.
         It contains the bonds with updated "types"
         """
         df: pd.DataFrame  # Temporary dataframe
-        bond_df: pd.DataFrame  # The main dataframe for bond's info
+        bond_df: pd.DataFrame  # The main dataframe for bonds' info
         df_list: list[pd.DataFrame] = []  # To append df in loop
         _bond: dict[str, list[str]]  # Temporary dict to correct form
         symb_list: list[str] = []  # To save the symbol of each file
-        style_list: list[str] = []  # To save the style of each forcefiled
         for f in self.param['files']:
             for bond in f['bonds']:
                 _bond = {k: [v] for k, v in bond.items()}
