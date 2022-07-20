@@ -133,13 +133,16 @@ class WriteParam:
             r_cut_j: float = self.lj_df.iloc[pair[1]-1]['r_cut']
             mix_i: str = self.lj_df.iloc[pair[0]-1]['mix']
             mix_j: str = self.lj_df.iloc[pair[1]-1]['mix']
+
             pair_style: str = self.set_pair_style(file_i, file_j, pair)
-            args: str = self.set_pair_args(epsilon_i, epsilon_j, sigma_i,
-                                           sigma_j, r_cut_i, r_cut_j, pair,
-                                           mix_i, mix_j, file_i, file_j)
+
+            args: str = self.set_pair_args(
+                epsilon_i, epsilon_j, sigma_i, sigma_j, r_cut_i, r_cut_j, pair,
+                mix_i, mix_j, file_i, file_j)
+
             f.write(f'pair_coeff {pair[0]} {pair[1]}'
                     f' {pair_style} {args}')
-            f.write(f' # {i+1} pair: {name_i} - {name_j}\n')
+            f.write(f'  # {i+1} pair: {name_i} - {name_j}\n')
         f.write(f"\n")
         del _df
 
@@ -156,11 +159,11 @@ class WriteParam:
                       file_i: str,
                       file_j: str) -> str:
         """make a sequnce of the interaction arguments"""
+        mix: str  # "mix" style LAMMPS equation
+        r_cut: float  #  Calculated r_cut
+        epsilon: float  # Calculated epsilon
+        sigma: float  # Calculated sigma
         args: list[typing.Any] = []  # Make the arguments for interactions
-        sigma: float
-        epsilon: float
-        r_cut: float
-        # mix = None
         if pair[0] == pair[1]:
             sigma = sigma_i
             epsilon = epsilon_i
