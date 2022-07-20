@@ -1,0 +1,83 @@
+{
+    "files": [
+        {
+            "file": "decane.data",
+            "symb": "D",
+            "style": "lj/cut 10",
+            "mix": "arithmetic",
+            "atoms": [
+                {
+                    "type": 1, "name": "CH2", "sigma": 3.5, "epsilon": 0.066, "r_cut": 1.0
+                },
+                {
+                    "type": 2, "name": "CH3", "sigma": 3.5, "epsilon": 0.066, "r_cut": 1.0
+                },
+                {
+                    "type": 3, "name": "HC", "sigma": 2.5, "epsilon": 0.030, "r_cut": 1.0
+                }
+            ],
+            "bonds": [
+                {
+                    "type": 1, "name": "CH2-CH3", "style": "harmonic", "kbond": 268, "r": 1.529
+                },
+                {
+                    "type": 2, "name": "HC-CH", "style": "harmonic", "kbond": 340, "r": 1.09
+                }
+            ],
+            "angles": [
+                {
+                    "type": 1, "name": "CH-CH-CH", "style": "harmonic", "kangle": 58.35, "angle": 112.7
+                },
+                {
+                    "type": 2, "name": "HC-CH-HC", "style": "harmonic", "kangle": 33, "angle": 107.8
+                },
+                {
+                    "type": 3, "name": "CH-CH-HC", "style": "harmonic", "kangle": 37.5, "angle": 110.7
+                }
+            ],
+            "dihedrals": [
+                {
+                    "type": 1, "name": "CH-CH-CH-CH", "style": "opls", "k1": 1.74, "k2": -0.157, "k3": 0.279, "k4": 0.0
+                },
+                {
+                    "type": 2, "name": "CH-CH-CH-HC", "style": "opls", "k1": 0.0, "k2": 0.0, "k3": 0.366, "k4": 0.0
+                },
+                {
+                    "type": 3, "name": "HC-CH-CH-HC", "style": "opls", "k1": 0.0, "k2": 0.0, "k3": 0.318, "k4": 0.0
+
+                }
+            ]
+        },
+        {
+            "file": "solvate.data",
+            "symb": "W",
+            "style": "lj/cut 10",
+            "mix": "arithmetic",
+            "atoms": [
+                {
+                    "type": 1, "name": "H", "sigma": 0.0, "epsilon": 0.0, "r_cut": 1.0
+                },
+                {
+                    "type": 2, "name": "O", "sigma": 3.166, "epsilon": 0.15535, "r_cut": 1.0
+                }
+            ],
+            "bonds": [
+                {
+                    "type": 1, "name": "H-O", "style": "harmonic", "kbond": 1, "r": 1.0
+                }
+            ],
+            "angles": [
+                {
+                    "type": 1, "name": "H-O-H", "style": "harmonic", "kangle": 1, "angle": 109.47
+                }
+            ]
+        }
+    ],
+    "Pairs": [
+        {
+            "pair": "DW",
+            "style": "lj/cut",
+            "mix": "arithmetic"
+        }
+    ]
+}
