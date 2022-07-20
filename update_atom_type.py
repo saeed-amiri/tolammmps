@@ -70,18 +70,18 @@ class UpdateType(ReadParameter):
                 if read_data.NBondTyp > 0:
                     read_data.Bonds_df = self._update_type(
                         read_data.Bonds_df, bond_indent)
-                    bond_indent += read_data.NBondTyp
                     self.update_param(k, bond_indent, 'bonds')
+                    bond_indent += read_data.NBondTyp
                 if read_data.NAngleTyp > 0:
                     read_data.Angles_df = self._update_type(
                         read_data.Angles_df, angle_indent)
-                    angle_indent += read_data.NAngleTyp
                     self.update_param(k, angle_indent, 'angles')
+                    angle_indent += read_data.NAngleTyp
                 if read_data.NDihedrals > 0:
                     read_data.Dihedrals_df = self._update_type(
                         read_data.Dihedrals_df, dihedral_indent)
-                    dihedral_indent += read_data.NDihedralTyp
                     self.update_param(k, dihedral_indent, 'dihedrals')
+                    dihedral_indent += read_data.NDihedralTyp
             up_dict[k]['data'] = read_data
         return up_dict
 
