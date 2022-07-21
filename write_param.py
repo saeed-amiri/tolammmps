@@ -302,9 +302,9 @@ class WriteParam(MakeParamDf):
                     epsilon_i, epsilon_j, sigma_i, sigma_j,
                     r_cut_i, r_cut_j, mix)
 
-        args.append(f'{epsilon: 8.3f}')
-        args.append(f'{sigma: 8.3f}')
-        args.append(f'{r_cut: 8.3f}')
+        args.append(f'{epsilon: .5f}')
+        args.append(f'{sigma: .5f}')
+        args.append(f'{r_cut: .5f}')
         return " ".join(args)
 
     def mixed_sigma_epsilon(self,
@@ -367,8 +367,8 @@ class WriteParam(MakeParamDf):
     def bond_args(self, i_loc: int) -> str:
         """return str contains arguments for the bond coeffs"""
         args: str
-        args = f'{self.bond_df.iloc[i_loc]["kbond"]: 8.3f} ' \
-               f'{self.bond_df.iloc[i_loc]["r"]: 8.3f}'
+        args = f'{self.bond_df.iloc[i_loc]["kbond"]: .5f} ' \
+               f'{self.bond_df.iloc[i_loc]["r"]: .5f}'
         return args
 
     def write_angle_triple(self,
@@ -399,8 +399,8 @@ class WriteParam(MakeParamDf):
     def angle_args(self, i_loc: int) -> str:
         """return str contains arguments for the angle coeffs"""
         args: str
-        args = f'{self.angle_df.iloc[i_loc]["kangle"]: 8.3f} '\
-               f'{self.angle_df.iloc[i_loc]["angle"]: 8.3f}'
+        args = f'{self.angle_df.iloc[i_loc]["kangle"]: .5f} '\
+               f'{self.angle_df.iloc[i_loc]["angle"]: .5f}'
         return args
 
     def write_dihedral_qudrauple(self,
@@ -431,10 +431,10 @@ class WriteParam(MakeParamDf):
     def dihedral_args(self, i_loc: int) -> str:
         """return str contains arguments for the angle coeffs"""
         args: str
-        args = f'{self.dihedral_df.iloc[i_loc]["k1"]: 8.3f} '\
-               f'{self.dihedral_df.iloc[i_loc]["k2"]: 8.3f} '\
-               f'{self.dihedral_df.iloc[i_loc]["k3"]: 8.3f} '\
-               f'{self.dihedral_df.iloc[i_loc]["k4"]: 8.3f}'
+        args = f'{self.dihedral_df.iloc[i_loc]["k1"]: .5f} '\
+               f'{self.dihedral_df.iloc[i_loc]["k2"]: .5f} '\
+               f'{self.dihedral_df.iloc[i_loc]["k3"]: .5f} '\
+               f'{self.dihedral_df.iloc[i_loc]["k4"]: .5f}'
         return args
 
     def mk_pairs(self) -> list[tuple[int, int]]:
@@ -593,6 +593,8 @@ class WriteParam(MakeParamDf):
 
     def drop_digit(self, s: str) -> str:
         """drop numbers from string"""
+        # Drop dot '.' in case of a float number
+        s = re.sub(r" *\.+", " ", s).strip()
         return re.sub(r" \d+", " ", s).strip()
 
     def keep_letter(self, s: str) -> str:
