@@ -18,11 +18,52 @@ class Doc:
 
 class Rotate:
     """get the data file and rotate along axis"""
-    def __init__(self) -> None:
-        pass
+    def __init__(self, df: pd.DataFrame) -> None:
+        self.rotate(df)
+
+    def rotate(self, df: pd.DataFrame) -> None:
+        """call functions"""
+        self.rotate_ax(df)
+
+    def rotate_ax(self, df: pd.DataFrame) -> None:
+        """rotate alnog x axis"""
+        print(df['mol'])
+
+    def x_rotation(self,
+                   theta: float,
+                   x: float,
+                   y: float,
+                   z: float) -> tuple[float, float, float]:
+        """calculate the rotation matrix along x axis"""
+        x_: float = x
+        y_: float = y*np.cos(theta)-z*np.sin(theta)
+        z_: float = y*np.sin(theta)+z*np.cos(theta)
+        return x_, y_, z_
+
+    def y_rotation(self,
+                   theta: float,
+                   x: float,
+                   y: float,
+                   z: float) -> tuple[float, float, float]:
+        """calculate the rotation matrix along y axis"""
+        x_: float = x*np.cos(theta)+z*np.sin(theta)
+        y_: float = y
+        z_: float = z*np.cos(theta)-x*np.sin(theta)
+        return x_, y_, z_
+
+    def z_rotation(self,
+                   theta: float,
+                   x: float,
+                   y: float,
+                   z: float) -> tuple[float, float, float]:
+        """calculate the rotation matrix along z axis"""
+        x_: float = x*np.cos(theta)-y*np.sin(theta)
+        y_: float = y*np.sin(theta)+y*np.cos(theta)
+        z_: float = z
+        return x_, y_, z_
 
 
 if __name__ == '__main__':
     fname = sys.argv[1]
     data = rlmp.ReadData(fname)
-    print(data.Atoms_df)
+    rot = Rotate(data.Atoms_df)
