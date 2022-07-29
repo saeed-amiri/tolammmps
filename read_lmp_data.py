@@ -1,7 +1,6 @@
 import sys
 import typing
 import pandas as pd
-from sqlalchemy import column
 
 
 class FileErr:
@@ -33,7 +32,7 @@ class Header:
     def __init__(self, infile) -> None:
         self.infile: str = infile
         print(f'{self.__class__.__name__}:\n'
-              f'\tReading: {self.infile}\n')
+              f'\tReading: `{self.infile}`\n')
         self.atomsLine: int
         self.atomsLine = self.check_file()
         self.read_header()
@@ -346,24 +345,34 @@ class Body(Header):
 
     def get_bonds(self, line) -> None:
         # stting the nth row of the dictionary
+        cmt_flag: bool = False
         if 'Bonds' not in line:
             if '#' in line:
-                line = line.split('#')[0]
+                cmt_flag = True
             line = line.split()
             line = [item for item in line]
             line = [item for item in line if item]
-            # print(line)
-            line = [int(item) for item in line]
+            line[:4] = [int(item) for item in line[:4]]
             bond_id = line[0]
-            # print(bond_id)
             i_typ = int(line[1])
             i_ai = int(line[2])
             i_aj = int(line[3])
-            self.Bonds[bond_id] = dict(
-                                        typ=i_typ,
-                                        ai=i_ai,
-                                        aj=i_aj
-                                       )
+            if cmt_flag:
+                i_cmt = line[4]
+                i_name = line[5]
+                self.Bonds[bond_id] = dict(
+                                           typ=i_typ,
+                                           ai=i_ai,
+                                           aj=i_aj,
+                                           cmt=i_cmt,
+                                           name=i_name
+                                           )
+            else:
+                self.Bonds[bond_id] = dict(
+                                           typ=i_typ,
+                                           ai=i_ai,
+                                           aj=i_aj
+                                           )
 
     def get_angles(self, line) -> None:
         # stting the nth row of the dictionary
