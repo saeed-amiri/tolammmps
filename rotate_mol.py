@@ -27,7 +27,14 @@ class Rotate:
 
     def rotate_ax(self, df: pd.DataFrame) -> None:
         """rotate alnog x axis"""
-        print(df['mol'])
+        Nmols = np.max(df['mol'])
+        self.random_tetha(Nmols)
+
+    def random_tetha(self, Nmols: int) -> list[float]:
+        """return a list of random angles, with length Nmols"""
+        theta_list: list[float] = np.random.normal(size=Nmols)
+        theta_list = [item*np.pi/2 for item in theta_list]
+        print(theta_list)
 
     def x_rotation(self,
                    theta: float,
