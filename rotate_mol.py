@@ -23,18 +23,32 @@ class Rotate:
 
     def rotate(self, df: pd.DataFrame) -> None:
         """call functions"""
-        self.rotate_ax(df)
+        self.df = self.rotate_ax(df)
 
     def rotate_ax(self, df: pd.DataFrame) -> None:
         """rotate alnog x axis"""
-        Nmols = np.max(df['mol'])
-        self.random_tetha(Nmols)
+        Nmols: int = np.max(df['mol'])
+        theta_list: list[float] =self.random_tetha(Nmols)
+        rot_x: list[float] = []  # To append the new x
+        rot_y: list[float] = []  # To append the new y
+        rot_z: list[float] = []  # To append the new z
+        for x, y, z, mol in zip(df['x'], df['y'], df['z'], df['mol']):
+            x_, y_, z_ = self.x_rotation(x, y, z, theta_list[mol-1])
+            rot_x.append(x_)
+            rot_y.append(y_)
+            rot_z.append(z_)
+        df['x'] = rot_x
+        df['y'] = rot_y
+        df['z'] = rot_z
+        del rot_x, rot_y, rot_z
+        return df
+
 
     def random_tetha(self, Nmols: int) -> list[float]:
         """return a list of random angles, with length Nmols"""
         theta_list: list[float] = np.random.normal(size=Nmols)
         theta_list = [item*np.pi/2 for item in theta_list]
-        print(theta_list)
+        return theta_list
 
     def x_rotation(self,
                    theta: float,
@@ -74,3 +88,5 @@ if __name__ == '__main__':
     fname = sys.argv[1]
     data = rlmp.ReadData(fname)
     rot = Rotate(data.Atoms_df)
+    data.Atoms_df = rot.df
+    
