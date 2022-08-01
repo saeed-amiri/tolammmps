@@ -25,8 +25,8 @@ class Rotate:
     def rotate(self, df: pd.DataFrame) -> None:
         """call functions"""
         # self.df = self.same_rotate_ax(df)
-        self.df = self.rotate_com(df)
-        self.bent_mol(df)
+        # self.df = self.rotate_com(df)
+        self.df = self.bent_mol(df)
 
     def rotate_com(self, df: pd.DataFrame) -> pd.DataFrame:
         """rotate each molecule around its center of mass (aom)"""
@@ -69,10 +69,14 @@ class Rotate:
             x_ = atom['x'] - com_list[mol_index][0]
             y_ = atom['y'] - com_list[mol_index][1]
             z_ = atom['z'] - com_list[mol_index][2]
-            p_x, p_y, p_z = self.cartisain_to_spherical(x_, y_, z_)
-            x_list.append(p_x)
-            y_list.append(p_y)
-            z_list.append(p_z)
+            if z_ == 0:
+                print(f"There is zero z in mol #: {mol_index}")
+            rho, theta, phi = self.cartisain_to_spherical(x_, y_, z_)
+            p_x, p_y, p_z = self.spherical_to_cartisian(rho, theta, phi)
+            # p_x, p_y, p_z = self.project_to_sephere(2, x_, y_, z_)
+            x_list.append(p_x + com_list[mol_index][0])
+            y_list.append(p_y + com_list[mol_index][1])
+            z_list.append(p_z + com_list[mol_index][2])
         df['x'] = x_list
         df['y'] = y_list
         df['z'] = z_list
@@ -155,12 +159,54 @@ class Rotate:
         z_: float = z
         return x_, y_, z_
 
-    def cartisain_to_spherical(self, x, y, z) -> tuple[float, float, float]:
-        """Conversion between Cylindrical and Cartesian Coordinates"""
-        r: float = np.sqrt(x*x+y*y+z*z)
+    def cartisain_to_spherical(self,
+                               x: float,
+                               y: float,
+                               z: float) -> tuple[float, float, float]:
+        """Conversion between Spherical and Cartesian Coordinates"""
+        rho: float = np.sqrt(x*x+y*y+z*z)
         theta: float = np.arctan2(y, x)
         phi: float = np.arctan2(np.sqrt(x*x+y*y), z)
-        return r, theta, phi
+        return rho, theta, phi
+
+    def spherical_to_cartisian(self,
+                               rho: float,
+                               theta: float,
+                               phi: float) -> tuple[float, float, float]:
+        """Conversion between Cartesian and Spherical Coordinates"""
+        # theta = np.pi/1
+        x: float = rho*np.sin(phi)*np.cos(theta)
+        y: float = rho*np.sin(phi)*np.sin(theta)
+        z: float = rho*np.cos(phi)
+        return x, y, z
+    
+    def project_to_sephere(self,
+                           r: float,
+                           x: float,
+                           y: float,
+                           z: float) -> tuple[float, float, float]:
+        """project a point on a sphere with radius = r"""
+        x0: float = 0.5  # center of the sphere
+        y0: float = 0.5  # center of the sphere
+        z0: float = 0.5  # center of the sphere
+        p_x: float = x - x0
+        p_y: float = y - y0
+        p_z: float = z - z0
+        len_p: float = np.sqrt(x*x+y*y+z*z)  # Lenght of the vector
+        scale: float = r/len_p
+        q_x: float = scale * p_x
+        q_y: float = scale * p_y
+        q_z: float = scale * p_z
+        x_s: float = q_x + x0
+        y_s: float = q_y + y0
+        z_s: float = q_z + z0
+        return x_s, y_s, z_s
+
+
+
+
+
+
 
 
 if __name__ == '__main__':
