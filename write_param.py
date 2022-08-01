@@ -167,13 +167,16 @@ class MakeParamDf:
                     del df
             else:
                 pass
-        dihedral_df = pd.concat(df_list)
+        if df_list:
+            dihedral_df = pd.concat(df_list)
+            dihedral_df['f_symb'] = symb_list
+            dihedral_df.sort_values(by='type', inplace=True, axis=0)
+            dihedral_df.reset_index(inplace=True)
+            dihedral_df.drop(['index'], inplace=True, axis=1)
+            dihedral_df.index += 1
+        else:
+            dihedral_df = pd.DataFrame(df_list)
         del df_list
-        dihedral_df['f_symb'] = symb_list
-        dihedral_df.sort_values(by='type', inplace=True, axis=0)
-        dihedral_df.reset_index(inplace=True)
-        dihedral_df.drop(['index'], inplace=True, axis=1)
-        dihedral_df.index += 1
         return dihedral_df
 
 
@@ -304,7 +307,7 @@ class WriteParam(MakeParamDf):
 
         args.append(f'{epsilon: .5f}')
         args.append(f'{sigma: .5f}')
-        args.append(f'{r_cut: .5f}')
+        # args.append(f'{r_cut: .5f}')
         return " ".join(args)
 
     def mixed_sigma_epsilon(self,
