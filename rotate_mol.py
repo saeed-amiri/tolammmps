@@ -26,6 +26,7 @@ class Rotate:
         """call functions"""
         # self.df = self.same_rotate_ax(df)
         self.df = self.rotate_com(df)
+        self.bent_mol(df)
 
     def rotate_com(self, df: pd.DataFrame) -> pd.DataFrame:
         """rotate each molecule around its center of mass (aom)"""
@@ -49,6 +50,29 @@ class Rotate:
             x_list.append(p_x + com_list[mol_index][0])
             y_list.append(p_y + com_list[mol_index][1])
             z_list.append(p_z + com_list[mol_index][2])
+        df['x'] = x_list
+        df['y'] = y_list
+        df['z'] = z_list
+        return df
+
+    def bent_mol(self, df: pd.DataFrame) -> pd.DataFrame:
+        """benting the moles by transformin them to spherical coords"""
+        mol_list = df['mol'].copy()
+        mol_set = set(mol_list)
+        com_list: list[tuple[float, float, float]]  # COM of each molecule
+        com_list = self.get_com(df, mol_set)
+        x_list = []
+        y_list = []
+        z_list = []
+        for i, atom in df.iterrows():
+            mol_index = atom['mol'] - 1
+            x_ = atom['x'] - com_list[mol_index][0]
+            y_ = atom['y'] - com_list[mol_index][1]
+            z_ = atom['z'] - com_list[mol_index][2]
+            p_x, p_y, p_z = self.cartisain_to_spherical(x_, y_, z_)
+            x_list.append(p_x)
+            y_list.append(p_y)
+            z_list.append(p_z)
         df['x'] = x_list
         df['y'] = y_list
         df['z'] = z_list
@@ -95,7 +119,7 @@ class Rotate:
     def random_tetha(self, Nmols: int) -> list[float]:
         """return a list of random angles, with length Nmols"""
         theta_list: list[float] = np.random.normal(size=Nmols)
-        theta_list = [item*np.pi/2 for item in theta_list]
+        theta_list = [item*np.pi/6 for item in theta_list]
         return theta_list
 
     def x_rotation(self,
@@ -130,6 +154,13 @@ class Rotate:
         y_: float = y*np.sin(theta)+y*np.cos(theta)
         z_: float = z
         return x_, y_, z_
+
+    def cartisain_to_spherical(self, x, y, z) -> tuple[float, float, float]:
+        """Conversion between Cylindrical and Cartesian Coordinates"""
+        r: float = np.sqrt(x*x+y*y+z*z)
+        theta: float = np.arctan2(y, x)
+        phi: float = np.arctan2(np.sqrt(x*x+y*y), z)
+        return r, theta, phi
 
 
 if __name__ == '__main__':
