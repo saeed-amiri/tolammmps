@@ -454,6 +454,7 @@ class WriteParam(MakeParamDf):
         j_id: int  # To temp save the atoms type
         _df_bpair: pd.DataFrame  # To return bond pair information
         _df = self.obj.Bonds_df.copy()
+        _df['ai'] = pd.to_numeric(_df['ai'])
         _df = _df.loc[_df.groupby(by=['typ'])['ai'].idxmin(), :]
         _df = _df.reset_index()  # To make "typ" as a column
         bond_list = _df['typ']
