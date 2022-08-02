@@ -279,7 +279,7 @@ class WriteParam(MakeParamDf):
                       file_i: str,
                       file_j: str) -> str:
         """make a sequnce of the interaction arguments"""
-        mix: str  # "mix" style LAMMPS equation
+        mix: str = None  # "mix" style LAMMPS equation
         r_cut: float  # Calculated r_cut
         epsilon: float  # Calculated epsilon
         sigma: float  # Calculated sigma
@@ -301,6 +301,9 @@ class WriteParam(MakeParamDf):
                     if pair_mix in list(self.mix_df['pair']):
                         mix = self.mix_df.loc[self.mix_df['pair'] ==
                                               pair_mix]['mix'][1]
+                if mix is None:
+                    exit(f'\tError!: The interactions between'
+                         f' files are not defeiend')
                 epsilon, sigma, r_cut = self.mixed_sigma_epsilon(
                     epsilon_i, epsilon_j, sigma_i, sigma_j,
                     r_cut_i, r_cut_j, mix)
