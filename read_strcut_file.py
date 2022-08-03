@@ -14,13 +14,16 @@ class Structure:
         """make a matrix out of the blocks symbols"""
         self.check_files(self.fname)
         print(f'{self.__class__.__name__}:\n'
-              f'\treading "{self.fname}"')
-        self.files, self.block, self.axis = self.read_struct()
+              f'\tReading `{self.fname}`')
+        self.files, self.block, self.axis, self.param_fname, self.output =\
+            self.read_struct()
+        print(self.output)
 
-    def read_struct(self) -> tuple[dict, dict, dict]:
+    def read_struct(self) -> tuple[dict, dict, dict, str, str]:
         """read the strut file"""
         f: typing.IO  # a string to save file
         line: str  # a string to save lines of the strcut file
+        out_fname: str = 'blocked.data'
         bed_count: int = 0  # to count lines in the matrix of bolcks
         symbole_dict: dict[str, str] = {}  # dict to save name and symb
         block_dict: dict[int, list[str]] = {}  # dict to save matrix
@@ -36,14 +39,19 @@ class Structure:
                     symbole_dict[sym] = fname
                 elif line.startswith('axis'):
                     axis_dict['axis'] = self.get_axis(line)
+                elif line.startswith('param'):
+                    param_fname = self.get_name(line)
+                elif line.startswith('output'):
+                    out_fname = self.get_name(line)
                 elif line.strip():
                     m_list = self.get_matrix(line.strip())
                     block_dict[bed_count] = m_list
                     bed_count += 1
                 if not line:
                     break
+        print(f'\tOutput: `{out_fname}\n`')
         self.check_dicts(symbole_dict, block_dict)
-        return symbole_dict, block_dict, axis_dict
+        return symbole_dict, block_dict, axis_dict, param_fname, out_fname
 
     def get_files(self, line: str) -> tuple[str, str]:
         """check the files name and if they are not empty"""
@@ -74,6 +82,10 @@ class Structure:
             print(f'\tWARNING: Unknonwn second axis. Set to "z" ')
             ax = 'z'
             return ax
+
+    def get_name(self, line: str) -> str:
+        """return the name of the parameter files"""
+        return line.split('=')[1].strip()
 
     def get_matrix(self, line: str) -> list[str]:
         """read the matrix section of the struct file"""
