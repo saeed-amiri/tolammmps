@@ -50,8 +50,9 @@ class Doc:
 super_str = struct.Structure()
 files = super_str.files
 param_fname = super_str.param_fname
+output_fname = super_str.output
 bs = mupdate.UpdateType(files, param_fname)
 s = mstack.StackData(super_str.block, super_str.axis, bs)
-wrt = lmpwrt.WriteLmp(s)
+wrt = lmpwrt.WriteLmp(s, output_fname)
 wrt.write_lmp()
-parm = parwrt.WriteParam(s)
+parm = parwrt.WriteParam(s, bs)
