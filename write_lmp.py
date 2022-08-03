@@ -33,7 +33,7 @@ class GetData:
             self.get_dihedrals(obj.Dihedrals_df)
         except AttributeError:
             pass
-        
+
     def get_atoms(self, df: pd.DataFrame) -> None:
         """get the number of atoms and thier types"""
         self.Natom_types: int  # Number of atom types
@@ -81,12 +81,12 @@ class GetData:
 
 class WriteLmp(GetData):
     """write data in LAMMPS in full atom style"""
-    def __init__(self, obj) -> None:
+    def __init__(self, obj, output: str = 'blocked.data') -> None:
         super().__init__(obj)
         self.obj = obj
-        self.fname = 'blocked.data'
+        self.fname = output
         print(f'{self.__class__.__name__}:\n'
-              f'\tWrite "{self.fname}"\n')
+              f'\tWrite `{self.fname}`\n')
 
     def write_lmp(self) -> None:
         """call all the function"""
@@ -192,7 +192,7 @@ class WriteLmp(GetData):
         else:
             print(f'{self.__class__.__name__}\n'
                   f'\tWARNING: Bonds section is empty\n')
-    
+
     def write_angles(self, df: pd.DataFrame, f: typing.TextIO) -> None:
         """write angles section"""
         if not df.empty:
