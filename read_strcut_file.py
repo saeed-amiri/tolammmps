@@ -49,7 +49,7 @@ class Structure:
                     bed_count += 1
                 if not line:
                     break
-        print(f'\tOutput: `{out_fname}\n`')
+        print(f'\tOutput: `{out_fname}`\n')
         self.check_dicts(symbole_dict, block_dict)
         return symbole_dict, block_dict, axis_dict, param_fname, out_fname
 
